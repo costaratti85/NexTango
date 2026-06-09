@@ -1,0 +1,51 @@
+{
+  "doctype": "DocType",
+  "name": "SI Tango Price Cache",
+  "module": "Sistema Industrial",
+  "autoname": "format:SI-TANGO-PRICE-.#####",
+  "custom": 0,
+  "editable_grid": 1,
+  "is_submittable": 0,
+  "istable": 0,
+  "fields": [
+    {
+      "fieldname": "item_code",
+      "fieldtype": "Data",
+      "label": "Item Code",
+      "reqd": 1
+    },
+    {
+      "fieldname": "unit_price",
+      "fieldtype": "Currency",
+      "label": "Unit Price",
+      "reqd": 1
+    },
+    {
+      "fieldname": "currency",
+      "fieldtype": "Data",
+      "label": "Currency",
+      "default": "ARS"
+    },
+    {
+      "fieldname": "list_name",
+      "fieldtype": "Data",
+      "label": "List Name",
+      "default": "default"
+    },
+    {
+      "fieldname": "source",
+      "fieldtype": "Data",
+      "label": "Source",
+      "default": "tango"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    }
+  ]
+}

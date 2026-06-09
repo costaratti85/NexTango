@@ -1,0 +1,55 @@
+{
+  "doctype": "DocType",
+  "name": "SI Cut Batch",
+  "module": "Sistema Industrial",
+  "autoname": "format:SI-CUT-BATCH-.#####",
+  "custom": 0,
+  "editable_grid": 1,
+  "is_submittable": 0,
+  "istable": 0,
+  "fields": [
+    {
+      "fieldname": "material",
+      "fieldtype": "Data",
+      "label": "Material",
+      "reqd": 1
+    },
+    {
+      "fieldname": "thickness_mm",
+      "fieldtype": "Float",
+      "label": "Thickness MM",
+      "reqd": 1
+    },
+    {
+      "fieldname": "part_count",
+      "fieldtype": "Int",
+      "label": "Part Count"
+    },
+    {
+      "fieldname": "dxf_path",
+      "fieldtype": "Data",
+      "label": "DXF Path"
+    },
+    {
+      "fieldname": "manifest_path",
+      "fieldtype": "Data",
+      "label": "Manifest Path"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "draft\ncompiled\nsent_to_cypcut\ncut\ncancelled",
+      "default": "draft"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    }
+  ]
+}

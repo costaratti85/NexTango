@@ -1,0 +1,52 @@
+{
+  "doctype": "DocType",
+  "name": "SI Cut Piece",
+  "module": "Sistema Industrial",
+  "autoname": "format:SI-CUT-PIECE-.#####",
+  "custom": 0,
+  "editable_grid": 1,
+  "is_submittable": 0,
+  "istable": 0,
+  "fields": [
+    {
+      "fieldname": "order_id",
+      "fieldtype": "Data",
+      "label": "Order ID",
+      "reqd": 1
+    },
+    {
+      "fieldname": "material",
+      "fieldtype": "Data",
+      "label": "Material",
+      "reqd": 1
+    },
+    {
+      "fieldname": "thickness_mm",
+      "fieldtype": "Float",
+      "label": "Thickness MM",
+      "reqd": 1
+    },
+    {
+      "fieldname": "quantity",
+      "fieldtype": "Int",
+      "label": "Quantity",
+      "reqd": 1
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "pending_cut\nbatched\nsent_to_cypcut\ncut\ncancelled",
+      "default": "pending_cut"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    }
+  ]
+}

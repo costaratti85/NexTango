@@ -1,10 +1,10 @@
 """DocType blueprint names for the future Frappe implementation."""
 
 DOCTYPE_BLUEPRINTS = {
-    "SI Preset Order": "Commercial document generated from a configurable preset.",
-    "SI Pending Cut Part": "Piece waiting to be compiled into a cut batch.",
-    "SI Cut Batch": "Batch of parts by material/thickness exported to DXF.",
+    "SI Preset": "Configurable industrial preset, starting with panel_decorativo.",
+    "SI Client Piece": "Customer-owned reusable piece reference and revision marker.",
+    "SI Cut Piece": "Piece waiting for cut batching and shop-floor status tracking.",
+    "SI Cut Batch": "Batch of parts by material/thickness exported to DXF and manifest.",
     "SI Tango Price Cache": "Local ERPNext cache of Tango published prices.",
-    "SI Tango Fiscal Document": "Mirror/audit of Tango invoices and credit notes.",
-    "SI OCR Supplier Intake": "Validated supplier invoice OCR intake record.",
+    "SI Linear Cut Request": "Future neutral request for linear cutting work.",
 }
