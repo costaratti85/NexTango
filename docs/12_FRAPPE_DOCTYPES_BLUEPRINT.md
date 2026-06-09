@@ -22,7 +22,6 @@ Rule: extend ERPNext, do not fork or rewrite ERPNext core.
 
 ## Future DocTypes to Preserve
 
-- SI Linear Cut Request
 - SI Linear Cut Plan
 - SI Linear Remnant
 - SI Client Piece Revision
