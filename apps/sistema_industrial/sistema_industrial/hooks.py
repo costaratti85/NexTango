@@ -1,0 +1,6 @@
+app_name = "sistema_industrial"
+app_title = "Sistema Industrial"
+app_publisher = "SistemaIndustrial"
+app_description = "Industrial integration app over ERPNext"
+app_email = "costaratti@gmail.com"
+app_license = "MIT"

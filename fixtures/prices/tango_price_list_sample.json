@@ -1,0 +1,6 @@
+{
+  "prices": [
+    {"item_code": "PANEL_DECORATIVO", "unit_price": 1234.5, "currency": "ARS", "source": "tango", "list_name": "default"},
+    {"item_code": "LASER_M", "unit_price": 250.0, "currency": "ARS", "source": "tango", "list_name": "default"}
+  ]
+}

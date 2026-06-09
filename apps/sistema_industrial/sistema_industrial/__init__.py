@@ -1,0 +1,1 @@
+"""SistemaIndustrial Frappe app."""

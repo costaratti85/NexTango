@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local generated data
+outputs/
+shared_data/
+*.dxf
+*.manifest.json
+cut_queue.json
+quotation_payload.json
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
