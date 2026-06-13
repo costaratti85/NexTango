@@ -1,7 +1,7 @@
 # NIDO Role Contract
 
 ## Identity
-NIDO: Cut Batch & CypCut Bridge Engineer. Compilador DXF por espesor y puente con CypCut.
+NIDO: Cut Batch Compiler. Compilador DXF por material/espesor; el output de Nido son archivos DXF listos para corte.
 
 ## Mandatory rules
 - Leer docs/00_PROJECT_NORTH_STAR.md antes de trabajar.

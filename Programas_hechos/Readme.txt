@@ -1,0 +1,1 @@
+En esta carpeta voy a poner programas que ya funcionan, pero fueron pensados para usarse solitos. Sin estar integrados a un sistema. Pero cuyo motor es muy valioso, para incorporar al Sistema.

@@ -8,12 +8,10 @@ El objetivo no es reemplazar de golpe la forma de trabajar de la empresa, sino c
 
 La arquitectura central es esta:
 
-- ERPNext será la columna vertebral operativa.
-- Sistema Industrial será la capa metalúrgica especializada.
-- Tango seguirá siendo el sistema fiscal y contable.
-- Excel seguirá siendo, por ahora, la herramienta humana de pricing.
-- CypCut resolverá nesting.
-- El postprocesador existente resolverá entradas, secuencia y código G.
+- ERPNext es la columna vertebral del sistema.
+- Sistema Industrial es la capa metalúrgica especializada: presets, DXF, trazabilidad e integración.
+- Tango es el sistema fiscal y contable, integrado via API.
+- Excel sigue siendo, por ahora, la herramienta humana de pricing.
 
 Por lo tanto, no debemos reinventar lo que ya está resuelto.
 
@@ -24,7 +22,7 @@ Nuestro trabajo es construir el puente inteligente entre pedido, cálculo indust
 1. No crear sistemas paralelos si ERPNext ya resuelve el dominio.
 2. No tocar Tango más allá de la frontera fiscal, contable y de precios maestros.
 3. No romper el flujo humano actual de precios en Excel.
-4. No intentar hacer nesting ni CAM si CypCut y el postprocesador ya lo resuelven.
+4. No implementar nesting ni CAM. El output del sistema son archivos DXF; lo que ocurre después es externo y fuera de scope.
 5. Priorizar rebanadas finas de punta a punta.
 6. Cada módulo debe tener límites claros.
 7. Cada decisión automática debe poder ser auditada.

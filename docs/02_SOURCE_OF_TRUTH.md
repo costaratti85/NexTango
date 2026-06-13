@@ -13,6 +13,5 @@
 | Pedidos operativos | ERPNext |
 | Factura fiscal | Tango |
 | Nota de crédito | Tango |
-| DXF piezas | SistemaIndustrial |
-| Nesting | CypCut |
-| G-code | Postprocesador propio |
+| DXF piezas (output final) | SistemaIndustrial |
+| Integración Tango | via API |

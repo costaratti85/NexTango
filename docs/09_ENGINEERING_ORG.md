@@ -7,6 +7,6 @@
 - Prisma: Pricing & Excel Integration Engineer.
 - Lumen: OCR Suppliers Engineer.
 - Punto: Preset & Geometry Engineer.
-- Nido: Cut Batch & CypCut Bridge Engineer.
+- Nido: Cut Batch Compiler.
 - Vega: UX/Frontend Engineer.
 - Orbit: DevOps & Automation Engineer.

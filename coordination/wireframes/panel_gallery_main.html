@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paneles Decorativos — Nuevo pedido</title>
+  <style>
+    /* ── Reset & base ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      font-size: 14px;
+    }
+
+    /* ── Top nav bar ───────────────────────────────────────────────── */
+    .topbar {
+      background: #176b87;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      height: 52px;
+      gap: 32px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+    }
+    .topbar .logo {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      white-space: nowrap;
+    }
+    .topbar nav { display: flex; gap: 4px; }
+    .topbar nav a {
+      color: rgba(255,255,255,.75);
+      text-decoration: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background .15s;
+    }
+    .topbar nav a:hover { background: rgba(255,255,255,.15); color: #fff; }
+    .topbar nav a.active {
+      background: rgba(255,255,255,.22);
+      color: #fff;
+    }
+    .topbar .spacer { flex: 1; }
+    .topbar .admin-link {
+      font-size: 12px;
+      color: rgba(255,255,255,.65);
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,.3);
+      padding: 4px 12px;
+      border-radius: 4px;
+    }
+    .topbar .admin-link:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+    /* ── Page layout ───────────────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #176b87;
+      margin-bottom: 24px;
+    }
+
+    /* ── Stepper indicator ─────────────────────────────────────────── */
+    .stepper {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 32px;
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-bubble {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      border: 2px solid #ccc;
+      background: #fff;
+      color: #999;
+      flex-shrink: 0;
+    }
+    .step-bubble.active { border-color: #176b87; background: #176b87; color: #fff; }
+    .step-bubble.done   { border-color: #176b87; background: #e8f4f8; color: #176b87; }
+    .step-label { font-size: 13px; color: #999; white-space: nowrap; }
+    .step-label.active { color: #176b87; font-weight: 600; }
+    .step-label.done   { color: #176b87; }
+    .step-connector {
+      flex: 1;
+      height: 2px;
+      background: #ddd;
+      margin: 0 10px;
+      min-width: 40px;
+    }
+    .step-connector.done { background: #176b87; }
+
+    /* ── Card / panel ──────────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: #176b87;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e8f4f8;
+      padding-bottom: 10px;
+    }
+
+    /* ── Step 1 — Pattern gallery ──────────────────────────────────── */
+    .pattern-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .pattern-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      border-radius: 8px;
+      border: 2px solid #e0e0e0;
+      padding: 10px;
+      background: #fafafa;
+      transition: border-color .18s, box-shadow .18s;
+      width: 170px;
+    }
+    .pattern-card:hover {
+      border-color: #176b87;
+      box-shadow: 0 2px 12px rgba(23,107,135,.18);
+    }
+    .pattern-card.selected {
+      border-color: #176b87;
+      background: #e8f4f8;
+      box-shadow: 0 0 0 3px rgba(23,107,135,.15);
+    }
+    .pattern-thumb {
+      width: 150px;
+      height: 150px;
+      background: #d0d8e0;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #607080;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      padding: 8px;
+      /* In production: background-image: url(...) */
+    }
+    /* Individual placeholder patterns (subtle geometric hint) */
+    .pattern-thumb.tresbolillo { background: #c8d5de; }
+    .pattern-thumb.rombo       { background: #d0cfe0; }
+    .pattern-thumb.cuadrado    { background: #d5e0d0; }
+    .pattern-thumb.hexagono    { background: #e0dad0; }
+    .pattern-thumb.flor        { background: #e0d0d8; }
+
+    .pattern-name {
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #2c3e50;
+      text-align: center;
+    }
+    .pattern-badge {
+      margin-top: 4px;
+      font-size: 10px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+    }
+    .selected-indicator {
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #176b87;
+      display: none;
+    }
+    .pattern-card.selected .selected-indicator { display: block; }
+
+    /* ── Step 2 — Outline ──────────────────────────────────────────── */
+    .outline-options {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .outline-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 14px 20px;
+      cursor: pointer;
+      background: #fafafa;
+      transition: border-color .18s, box-shadow .18s;
+      min-width: 130px;
+    }
+    .outline-card.active {
+      border-color: #176b87;
+      background: #e8f4f8;
+      box-shadow: 0 0 0 3px rgba(23,107,135,.15);
+    }
+    .outline-card.disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      background: #f5f5f5;
+    }
+    .outline-diagram {
+      width: 64px;
+      height: 46px;
+      margin-bottom: 10px;
+    }
+    .outline-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #2c3e50;
+      text-align: center;
+    }
+    .prox-badge {
+      margin-top: 4px;
+      font-size: 10px;
+      color: #aaa;
+      font-style: italic;
+    }
+
+    /* ── Step 3 — Parameters form ──────────────────────────────────── */
+    .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .form-group.fixed-2 { flex: 0 0 calc(50% - 8px); }
+    .form-group.fixed-1 { flex: 0 0 calc(33.33% - 11px); }
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 5px;
+    }
+    input[type="text"],
+    input[type="number"],
+    select {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 8px 10px;
+      font-size: 14px;
+      color: #222;
+      background: #fff;
+      transition: border-color .15s;
+      width: 100%;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #176b87;
+      box-shadow: 0 0 0 2px rgba(23,107,135,.15);
+    }
+    .field-hint {
+      font-size: 11px;
+      color: #888;
+      margin-top: 3px;
+    }
+
+    /* Distribution mode */
+    .radio-group {
+      display: flex;
+      gap: 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 0;
+    }
+    .radio-group label {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 10px;
+      cursor: pointer;
+      background: #fff;
+      font-size: 12px;
+      letter-spacing: 0;
+      text-transform: none;
+      font-weight: 500;
+      color: #444;
+      border-right: 1px solid #ddd;
+      transition: background .12s;
+    }
+    .radio-group label:last-child { border-right: none; }
+    .radio-group input[type="radio"] { display: none; }
+    .radio-group label.checked-option {
+      background: #e8f4f8;
+      color: #176b87;
+      font-weight: 700;
+    }
+
+    /* Conditional blocks */
+    .conditional-block {
+      background: #f7fbfd;
+      border: 1px dashed #a8d0e0;
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+    .conditional-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .9px;
+      text-transform: uppercase;
+      color: #176b87;
+      margin-bottom: 12px;
+    }
+    .conditional-note {
+      font-size: 11px;
+      color: #999;
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    /* ── Add button ────────────────────────────────────────────────── */
+    .btn-add {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      background: #176b87;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background .15s;
+    }
+    .btn-add:hover { background: #125a72; }
+
+    /* ── Batch list table ──────────────────────────────────────────── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: #176b87;
+      margin-bottom: 14px;
+      border-bottom: 2px solid #e8f4f8;
+      padding-bottom: 10px;
+    }
+    .batch-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .batch-table thead tr {
+      background: #e8f4f8;
+    }
+    .batch-table th {
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      color: #176b87;
+      border-bottom: 2px solid #c5dde8;
+    }
+    .batch-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #eef1f4;
+      color: #333;
+      vertical-align: middle;
+    }
+    .batch-table tr:last-child td { border-bottom: none; }
+    .batch-table tr:hover td { background: #f5fafe; }
+    .measures-cell { font-family: monospace; font-size: 12px; }
+    .btn-delete {
+      padding: 4px 10px;
+      background: #fff;
+      border: 1px solid #e57373;
+      color: #e57373;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .btn-delete:hover { background: #fff0f0; }
+
+    /* ── Generate DXF button ───────────────────────────────────────── */
+    .generate-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .generate-count {
+      font-size: 13px;
+      color: #555;
+    }
+    .btn-generate {
+      padding: 12px 36px;
+      background: #2e7d32;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background .15s;
+      box-shadow: 0 2px 8px rgba(46,125,50,.3);
+    }
+    .btn-generate:hover { background: #256427; }
+
+    /* ── Utility ───────────────────────────────────────────────────── */
+    .dimmed { color: #aaa; font-size: 12px; font-style: italic; }
+    .step-gate-note {
+      font-size: 12px;
+      color: #888;
+      font-style: italic;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  TOP NAV BAR                                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<header class="topbar">
+  <div class="logo">SistemaIndustrial</div>
+  <nav>
+    <a href="#" class="active">Paneles Decorativos</a>
+    <a href="#">Corte Lineal</a>
+    <a href="#">Pedidos</a>
+  </nav>
+  <div class="spacer"></div>
+  <!-- Link to admin panel — abre en la misma pestaña en /admin -->
+  <a href="panel_gallery_admin.html" class="admin-link">⚙ Administrar patrones</a>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  PAGE                                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="page-wrapper">
+
+  <h1 class="page-title">Nuevo pedido — Paneles Decorativos</h1>
+
+  <!-- ─── Stepper ─────────────────────────────────────────────── -->
+  <div class="stepper">
+    <div class="step-item">
+      <div class="step-bubble active">1</div>
+      <span class="step-label active">Patrón</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-bubble">2</div>
+      <span class="step-label">Contorno</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-bubble">3</div>
+      <span class="step-label">Parámetros</span>
+    </div>
+  </div>
+  <!-- NOTE: In the implemented version, the stepper updates dynamically.
+       Step bubbles use class "done" once a step is completed. -->
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  PASO 1 — GALERÍA DE PATRONES                              -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="card" id="step1">
+    <div class="card-title">1 — Elegí un patrón</div>
+
+    <div class="pattern-grid">
+
+      <!-- Tresbolillo — built-in engine -->
+      <!-- Al clickear, esta tarjeta queda con clase "selected" y aparece el paso 2 -->
+      <div class="pattern-card selected" id="card-tresbolillo">
+        <div class="pattern-thumb tresbolillo">
+          <!-- Placeholder visual hint: triangular hole grid -->
+          <svg width="100" height="100" viewBox="0 0 100 100" opacity=".5">
+            <circle cx="20" cy="20" r="7" fill="#7a9aaa"/>
+            <circle cx="50" cy="20" r="7" fill="#7a9aaa"/>
+            <circle cx="80" cy="20" r="7" fill="#7a9aaa"/>
+            <circle cx="35" cy="44" r="7" fill="#7a9aaa"/>
+            <circle cx="65" cy="44" r="7" fill="#7a9aaa"/>
+            <circle cx="20" cy="68" r="7" fill="#7a9aaa"/>
+            <circle cx="50" cy="68" r="7" fill="#7a9aaa"/>
+            <circle cx="80" cy="68" r="7" fill="#7a9aaa"/>
+            <circle cx="35" cy="92" r="7" fill="#7a9aaa"/>
+            <circle cx="65" cy="92" r="7" fill="#7a9aaa"/>
+          </svg>
+        </div>
+        <div class="pattern-name">Tresbolillo</div>
+        <div class="pattern-badge">Motor nativo</div>
+        <div class="selected-indicator">✓ Seleccionado</div>
+      </div>
+
+      <!-- Rombo — DXF -->
+      <div class="pattern-card" id="card-rombo">
+        <div class="pattern-thumb rombo">
+          <svg width="100" height="100" viewBox="0 0 100 100" opacity=".5">
+            <polygon points="20,40 40,20 60,40 40,60" fill="none" stroke="#8878aa" stroke-width="2"/>
+            <polygon points="60,40 80,20 100,40 80,60" fill="none" stroke="#8878aa" stroke-width="2"/>
+            <polygon points="20,80 40,60 60,80 40,100" fill="none" stroke="#8878aa" stroke-width="2"/>
+            <polygon points="60,80 80,60 100,80 80,100" fill="none" stroke="#8878aa" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="pattern-name">Rombo</div>
+        <div class="pattern-badge">DXF</div>
+        <div class="selected-indicator">✓ Seleccionado</div>
+      </div>
+
+      <!-- Cuadrado — DXF -->
+      <div class="pattern-card" id="card-cuadrado">
+        <div class="pattern-thumb cuadrado">
+          <svg width="100" height="100" viewBox="0 0 100 100" opacity=".5">
+            <rect x="8"  y="8"  width="22" height="22" fill="none" stroke="#6a9a78" stroke-width="2"/>
+            <rect x="38" y="8"  width="22" height="22" fill="none" stroke="#6a9a78" stroke-width="2"/>
+            <rect x="68" y="8"  width="22" height="22" fill="none" stroke="#6a9a78" stroke-width="2"/>
+            <rect x="8"  y="38" width="22" height="22" fill="none" stroke="#6a9a78" stroke-width="2"/>
+            <rect x="38" y="38" width="22" height="22" fill="none" stroke="#6a9a78" stroke-width="2"/>
+            <rect x="68" y="38" width="22" height="22" fill="none" stroke="#6a9a78" stroke-width="2"/>
+            <rect x="8"  y="68" width="22" height="22" fill="none" stroke="#6a9a78" stroke-width="2"/>
+            <rect x="38" y="68" width="22" height="22" fill="none" stroke="#6a9a78" stroke-width="2"/>
+            <rect x="68" y="68" width="22" height="22" fill="none" stroke="#6a9a78" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="pattern-name">Cuadrado</div>
+        <div class="pattern-badge">DXF</div>
+        <div class="selected-indicator">✓ Seleccionado</div>
+      </div>
+
+      <!-- Hexágono — DXF -->
+      <div class="pattern-card" id="card-hexagono">
+        <div class="pattern-thumb hexagono">
+          <svg width="100" height="100" viewBox="0 0 100 100" opacity=".5">
+            <polygon points="30,10 50,0 70,10 70,30 50,40 30,30" fill="none" stroke="#aa8855" stroke-width="2"/>
+            <polygon points="70,10 90,0 110,10 110,30 90,40 70,30" fill="none" stroke="#aa8855" stroke-width="2"/>
+            <polygon points="10,50 30,40 50,50 50,70 30,80 10,70" fill="none" stroke="#aa8855" stroke-width="2"/>
+            <polygon points="50,50 70,40 90,50 90,70 70,80 50,70" fill="none" stroke="#aa8855" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="pattern-name">Hexágono</div>
+        <div class="pattern-badge">DXF</div>
+        <div class="selected-indicator">✓ Seleccionado</div>
+      </div>
+
+      <!-- Flor — DXF -->
+      <div class="pattern-card" id="card-flor">
+        <div class="pattern-thumb flor">
+          <svg width="100" height="100" viewBox="0 0 100 100" opacity=".5">
+            <circle cx="30" cy="30" r="10" fill="none" stroke="#aa7088" stroke-width="2"/>
+            <circle cx="70" cy="30" r="10" fill="none" stroke="#aa7088" stroke-width="2"/>
+            <circle cx="30" cy="70" r="10" fill="none" stroke="#aa7088" stroke-width="2"/>
+            <circle cx="70" cy="70" r="10" fill="none" stroke="#aa7088" stroke-width="2"/>
+            <circle cx="50" cy="50" r="10" fill="none" stroke="#aa7088" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="pattern-name">Flor</div>
+        <div class="pattern-badge">DXF</div>
+        <div class="selected-indicator">✓ Seleccionado</div>
+      </div>
+
+    </div>
+
+    <!-- ─── BLOQUE INLINE: Parámetros de Tresbolillo (paso 1) ────── -->
+    <!-- Aparece debajo de la grilla cuando se selecciona Tresbolillo  -->
+    <!-- Para patrones DXF, el click en la card avanza directo al paso 2 -->
+    <div class="conditional-block" id="block-tresbolillo-step1" style="margin-top:20px">
+      <div class="conditional-label">Parámetros de tresbolillo</div>
+      <p class="conditional-note" style="margin-bottom:12px">
+        (condicional — visible solo cuando se selecciona Tresbolillo)
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="diam-agujero">Diámetro agujero mm</label>
+          <input type="number" id="diam-agujero" placeholder="ej. 5.0" min="0.1" step="0.1"/>
+        </div>
+        <div class="form-group">
+          <label for="dist-centros">Distancia entre centros mm</label>
+          <input type="number" id="dist-centros" placeholder="ej. 8.0" min="0.1" step="0.1"/>
+        </div>
+      </div>
+      <button class="btn-add" style="margin-top:4px;font-size:13px;padding:10px">Confirmar patrón →</button>
+    </div>
+    <!-- NOTE: Al hacer click en "Confirmar patrón →" se avanza al paso 2.
+         Para patrones DXF, el click directo en la card avanza al paso 2. -->
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  PASO 2 — CONTORNO EXTERIOR                                -->
+  <!-- Visible solo después de seleccionar un patrón (paso 1)     -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="card" id="step2">
+    <div class="card-title">2 — Contorno exterior</div>
+
+    <div class="outline-options">
+
+      <!-- Rectángulo simple — activo -->
+      <!-- Al seleccionar, aparece el paso 3 -->
+      <div class="outline-card active" id="outline-rect">
+        <!-- Diagrama SVG simple de un rectángulo -->
+        <svg class="outline-diagram" viewBox="0 0 64 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="56" height="38" rx="2"
+                stroke="#176b87" stroke-width="2.5"/>
+          <!-- dimensión ancho -->
+          <line x1="4" y1="42" x2="60" y2="42" stroke="#176b87" stroke-width="1" stroke-dasharray="2 2"/>
+          <!-- dimensión alto -->
+          <line x1="62" y1="4" x2="62" y2="42" stroke="#176b87" stroke-width="1" stroke-dasharray="2 2"/>
+        </svg>
+        <div class="outline-name">Rectángulo<br>simple</div>
+      </div>
+
+      <!-- Opciones próximamente -->
+      <div class="outline-card disabled">
+        <svg class="outline-diagram" viewBox="0 0 64 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 42 L4 10 L12 4 L52 4 L60 10 L60 42 Z"
+                stroke="#aaa" stroke-width="2" fill="none"/>
+        </svg>
+        <div class="outline-name">Bandeja</div>
+        <div class="prox-badge">Próximamente</div>
+      </div>
+
+      <div class="outline-card disabled">
+        <svg class="outline-diagram" viewBox="0 0 64 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 4 L4 42 L60 42 L60 4"
+                stroke="#aaa" stroke-width="2" fill="none"/>
+        </svg>
+        <div class="outline-name">U</div>
+        <div class="prox-badge">Próximamente</div>
+      </div>
+
+      <div class="outline-card disabled">
+        <svg class="outline-diagram" viewBox="0 0 64 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 4 L4 4 L4 42 L14 42 M50 4 L60 4 L60 42 L50 42"
+                stroke="#aaa" stroke-width="2" fill="none"/>
+          <line x1="14" y1="4" x2="14" y2="42" stroke="#aaa" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="50" y1="4" x2="50" y2="42" stroke="#aaa" stroke-width="1" stroke-dasharray="3 3"/>
+        </svg>
+        <div class="outline-name">C / Omega</div>
+        <div class="prox-badge">Próximamente</div>
+      </div>
+
+    </div>
+    <!-- NOTE: En la versión implementada, el paso 2 aparece con animación fade-in
+         después de que se selecciona el patrón en el paso 1. -->
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  PASO 3 — PARÁMETROS                                       -->
+  <!-- Visible solo después de seleccionar el contorno (paso 2)   -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="card" id="step3">
+    <div class="card-title">3 — Parámetros del panel</div>
+
+    <!-- Dimensiones -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="ancho">Ancho mm</label>
+        <input type="number" id="ancho" placeholder="ej. 1200" min="1" />
+      </div>
+      <div class="form-group">
+        <label for="alto">Alto mm</label>
+        <input type="number" id="alto" placeholder="ej. 600" min="1" />
+      </div>
+    </div>
+
+    <!-- Margen -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="margen">Margen mm <span style="font-weight:400;color:#888">(borde sin perforar)</span></label>
+        <input type="number" id="margen" placeholder="ej. 20" min="0" />
+        <div class="field-hint">La zona sin agujeros alrededor de todo el contorno.</div>
+      </div>
+      <div class="form-group">
+        <!-- spacer -->
+      </div>
+    </div>
+
+    <!-- Modo de distribución -->
+    <div class="form-row">
+      <div class="form-group">
+        <label>Modo de distribución</label>
+        <div class="radio-group">
+          <label class="checked-option">
+            <input type="radio" name="distrib" value="centradas" checked />
+            Figuras completas centradas
+          </label>
+          <label>
+            <input type="radio" name="distrib" value="cortar" />
+            Cortar en borde
+          </label>
+        </div>
+        <div class="field-hint">
+          "Figuras completas": ningún agujero queda cortado por el borde.<br>
+          "Cortar en borde": se pueden ver agujeros a medio corte en los extremos.
+        </div>
+      </div>
+    </div>
+
+    <!-- Material y espesor -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="material">Material</label>
+        <input type="text" id="material" placeholder="ej. Acero inoxidable 304" />
+      </div>
+      <div class="form-group">
+        <label for="espesor">Espesor mm</label>
+        <input type="number" id="espesor" placeholder="ej. 1.5" min="0.1" step="0.1"/>
+      </div>
+    </div>
+
+    <!-- Cantidad -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="cantidad">Cantidad</label>
+        <input type="number" id="cantidad" placeholder="1" min="1" step="1" style="max-width:160px"/>
+      </div>
+      <div class="form-group">
+        <!-- spacer -->
+      </div>
+    </div>
+
+    <!-- ─── Offset DXF — campos ocultos, cargados automáticamente ── -->
+    <!-- El vendedor no ve ni toca el offset. Se carga al seleccionar el patrón. -->
+    <input type="hidden" id="offset-x" value="0"/>
+    <input type="hidden" id="offset-y" value="0"/>
+
+    <!-- ─── Botón AGREGAR ─────────────────────────────────────── -->
+    <!-- Al clickear, la fila se agrega a la tabla de lotes abajo -->
+    <button class="btn-add">+ AGREGAR A LA LISTA</button>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  LISTA DE LOTES + GENERAR DXF                              -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="card" id="section-batches">
+    <div class="section-label">Lista de lotes</div>
+
+    <table class="batch-table">
+      <thead>
+        <tr>
+          <th>Patrón</th>
+          <th>Contorno</th>
+          <th>Medidas</th>
+          <th>Margen</th>
+          <th>Material / Esp.</th>
+          <th>Cantidad</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Fila de ejemplo 1 -->
+        <tr>
+          <td><strong>Tresbolillo</strong><br><span class="dimmed">⌀5 · e8</span></td>
+          <td>Rectángulo simple</td>
+          <td class="measures-cell">1200 × 600 mm</td>
+          <td class="measures-cell">20 mm</td>
+          <td>AISI 304 / 1.5 mm</td>
+          <td>3</td>
+          <td><button class="btn-delete">Borrar</button></td>
+        </tr>
+        <!-- Fila de ejemplo 2 -->
+        <tr>
+          <td><strong>Rombo</strong><br><span class="dimmed">DXF · offset 0,0</span></td>
+          <td>Rectángulo simple</td>
+          <td class="measures-cell">800 × 400 mm</td>
+          <td class="measures-cell">15 mm</td>
+          <td>Acero negro / 2.0 mm</td>
+          <td>10</td>
+          <td><button class="btn-delete">Borrar</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="generate-row">
+      <span class="generate-count">2 lotes · 13 unidades en total</span>
+      <!-- Genera los archivos DXF para todos los lotes de la lista -->
+      <button class="btn-generate">GENERAR DXF</button>
+    </div>
+
+  </div>
+
+</div><!-- /page-wrapper -->
+
+</body>
+</html>
