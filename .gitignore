@@ -20,3 +20,19 @@ quotation_payload.json
 Thumbs.db
 .vscode/
 .idea/
+
+# Claude Code internal
+.claude/
+
+# Archivos de entrada y snapshots locales
+Archivos/
+Paneles decorativos funcionando/
+
+# Thumbnails generados
+apps/sistema_industrial/sistema_industrial/static/pattern_thumbnails/
+
+# Archivos generados / sensibles en Programas_hechos
+*.db
+*.log
+Programas_hechos/OCR Proveedores/Token.txt
+*.bak

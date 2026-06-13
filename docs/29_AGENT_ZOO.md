@@ -9,7 +9,7 @@
 - Forge: ERPNext/Frappe.
 - Tango: Tango Gestion.
 - Punto: presets y DXF pieza.
-- Nido: corte chapa, lotes, CypCut handoff.
+- Nido: corte chapa, lotes, DXF compilado por espesor.
 - Gemu: corte lineal, barras, sobrantes.
 - Vega: UX vendedor, taller, totem, portal.
 - Orbit: repo, scripts, CI, entornos.

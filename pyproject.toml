@@ -3,6 +3,7 @@ name = "sistema-industrial-nextango"
 version = "0.1.0"
 description = "SistemaIndustrial as a Frappe/ERPNext app integrated with Tango Gestion, Excel pricing and industrial tools."
 requires-python = ">=3.10"
+dependencies = ["ezdxf>=1.4"]
 
 [tool.pytest.ini_options]
 pythonpath = ["apps/sistema_industrial"]

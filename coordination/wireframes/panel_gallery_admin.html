@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paneles Decorativos — Administración de patrones</title>
+  <style>
+    /* ── Reset & base ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      font-size: 14px;
+    }
+
+    /* ── Top nav bar ───────────────────────────────────────────────── */
+    .topbar {
+      background: #176b87;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      height: 52px;
+      gap: 32px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+    }
+    .topbar .logo {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      white-space: nowrap;
+    }
+    .topbar nav { display: flex; gap: 4px; }
+    .topbar nav a {
+      color: rgba(255,255,255,.75);
+      text-decoration: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background .15s;
+    }
+    .topbar nav a:hover { background: rgba(255,255,255,.15); color: #fff; }
+    .topbar nav a.active {
+      background: rgba(255,255,255,.22);
+      color: #fff;
+    }
+    .topbar .spacer { flex: 1; }
+    .topbar .back-link {
+      font-size: 12px;
+      color: rgba(255,255,255,.75);
+      text-decoration: none;
+      padding: 4px 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,.3);
+    }
+    .topbar .back-link:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+    /* ── Admin badge in topbar ─────────────────────────────────────── */
+    .admin-badge {
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.3);
+      color: rgba(255,255,255,.9);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 12px;
+    }
+
+    /* ── Page layout ───────────────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+    .page-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #176b87;
+    }
+    .page-subtitle {
+      font-size: 13px;
+      color: #888;
+    }
+
+    /* ── Card / panel ──────────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: #176b87;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e8f4f8;
+      padding-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ── Patterns admin table ──────────────────────────────────────── */
+    .patterns-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .patterns-table thead tr { background: #e8f4f8; }
+    .patterns-table th {
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      color: #176b87;
+      border-bottom: 2px solid #c5dde8;
+    }
+    .patterns-table td {
+      padding: 12px;
+      border-bottom: 1px solid #eef1f4;
+      color: #333;
+      vertical-align: middle;
+    }
+    .patterns-table tr:last-child td { border-bottom: none; }
+    .patterns-table tr:hover td { background: #f5fafe; }
+
+    /* Preview thumbnail */
+    .preview-thumb {
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      background: #d8e4ec;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #607080;
+      font-size: 11px;
+      text-align: center;
+    }
+    .preview-thumb.tresbolillo { background: #c8d5de; }
+    .preview-thumb.rombo       { background: #d0cfe0; }
+    .preview-thumb.cuadrado    { background: #d5e0d0; }
+
+    /* Type badge */
+    .type-badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    .type-badge.native {
+      background: #e8f4f8;
+      color: #176b87;
+    }
+    .type-badge.dxf {
+      background: #f0ece8;
+      color: #7a5c3a;
+    }
+
+    /* Built-in tag */
+    .builtin-tag {
+      font-size: 10px;
+      color: #aaa;
+      font-style: italic;
+    }
+
+    /* Action buttons */
+    .btn-action {
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      border: 1px solid;
+      transition: background .12s;
+      margin-right: 4px;
+    }
+    .btn-edit {
+      background: #fff;
+      border-color: #176b87;
+      color: #176b87;
+    }
+    .btn-edit:hover { background: #e8f4f8; }
+    .btn-delete {
+      background: #fff;
+      border-color: #e57373;
+      color: #e57373;
+    }
+    .btn-delete:hover { background: #fff0f0; }
+    .btn-disabled {
+      background: #f5f5f5;
+      border-color: #ddd;
+      color: #bbb;
+      cursor: not-allowed;
+    }
+
+    /* ── Upload new pattern form ────────────────────────────────────── */
+    .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 5px;
+    }
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 8px 10px;
+      font-size: 14px;
+      color: #222;
+      background: #fff;
+      transition: border-color .15s;
+      width: 100%;
+      font-family: inherit;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #176b87;
+      box-shadow: 0 0 0 2px rgba(23,107,135,.15);
+    }
+    textarea { resize: vertical; min-height: 64px; }
+    .field-hint {
+      font-size: 11px;
+      color: #888;
+      margin-top: 3px;
+    }
+
+    /* File input row */
+    .file-input-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .file-input-text {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: #aaa;
+      background: #fafafa;
+      border: none;
+      outline: none;
+    }
+    .file-browse-btn {
+      padding: 8px 16px;
+      background: #176b87;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .12s;
+    }
+    .file-browse-btn:hover { background: #125a72; }
+
+    /* Submit button */
+    .btn-upload {
+      display: inline-block;
+      padding: 11px 28px;
+      background: #176b87;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background .15s;
+    }
+    .btn-upload:hover { background: #125a72; }
+
+    /* ── Feedback area ──────────────────────────────────────────────── */
+    .feedback-area {
+      margin-top: 20px;
+      border-radius: 6px;
+      padding: 14px 18px;
+      font-size: 13px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .feedback-area.loading {
+      background: #e8f4f8;
+      border: 1px solid #a8d0e0;
+      color: #176b87;
+    }
+    .feedback-area.success {
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+      color: #2e7d32;
+    }
+    .feedback-area.error {
+      background: #fdecea;
+      border: 1px solid #f5a5a0;
+      color: #c62828;
+    }
+    .feedback-icon {
+      font-size: 18px;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .feedback-text strong { display: block; margin-bottom: 3px; }
+    .feedback-detail {
+      font-size: 12px;
+      color: inherit;
+      opacity: .75;
+      font-family: monospace;
+      margin-top: 4px;
+    }
+
+    /* ── Utility ─────────────────────────────────────────────────────── */
+    .dimmed { color: #aaa; font-size: 11px; }
+    .form-divider {
+      border: none;
+      border-top: 1px solid #eef1f4;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  TOP NAV BAR                                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<header class="topbar">
+  <div class="logo">SistemaIndustrial</div>
+  <nav>
+    <a href="#">Paneles Decorativos</a>
+    <a href="#">Corte Lineal</a>
+    <a href="#">Pedidos</a>
+  </nav>
+  <div class="spacer"></div>
+  <span class="admin-badge">Admin</span>
+  <!-- Vuelve a la ventana principal del vendedor -->
+  <a href="panel_gallery_main.html" class="back-link">← Volver al catálogo</a>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  PAGE                                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <h1 class="page-title">Administración de patrones</h1>
+    <span class="page-subtitle">Solo visible para vendedores internos</span>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  TABLA DE PATRONES EXISTENTES                              -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">
+      <span>Patrones registrados</span>
+      <span style="font-size:12px;color:#888;font-weight:400;letter-spacing:0;text-transform:none">3 patrones</span>
+    </div>
+
+    <table class="patterns-table">
+      <thead>
+        <tr>
+          <th>Preview</th>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- Fila 1: Tresbolillo — built-in, no borrar -->
+        <tr>
+          <td>
+            <div class="preview-thumb tresbolillo">
+              <svg width="56" height="56" viewBox="0 0 100 100" opacity=".6">
+                <circle cx="20" cy="20" r="8" fill="#7a9aaa"/>
+                <circle cx="50" cy="20" r="8" fill="#7a9aaa"/>
+                <circle cx="80" cy="20" r="8" fill="#7a9aaa"/>
+                <circle cx="35" cy="46" r="8" fill="#7a9aaa"/>
+                <circle cx="65" cy="46" r="8" fill="#7a9aaa"/>
+                <circle cx="20" cy="72" r="8" fill="#7a9aaa"/>
+                <circle cx="50" cy="72" r="8" fill="#7a9aaa"/>
+                <circle cx="80" cy="72" r="8" fill="#7a9aaa"/>
+              </svg>
+            </div>
+          </td>
+          <td>
+            <strong>Tresbolillo</strong><br>
+            <span class="dimmed builtin-tag">Motor nativo — parámetros variables</span>
+          </td>
+          <td><span class="type-badge native">Nativo</span></td>
+          <td>
+            <!-- Tresbolillo no tiene botón Borrar (es built-in) -->
+            <button class="btn-action btn-edit">Editar</button>
+            <span class="dimmed" style="font-size:11px">No se puede borrar</span>
+          </td>
+        </tr>
+
+        <!-- Fila 2: Rombo — DXF, público, se puede borrar -->
+        <tr>
+          <td>
+            <div class="preview-thumb rombo">
+              <svg width="56" height="56" viewBox="0 0 100 100" opacity=".6">
+                <polygon points="30,10 55,35 30,60 5,35" fill="none" stroke="#8878aa" stroke-width="3"/>
+                <polygon points="75,10 100,35 75,60 50,35" fill="none" stroke="#8878aa" stroke-width="3"/>
+                <polygon points="30,55 55,80 30,105 5,80" fill="none" stroke="#8878aa" stroke-width="3"/>
+              </svg>
+            </div>
+          </td>
+          <td>
+            <strong>Rombo</strong><br>
+            <span class="dimmed">rombo_patron.dxf · offset 0,0</span>
+          </td>
+          <td><span class="type-badge dxf">DXF</span></td>
+          <td>
+            <button class="btn-action btn-edit">Editar</button>
+            <!-- DXF cargado por usuario — sí se puede borrar -->
+            <button class="btn-action btn-delete">Borrar</button>
+          </td>
+        </tr>
+
+        <!-- Fila 3: Cuadrado — DXF -->
+        <tr>
+          <td>
+            <div class="preview-thumb cuadrado">
+              <svg width="56" height="56" viewBox="0 0 100 100" opacity=".6">
+                <rect x="5"  y="5"  width="28" height="28" fill="none" stroke="#6a9a78" stroke-width="3"/>
+                <rect x="40" y="5"  width="28" height="28" fill="none" stroke="#6a9a78" stroke-width="3"/>
+                <rect x="75" y="5"  width="28" height="28" fill="none" stroke="#6a9a78" stroke-width="3"/>
+                <rect x="5"  y="40" width="28" height="28" fill="none" stroke="#6a9a78" stroke-width="3"/>
+                <rect x="40" y="40" width="28" height="28" fill="none" stroke="#6a9a78" stroke-width="3"/>
+                <rect x="5"  y="75" width="28" height="28" fill="none" stroke="#6a9a78" stroke-width="3"/>
+              </svg>
+            </div>
+          </td>
+          <td>
+            <strong>Cuadrado</strong><br>
+            <span class="dimmed">cuadrado_v2.dxf · offset 5, 5</span>
+          </td>
+          <td><span class="type-badge dxf">DXF</span></td>
+          <td>
+            <button class="btn-action btn-edit">Editar</button>
+            <button class="btn-action btn-delete">Borrar</button>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+  <!-- NOTE: Al clickear "Borrar" aparece un modal de confirmación:
+       "¿Eliminar el patrón [nombre]? Esta acción no se puede deshacer." -->
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  FORMULARIO — CARGAR NUEVO PATRÓN                          -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">Cargar nuevo patrón DXF</div>
+
+    <!-- Nombre -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="nombre-patron">Nombre del patrón</label>
+        <input type="text" id="nombre-patron" placeholder="ej. Hexágono regular" />
+        <div class="field-hint">Nombre visible en la galería del vendedor.</div>
+      </div>
+    </div>
+
+    <!-- Archivo DXF -->
+    <div class="form-row">
+      <div class="form-group">
+        <label>Archivo DXF</label>
+        <div class="file-input-row">
+          <!-- En producción: input type="file" oculto, disparado por el botón -->
+          <input class="file-input-text" type="text" disabled placeholder="Ningún archivo seleccionado" />
+          <button class="file-browse-btn">Examinar...</button>
+        </div>
+        <div class="field-hint">El archivo DXF debe contener una sola unidad repetible del patrón.</div>
+      </div>
+    </div>
+
+    <!-- Offset X / Y -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="admin-offset-x">Offset X mm</label>
+        <input type="number" id="admin-offset-x" placeholder="0" step="0.1"/>
+      </div>
+      <div class="form-group">
+        <label for="admin-offset-y">Offset Y mm</label>
+        <input type="number" id="admin-offset-y" placeholder="0" step="0.1"/>
+      </div>
+      <div class="form-group">
+        <!-- spacer -->
+      </div>
+    </div>
+    <div style="margin-top:-10px;margin-bottom:16px">
+      <span class="field-hint">
+        Distancia entre la celda DXF y la siguiente repetición en cada eje.
+        Usar 0 si el espaciado ya está incluido en el archivo.
+      </span>
+    </div>
+
+    <hr class="form-divider"/>
+
+    <!-- Submit -->
+    <!-- Al clickear: 1) valida campos, 2) sube el DXF, 3) genera preview, 4) muestra feedback -->
+    <button class="btn-upload">CARGAR Y GENERAR PREVIEW</button>
+
+    <!-- ── Área de feedback (tres estados posibles) ──────────── -->
+    <!-- NOTE: En producción solo uno de estos tres bloques es visible a la vez.
+         Para el wireframe se muestran los tres apilados como referencia visual. -->
+
+    <!-- Estado 1: Procesando -->
+    <div class="feedback-area loading" style="margin-top:20px">
+      <div class="feedback-icon">⟳</div>
+      <div class="feedback-text">
+        <strong>Generando preview...</strong>
+        Subiendo archivo DXF y calculando la vista previa del patrón. Esto puede tardar unos segundos.
+      </div>
+    </div>
+
+    <!-- Estado 2: Éxito -->
+    <div class="feedback-area success">
+      <div class="feedback-icon">✓</div>
+      <div class="feedback-text">
+        <strong>Patrón cargado exitosamente</strong>
+        "Hexágono" ya está disponible en la galería con visibilidad pública.
+        <div class="feedback-detail">hexagono_v1.dxf · 14 KB · preview generado</div>
+      </div>
+    </div>
+
+    <!-- Estado 3: Error -->
+    <div class="feedback-area error">
+      <div class="feedback-icon">✕</div>
+      <div class="feedback-text">
+        <strong>Error al procesar el archivo</strong>
+        No se pudo generar el preview. Verificá que el DXF contenga entidades válidas (LINE, ARC, CIRCLE).
+        <div class="feedback-detail">Error: ezdxf.DXFStructureError — no entities found in model space</div>
+      </div>
+    </div>
+    <!-- NOTE: Los tres estados de feedback se muestran aquí solo para ilustrar el wireframe.
+         En implementación, el área comienza oculta y se muestra el estado correcto según el resultado. -->
+
+  </div>
+
+</div><!-- /page-wrapper -->
+
+</body>
+</html>

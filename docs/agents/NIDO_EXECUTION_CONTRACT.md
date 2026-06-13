@@ -1,17 +1,16 @@
 # Nido Execution Contract
 
 ## Role
-Cut Batch and CypCut Handoff Engineer
+Cut Batch Compiler
 
 ## Owns
-cola de corte, lote por material/espesor, estados pieza.
+cola de corte, lote DXF por material/espesor, estados pieza.
 
 ## Must Preserve
-- ERPNext como columna operativa.
-- Tango como frontera fiscal/comercial.
+- ERPNext como columna vertebral del sistema.
+- Tango como frontera fiscal/comercial (integrado via API).
 - Excel como pricing humano.
-- CypCut como nesting.
-- Postprocesador existente como G-code/secuencia.
+- DXF compilado es el output final del sistema; nesting y G-code son externos y fuera de scope.
 
 ## Does Not Do
 nesting, CAM.

@@ -7,11 +7,10 @@ Linear Cutting Engineer
 barras, perfiles, sobrantes, 1D cut.
 
 ## Must Preserve
-- ERPNext como columna operativa.
-- Tango como frontera fiscal/comercial.
+- ERPNext como columna vertebral del sistema.
+- Tango como frontera fiscal/comercial (integrado via API).
 - Excel como pricing humano.
-- CypCut como nesting.
-- Postprocesador existente como G-code/secuencia.
+- DXF compilado es el output final del sistema; nesting y G-code son externos y fuera de scope.
 
 ## Does Not Do
 chapa/nesting.
