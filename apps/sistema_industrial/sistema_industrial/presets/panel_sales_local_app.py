@@ -60,6 +60,10 @@ def _browse_dxf_file() -> str:
 
 from sistema_industrial.presets.legacy_panel_adapter import (
     add_pattern_to_library,
+    calculate_consumed_resources,
+    calculate_cut_length_mm,
+    calculate_pierce_count,
+    calculate_sheet_area_m2,
     delete_pattern_from_library,
     find_legacy_panel_dir,
     get_pattern_library_patterns,
@@ -633,27 +637,68 @@ def _run_all_batches(
         margin_mm=float(first_batch["margin_mm"]),
     )
 
-    all_resources = [
-        {
-            "name": item.name,
-            "material": item.material,
-            "thickness_mm": item.thickness,
-            "quantity": item.quantity,
-            "occupied_width_mm": item.occupied_width,
-            "occupied_height_mm": item.occupied_height,
-            "geometry_item_count": len(item.geometry_items),
-            "cut_length_mm": item.cut_length_mm,
-            "pierce_count": item.pierce_count,
-            "bend_count": item.bend_count,
-        }
-        for item in all_result_items
-    ]
+    # Look up the material entry for consumed-resource calculations.
+    # Material and thickness come from the first batch (all batches share the same
+    # material in V1; a per-item lookup could be done if that changes later).
+    _mat_table = MaterialTable()
+    _mat_key_material = first_input.material
+    _mat_key_espesor = first_input.thickness_mm
+    _mat_entry = next(
+        (
+            e for e in _mat_table.list()
+            if e["material"] == _mat_key_material
+            and float(e["espesor_mm"]) == _mat_key_espesor
+        ),
+        None,
+    )
+    _consumed_resources_warning: str | None = (
+        None
+        if _mat_entry is not None
+        else (
+            f"Material '{_mat_key_material}' con espesor {_mat_key_espesor} mm "
+            f"no está en la tabla de materiales. "
+            f"Agregar la entrada en /admin para obtener recursos consumidos."
+        )
+    )
+
+    all_resources = []
+    for item in all_result_items:
+        cut_length_mm = calculate_cut_length_mm(item.geometry_items)
+        pierce_count = calculate_pierce_count(item.geometry_items)
+        sheet_area_m2 = calculate_sheet_area_m2(item.occupied_width, item.occupied_height)
+        if _mat_entry is not None:
+            consumed = calculate_consumed_resources(
+                cut_length_m=cut_length_mm / 1000.0,
+                pierce_count=pierce_count,
+                sheet_area_m2=sheet_area_m2,
+                material_entry=_mat_entry,
+            )
+        else:
+            consumed = None
+        all_resources.append(
+            {
+                "name": item.name,
+                "material": item.material,
+                "thickness_mm": item.thickness,
+                "quantity": item.quantity,
+                "occupied_width_mm": item.occupied_width,
+                "occupied_height_mm": item.occupied_height,
+                "geometry_item_count": len(item.geometry_items),
+                "cut_length_mm": cut_length_mm,
+                "pierce_count": pierce_count,
+                "bend_count": item.bend_count,
+                "consumed_resources": consumed,
+                "consumed_resources_warning": _consumed_resources_warning,
+            }
+        )
 
     warnings: list[str] = []
     if any(r["cut_length_mm"] == 0 for r in all_resources):
         warnings.append("Legacy engine returned cut_length_mm=0; preserving legacy value.")
     if any(r["pierce_count"] == 0 for r in all_resources):
         warnings.append("Legacy engine returned pierce_count=0; preserving legacy value.")
+    if _consumed_resources_warning:
+        warnings.append(_consumed_resources_warning)
 
     cut_piece_payload = _build_cut_piece_payload(first_input, dxf_path)
     quotation_payload = _build_quotation_payload(first_input, all_resources, price_cache)
@@ -801,6 +846,7 @@ _TOPBAR_ADMIN_HTML = """
   <nav><a href="/">Paneles Decorativos</a></nav>
   <div class="spacer"></div>
   <span class="admin-badge">Admin</span>
+  <a href="/materiales" class="admin-link">Tabla de materiales</a>
   <a href="/" class="back-link">Volver al catalogo</a>
 </header>
 """
@@ -830,6 +876,110 @@ def render_form(error: str = "", result: SalesRunResult | None = None) -> str:
             or "<li>Sin advertencias.</li>"
         )
         dxf_rel = escape(data.dxf_path.name)
+
+        # ---- Consumed-resources panel ----------------------------------------
+        # Show resources per-panel-type (one section per item in calculated_resources).
+        # consumed_resources values are TOTALS for the batch — divide by quantity for per-piece.
+        _grand_kg = 0.0
+        _grand_seconds = 0.0
+        _grand_pierces = 0
+        _grand_consumibles = 0.0
+        _any_with_data = False
+        _any_null = False
+
+        _type_sections: list[str] = []
+        for row in data.calculated_resources:
+            cr = row.get("consumed_resources")
+            qty = max(int(row.get("quantity", 1)), 1)
+            panel_name = escape(str(row.get("name", "Panel")))
+            w_mm = row.get("occupied_width_mm", "?")
+            h_mm = row.get("occupied_height_mm", "?")
+            dims = f"{w_mm}×{h_mm} mm"
+
+            if cr is None:
+                _any_null = True
+                _type_sections.append(
+                    f'<div class="consumed-type-block consumed-warn" style="margin-bottom:10px">'
+                    f'<span class="consumed-warn-icon">&#9888;</span>'
+                    f'<span><strong>{panel_name}</strong> &mdash; {escape(dims)}'
+                    f' <span style="color:#999">(x{qty})</span><br>'
+                    f'Carga los datos de <strong>{escape(str(row.get("material","?")))}'
+                    f' {escape(str(row.get("thickness_mm","?")))}&nbsp;mm</strong>'
+                    f' en <a href="/materiales" style="color:inherit;font-weight:700">/materiales</a>'
+                    f' para ver los recursos consumidos.</span>'
+                    f'</div>'
+                )
+            else:
+                _any_with_data = True
+                kg_total = float(cr.get("material_kg", 0.0))
+                sec_total = float(cr.get("machine_seconds", 0.0))
+                prc_total = int(cr.get("pierce_count", 0))
+                con_total = float(cr.get("consumibles_used", 0.0))
+
+                kg_pp = kg_total / qty
+                sec_pp = sec_total / qty
+                prc_pp = prc_total / qty
+                con_pp = con_total / qty
+
+                _grand_kg += kg_total
+                _grand_seconds += sec_total
+                _grand_pierces += prc_total
+                _grand_consumibles += con_total
+
+                _m = int(sec_pp) // 60
+                _s = int(sec_pp) % 60
+                time_pp_str = f"{_m} min {_s:02d} s"
+
+                _type_sections.append(
+                    f'<div class="consumed-type-block" style="margin-bottom:14px">'
+                    f'<div class="consumed-type-header">'
+                    f'<strong>{panel_name}</strong>'
+                    f' &mdash; {escape(dims)}'
+                    f' <span class="consumed-qty-badge">x{qty} unidades</span>'
+                    f'</div>'
+                    f'<table class="consumed-table" style="margin-top:6px">'
+                    f'<tr><td class="consumed-label">Material</td>'
+                    f'<td class="consumed-val">{kg_pp:.3f} kg / pieza</td></tr>'
+                    f'<tr><td class="consumed-label">Tiempo maq.</td>'
+                    f'<td class="consumed-val">{time_pp_str} / pieza</td></tr>'
+                    f'<tr><td class="consumed-label">Perforaciones</td>'
+                    f'<td class="consumed-val">{prc_pp:.0f} / pieza</td></tr>'
+                    f'</table>'
+                    f'</div>'
+                )
+
+        _sections_html = "\n".join(_type_sections)
+
+        # Grand total footer — only show when there are multiple items with data
+        _footer_html = ""
+        if _any_with_data and len([r for r in data.calculated_resources if r.get("consumed_resources") is not None]) > 1:
+            _gm = int(_grand_seconds) // 60
+            _gs = int(_grand_seconds) % 60
+            _footer_html = (
+                f'<div class="consumed-total-row">'
+                f'Total del pedido: <strong>{_grand_kg:.2f} kg</strong>'
+                f' &mdash; <strong>{_gm} min {_gs:02d} s</strong>'
+                f' &mdash; <strong>{_grand_pierces} perforaciones</strong>'
+                f'</div>'
+            )
+
+        if not _any_with_data and _any_null:
+            # All items lack material data — compact warning only
+            consumed_panel_html = (
+                f'<div class="consumed-panel consumed-warn">\n'
+                f'{_sections_html}\n'
+                f'</div>'
+            )
+        else:
+            consumed_panel_html = (
+                f'<div class="consumed-panel">\n'
+                f'<div class="consumed-title">Recursos consumidos — por pieza</div>\n'
+                f'{_sections_html}\n'
+                f'{_footer_html}\n'
+                f'</div>'
+            )
+        # ---- end consumed-resources panel -----------------------------------
+
         result_section = f"""
   <div class="card" id="result-card">
     <div class="card-title">Resultado generado</div>
@@ -839,7 +989,8 @@ def render_form(error: str = "", result: SalesRunResult | None = None) -> str:
         Descargar DXF
       </a>
     </div>
-    <table class="batch-table">
+    {consumed_panel_html}
+    <table class="batch-table" style="margin-top:16px">
       <thead><tr><th>Recurso</th><th>Cantidad</th><th>Ocupacion mm</th><th>Geometria</th></tr></thead>
       <tbody>{resources_html}</tbody>
     </table>
@@ -917,6 +1068,26 @@ def render_form(error: str = "", result: SalesRunResult | None = None) -> str:
     .section-label {{ font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--brand); margin-bottom:14px; border-bottom:2px solid #e8f4f8; padding-bottom:10px; }}
     .restricted-banner {{ background:#fff8e1; border:1px solid #ffe082; border-radius:6px; padding:10px 16px; margin-top:14px; font-size:13px; color:#e65100; display:flex; align-items:flex-start; gap:8px; }}
     .restricted-banner .rb-icon {{ font-size:16px; flex-shrink:0; margin-top:1px; }}
+    /* Material dropdown */
+    .mat-dropdown-row {{ display:flex; gap:8px; align-items:flex-end; margin-bottom:16px; }}
+    .mat-dropdown-row .form-group {{ flex:1; margin-bottom:0; }}
+    .btn-refresh {{ padding:8px 12px; background:#fff; border:1px solid #ccc; border-radius:5px; cursor:pointer; font-size:15px; color:var(--brand); transition:background .12s; height:36px; }}
+    .btn-refresh:hover {{ background:#e8f4f8; }}
+    /* Consumed resources panel */
+    .consumed-panel {{ background:#f0f7ff; border:1px solid #b3d4f0; border-radius:8px; padding:16px 20px; margin-top:16px; }}
+    .consumed-title {{ font-size:11px; font-weight:700; letter-spacing:1.1px; text-transform:uppercase; color:var(--brand); margin-bottom:10px; }}
+    .consumed-table {{ border-collapse:collapse; font-size:14px; }}
+    .consumed-table tr td {{ padding:4px 24px 4px 0; vertical-align:baseline; }}
+    .consumed-label {{ color:#555; font-weight:600; width:130px; }}
+    .consumed-val {{ color:#1a1a2e; font-family:monospace; font-size:15px; }}
+    .consumed-warn {{ background:#fff8e1; border-color:#ffe082; color:#7a5000; display:flex; align-items:flex-start; gap:10px; }}
+    .consumed-warn-icon {{ font-size:18px; flex-shrink:0; }}
+    .consumed-partial-warn {{ margin-top:10px; font-size:12px; color:#7a5000; background:#fff8e1; border-radius:4px; padding:6px 10px; }}
+    .consumed-type-block {{ border-left:3px solid var(--brand); padding-left:12px; }}
+    .consumed-type-block.consumed-warn {{ border-left-color:#e6a000; background:#fff8e1; border-radius:0 6px 6px 0; padding:8px 12px; display:flex; align-items:flex-start; gap:10px; }}
+    .consumed-type-header {{ font-size:13px; color:#2c3e50; margin-bottom:2px; }}
+    .consumed-qty-badge {{ font-size:11px; color:#888; font-weight:400; }}
+    .consumed-total-row {{ margin-top:12px; padding-top:10px; border-top:1px solid #c8dded; font-size:13px; color:#555; }}
   </style>
 </head>
 <body>
@@ -1065,17 +1236,19 @@ def render_form(error: str = "", result: SalesRunResult | None = None) -> str:
       </div>
     </div>
 
-    <!-- Material y Espesor -->
-    <div class="form-row">
+    <!-- Material y Espesor — dropdown poblado desde /api/materials -->
+    <div class="mat-dropdown-row">
       <div class="form-group">
-        <label for="p-material">Material</label>
-        <input type="text" id="p-material" placeholder="ej. Acero inoxidable 304" value="chapa">
+        <label for="p-mat-combo">Material / Espesor</label>
+        <select id="p-mat-combo" onchange="onMatComboChange(this)">
+          <option value="" disabled selected>Cargando materiales...</option>
+        </select>
       </div>
-      <div class="form-group">
-        <label for="p-espesor">Espesor mm</label>
-        <input type="number" id="p-espesor" placeholder="ej. 1.5" min="0.1" step="0.1" value="3">
-      </div>
+      <button class="btn-refresh" title="Actualizar lista de materiales" onclick="loadMaterialDropdown()">&#8635;</button>
     </div>
+    <!-- Hidden fields used by addBatch() to build the batch object -->
+    <input type="hidden" id="p-material" value="">
+    <input type="hidden" id="p-espesor" value="">
 
     <!-- Cantidad / Ancho / Alto en una fila -->
     <div class="form-row">
@@ -1144,6 +1317,65 @@ def render_form(error: str = "", result: SalesRunResult | None = None) -> str:
 var selectedPattern = null;
 var distMode = 'centradas';
 var batches = [];
+
+// ---- Load material dropdown from /api/materials ----
+function loadMaterialDropdown() {{
+  var sel = document.getElementById('p-mat-combo');
+  var btnAdd = document.querySelector('.btn-add');
+  sel.innerHTML = '<option value="" disabled selected>Cargando...</option>';
+  fetch('/api/materials')
+    .then(function(r) {{ return r.json(); }})
+    .then(function(data) {{
+      sel.innerHTML = '';
+      if (!data || data.length === 0) {{
+        var opt = document.createElement('option');
+        opt.value = '';
+        opt.disabled = true;
+        opt.selected = true;
+        opt.textContent = '— Carga materiales en /materiales —';
+        sel.appendChild(opt);
+        if (btnAdd) {{ btnAdd.disabled = true; btnAdd.title = 'Carga materiales en /materiales primero'; }}
+        document.getElementById('p-material').value = '';
+        document.getElementById('p-espesor').value = '';
+        return;
+      }}
+      var placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      placeholder.textContent = 'Selecciona material y espesor...';
+      sel.appendChild(placeholder);
+      data.forEach(function(entry) {{
+        var opt = document.createElement('option');
+        opt.value = JSON.stringify({{material: entry.material, espesor_mm: entry.espesor_mm}});
+        opt.textContent = entry.material + ' — ' + entry.espesor_mm + ' mm';
+        sel.appendChild(opt);
+      }});
+      if (btnAdd) {{ btnAdd.disabled = false; btnAdd.title = ''; }}
+      // Clear hidden fields until user picks
+      document.getElementById('p-material').value = '';
+      document.getElementById('p-espesor').value = '';
+    }})
+    .catch(function() {{
+      sel.innerHTML = '<option value="" disabled selected>Error al cargar materiales</option>';
+      if (btnAdd) {{ btnAdd.disabled = true; }}
+    }});
+}}
+
+function onMatComboChange(sel) {{
+  if (!sel.value) return;
+  try {{
+    var parsed = JSON.parse(sel.value);
+    document.getElementById('p-material').value = parsed.material;
+    document.getElementById('p-espesor').value = parsed.espesor_mm;
+  }} catch(e) {{
+    document.getElementById('p-material').value = '';
+    document.getElementById('p-espesor').value = '';
+  }}
+}}
+
+// Load dropdown on page mount
+loadMaterialDropdown();
 
 // ---- Load DXF patterns from API ----
 fetch('/api/patterns')
@@ -1297,8 +1529,8 @@ function addBatch() {{
     if (isNaN(ancho)  || ancho  <= 0) throw new Error('Ancho invalido.');
     if (isNaN(alto)   || alto   <= 0) throw new Error('Alto invalido.');
     if (isNaN(margen) || margen <  0) throw new Error('Margen invalido.');
-    if (!mat)                          throw new Error('Material requerido.');
-    if (isNaN(esp)    || esp    <= 0) throw new Error('Espesor invalido.');
+    if (!mat)                          throw new Error('Selecciona un material del dropdown.');
+    if (isNaN(esp)    || esp    <= 0) throw new Error('Espesor invalido — selecciona un material del dropdown.');
     if (isNaN(cant)   || cant   <= 0) throw new Error('Cantidad invalida.');
 
     var batch = {{
@@ -1477,7 +1709,7 @@ def render_admin() -> str:
           <span style="font-size:11px;color:#aaa">offset {step_x} &times; {step_y} mm</span>{restricted_note_html}</td>
       <td><span class="type-badge type-dxf">DXF</span></td>
       <td>
-        <button class="btn-action btn-del" onclick="deletePattern({name_json}, this)">Borrar</button>
+        <button class="btn-action btn-del" data-pattern-name="{safe_name}" onclick="deletePattern(this.dataset.patternName, this)">Borrar</button>
       </td>
     </tr>"""
 
@@ -1819,6 +2051,402 @@ function deleteMaterial(payload, btn) {{
 
 
 # ---------------------------------------------------------------------------
+# render_materiales — standalone spreadsheet-style materials page
+# ---------------------------------------------------------------------------
+
+def render_materiales() -> str:
+    """Render the /materiales page: an inline-editable spreadsheet table."""
+    return """<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nextango — Tabla de materiales</title>
+  <style>
+""" + _COMMON_CSS + """
+    .page-title { font-size:22px; font-weight:700; color:var(--brand); margin-bottom:24px; }
+    .mat-sheet { width:100%; border-collapse:collapse; font-size:13px; }
+    .mat-sheet thead tr { background:#e8f4f8; }
+    .mat-sheet th { padding:9px 12px; text-align:left; font-size:11px; font-weight:700;
+                    letter-spacing:.7px; text-transform:uppercase; color:var(--brand);
+                    border-bottom:2px solid #c5dde8; white-space:nowrap; }
+    .mat-sheet th.num { text-align:right; }
+    .mat-sheet td { padding:0; border-bottom:1px solid #eef1f4; vertical-align:middle; }
+    .mat-sheet tr:last-child td { border-bottom:none; }
+    .mat-sheet tr:hover td { background:#f5fafe; }
+    .mat-sheet tr.new-row td { background:#f0faf5; }
+    .mat-sheet tr.new-row:hover td { background:#e8f8f0; }
+    /* cell display mode */
+    .cell-view { display:block; padding:10px 12px; cursor:pointer; min-height:38px; }
+    .cell-view.num { text-align:right; }
+    /* cell edit mode */
+    .cell-edit { display:none; width:100%; border:none; outline:none; padding:8px 12px;
+                 font-size:13px; background:#fffbe6; font-family:inherit;
+                 box-shadow:inset 0 0 0 2px var(--brand); }
+    .cell-edit.num { text-align:right; }
+    td.editing .cell-view { display:none; }
+    td.editing .cell-edit { display:block; }
+    /* new row always shows inputs */
+    .new-row .cell-view { display:none; }
+    .new-row .cell-edit { display:block; background:#f0faf5; }
+    .btn-action { padding:5px 12px; border-radius:4px; font-size:12px; cursor:pointer;
+                  font-weight:600; border:1px solid; transition:background .12s; margin:6px 8px; }
+    .btn-del { background:#fff; border-color:#e57373; color:#e57373; }
+    .btn-del:hover { background:#fff0f0; }
+    .add-hint { font-size:12px; color:#888; padding:8px 12px; font-style:italic; }
+    .status-bar { font-size:12px; color:#888; margin-top:12px; min-height:20px; }
+    .status-ok { color:#2e7d32; }
+    .status-err { color:var(--red); }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div class="logo">SistemaIndustrial</div>
+  <nav><a href="/">Paneles Decorativos</a></nav>
+  <div class="spacer"></div>
+  <a href="/admin" class="back-link">Volver a Admin</a>
+</header>
+<div class="page-wrapper">
+  <h1 class="page-title">Tabla de materiales</h1>
+  <div class="card">
+    <table class="mat-sheet" id="mat-table">
+      <thead>
+        <tr>
+          <th>Material</th>
+          <th class="num">Espesor mm</th>
+          <th class="num">Densidad kg/m²</th>
+          <th class="num">Vel. corte mm/s</th>
+          <th class="num">T. perforación s</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="mat-tbody">
+        <tr><td colspan="6" style="padding:16px;color:#aaa;font-style:italic">Cargando...</td></tr>
+      </tbody>
+    </table>
+    <div class="status-bar" id="status-bar"></div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+var _rows = [];   // array of {material, espesor_mm, densidad_kg_m2, velocidad_corte_mm_s, tiempo_perforacion_s}
+
+// Column definitions: [key, isNumeric, placeholder]
+var COLS = [
+  ['material',              false, 'ej. Acero negro'],
+  ['espesor_mm',            true,  'ej. 2'],
+  ['densidad_kg_m2',        true,  'ej. 15.7'],
+  ['velocidad_corte_mm_s',  true,  'ej. 83.3'],
+  ['tiempo_perforacion_s',  true,  'ej. 0.5'],
+];
+
+function setStatus(msg, cls) {
+  var el = document.getElementById('status-bar');
+  el.textContent = msg;
+  el.className = 'status-bar ' + (cls || '');
+}
+
+// ---------------------------------------------------------------------------
+// Load from API
+// ---------------------------------------------------------------------------
+function loadMaterials() {
+  fetch('/api/materials')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      _rows = data;
+      renderTable();
+    })
+    .catch(function(e) { setStatus('Error al cargar materiales: ' + e, 'status-err'); });
+}
+
+// ---------------------------------------------------------------------------
+// Render
+// ---------------------------------------------------------------------------
+function renderTable() {
+  var tbody = document.getElementById('mat-tbody');
+  var html = '';
+
+  _rows.forEach(function(row, ri) {
+    html += '<tr data-ri="' + ri + '">';
+    COLS.forEach(function(col, ci) {
+      var key = col[0], isNum = col[1], ph = col[2];
+      var val = row[key] !== undefined ? row[key] : '';
+      var numCls = isNum ? ' num' : '';
+      html += '<td>'
+        + '<span class="cell-view' + numCls + '" onclick="startEdit(this)">' + escHtml(String(val)) + '</span>'
+        + '<input class="cell-edit' + numCls + '" type="' + (isNum ? 'number' : 'text') + '"'
+        + ' value="' + escHtml(String(val)) + '"'
+        + ' placeholder="' + escHtml(ph) + '"'
+        + (isNum ? ' step="any" min="0"' : '')
+        + ' onkeydown="cellKeydown(event, ' + ri + ', ' + ci + ')"'
+        + ' onblur="cellBlur(event, ' + ri + ', ' + ci + ')"'
+        + '>'
+        + '</td>';
+    });
+    // Delete button
+    html += '<td><button class="btn-action btn-del" onclick="deleteRow(' + ri + ', this)">Borrar</button></td>';
+    html += '</tr>';
+  });
+
+  // New row — always visible at bottom
+  html += '<tr class="new-row" id="new-row">';
+  COLS.forEach(function(col, ci) {
+    var key = col[0], isNum = col[1], ph = col[2];
+    var numCls = isNum ? ' num' : '';
+    html += '<td>'
+      + '<span class="cell-view' + numCls + '"></span>'
+      + '<input class="cell-edit' + numCls + '" type="' + (isNum ? 'number' : 'text') + '"'
+      + ' id="new-' + key + '"'
+      + ' placeholder="' + escHtml(ph) + '"'
+      + (isNum ? ' step="any" min="0"' : '')
+      + ' onkeydown="newRowKeydown(event, ' + ci + ')"'
+      + '>'
+      + '</td>';
+  });
+  html += '<td><span class="add-hint">nueva fila</span></td>';
+  html += '</tr>';
+
+  tbody.innerHTML = html;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ---------------------------------------------------------------------------
+// Inline editing — existing rows
+// ---------------------------------------------------------------------------
+function startEdit(span) {
+  var td = span.parentElement;
+  td.classList.add('editing');
+  var input = td.querySelector('.cell-edit');
+  input.focus();
+  input.select();
+}
+
+function cellKeydown(ev, ri, ci) {
+  if (ev.key === 'Enter' || ev.key === 'Tab') {
+    ev.preventDefault();
+    commitCell(ev.target, ri, ci, function() {
+      // Move focus: Tab → next col, Enter → next row same col
+      if (ev.key === 'Tab') {
+        focusCell(ri, ci + 1);
+      } else {
+        focusCell(ri + 1, ci);
+      }
+    });
+  } else if (ev.key === 'Escape') {
+    // Revert
+    var td = ev.target.parentElement;
+    ev.target.value = _rows[ri][COLS[ci][0]] !== undefined ? String(_rows[ri][COLS[ci][0]]) : '';
+    td.classList.remove('editing');
+  }
+}
+
+function cellBlur(ev, ri, ci) {
+  // Save on blur without navigation
+  commitCell(ev.target, ri, ci, null);
+}
+
+function commitCell(input, ri, ci, afterCb) {
+  var col = COLS[ci];
+  var key = col[0], isNum = col[1];
+  var raw = input.value.trim();
+  var val = isNum ? parseFloat(raw) : raw;
+  if (isNum && isNaN(val)) {
+    // Revert
+    input.value = _rows[ri][key] !== undefined ? String(_rows[ri][key]) : '';
+    var td = input.parentElement;
+    td.classList.remove('editing');
+    if (afterCb) afterCb();
+    return;
+  }
+  var prev = _rows[ri][key];
+  if (String(val) === String(prev)) {
+    // No change
+    var td = input.parentElement;
+    td.classList.remove('editing');
+    if (afterCb) afterCb();
+    return;
+  }
+
+  // Build updated entry
+  var updated = Object.assign({}, _rows[ri]);
+  updated[key] = val;
+  // Ensure consumible_por_perforacion preserved
+  if (updated.consumible_por_perforacion === undefined) {
+    updated.consumible_por_perforacion = 0;
+  }
+
+  setStatus('Guardando...', '');
+  fetch('/api/materials', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(updated)
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.ok) {
+        _rows[ri] = updated;
+        setStatus('Guardado.', 'status-ok');
+        // Update span text
+        var td = input.parentElement;
+        td.querySelector('.cell-view').textContent = String(val);
+        td.classList.remove('editing');
+        if (afterCb) afterCb();
+        // Clear status after a moment
+        setTimeout(function() { if (document.getElementById('status-bar').textContent === 'Guardado.') setStatus(''); }, 1500);
+      } else {
+        input.value = String(prev);
+        var td = input.parentElement;
+        td.classList.remove('editing');
+        setStatus('Error al guardar: ' + (d.error || '?'), 'status-err');
+        if (afterCb) afterCb();
+      }
+    })
+    .catch(function(e) {
+      input.value = String(prev);
+      var td = input.parentElement;
+      td.classList.remove('editing');
+      setStatus('Error de red: ' + e, 'status-err');
+      if (afterCb) afterCb();
+    });
+}
+
+function focusCell(ri, ci) {
+  if (ci >= COLS.length) { ci = 0; ri++; }
+  var tbody = document.getElementById('mat-tbody');
+  var rows = tbody.querySelectorAll('tr[data-ri]');
+  if (ri < rows.length) {
+    var tds = rows[ri].querySelectorAll('td');
+    if (ci < tds.length) {
+      var td = tds[ci];
+      td.classList.add('editing');
+      var input = td.querySelector('.cell-edit');
+      if (input) { input.focus(); input.select(); }
+    }
+  } else {
+    // Move to new row
+    var newInputs = document.getElementById('new-row').querySelectorAll('.cell-edit');
+    if (newInputs.length > 0) { newInputs[0].focus(); }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// New row
+// ---------------------------------------------------------------------------
+function newRowKeydown(ev, ci) {
+  if (ev.key === 'Tab' && ci === COLS.length - 1) {
+    ev.preventDefault();
+    submitNewRow(true);
+  } else if (ev.key === 'Enter') {
+    ev.preventDefault();
+    submitNewRow(false);
+  } else if (ev.key === 'Escape') {
+    clearNewRow();
+  }
+}
+
+function submitNewRow(focusFirst) {
+  var entry = {};
+  var valid = true;
+  COLS.forEach(function(col) {
+    var key = col[0], isNum = col[1];
+    var input = document.getElementById('new-' + key);
+    var raw = input ? input.value.trim() : '';
+    if (isNum) {
+      var v = parseFloat(raw);
+      if (isNaN(v)) { valid = false; return; }
+      entry[key] = v;
+    } else {
+      if (!raw) { valid = false; return; }
+      entry[key] = raw;
+    }
+  });
+  if (!valid) {
+    setStatus('Completa todos los campos de la nueva fila.', 'status-err');
+    return;
+  }
+  // consumible_por_perforacion: not shown in UI but required by API
+  entry.consumible_por_perforacion = 0;
+
+  setStatus('Guardando nueva fila...', '');
+  fetch('/api/materials', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(entry)
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.ok) {
+        setStatus('Fila agregada.', 'status-ok');
+        clearNewRow();
+        loadMaterials();
+        if (focusFirst) {
+          setTimeout(function() {
+            var inp = document.getElementById('new-material');
+            if (inp) inp.focus();
+          }, 100);
+        }
+        setTimeout(function() { if (document.getElementById('status-bar').textContent === 'Fila agregada.') setStatus(''); }, 1500);
+      } else {
+        setStatus('Error: ' + (d.error || '?'), 'status-err');
+      }
+    })
+    .catch(function(e) { setStatus('Error de red: ' + e, 'status-err'); });
+}
+
+function clearNewRow() {
+  COLS.forEach(function(col) {
+    var inp = document.getElementById('new-' + col[0]);
+    if (inp) inp.value = '';
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Delete
+// ---------------------------------------------------------------------------
+function deleteRow(ri, btn) {
+  var row = _rows[ri];
+  btn.textContent = 'Borrando...';
+  btn.disabled = true;
+  fetch('/api/materials', {
+    method: 'DELETE',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({material: row.material, espesor_mm: row.espesor_mm})
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.ok) {
+        setStatus('Borrado.', 'status-ok');
+        loadMaterials();
+        setTimeout(function() { if (document.getElementById('status-bar').textContent === 'Borrado.') setStatus(''); }, 1500);
+      } else {
+        btn.textContent = 'Borrar';
+        btn.disabled = false;
+        setStatus('Error al borrar: ' + (d.error || '?'), 'status-err');
+      }
+    })
+    .catch(function(e) {
+      btn.textContent = 'Borrar';
+      btn.disabled = false;
+      setStatus('Error de red: ' + e, 'status-err');
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+loadMaterials();
+</script>
+</body>
+</html>"""
+
+
+# ---------------------------------------------------------------------------
 # JSON helper
 # ---------------------------------------------------------------------------
 
@@ -1856,6 +2484,10 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
 
         if parsed.path == "/admin":
             self._send_html(render_admin())
+            return
+
+        if parsed.path == "/materiales":
+            self._send_html(render_materiales())
             return
 
         if parsed.path == "/api/patterns":

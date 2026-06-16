@@ -1,8 +1,10 @@
 {
-    "Subte 3": {
+    "Subte4": {
         "type": "dxf",
         "file_path": "C:/SistemaIndustrial/Nextango/Archivos/Patrones/subte Offx84 Offy84.dxf",
         "step_x": 84.0,
-        "step_y": 84.0
+        "step_y": 84.0,
+        "restricted": false,
+        "restricted_reason": ""
     }
 }

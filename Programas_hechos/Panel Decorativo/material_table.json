@@ -1,0 +1,10 @@
+[
+  {
+    "material": "Doble Decapada",
+    "espesor_mm": 2.0,
+    "densidad_kg_m2": 15.7,
+    "velocidad_corte_mm_s": 75.0,
+    "tiempo_perforacion_s": 3.0,
+    "consumible_por_perforacion": 0.0
+  }
+]
