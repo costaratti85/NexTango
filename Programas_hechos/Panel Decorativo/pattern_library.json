@@ -1,9 +1,33 @@
 {
-    "Subte4": {
+    "Subte": {
         "type": "dxf",
-        "file_path": "C:/SistemaIndustrial/Nextango/Archivos/Patrones/subte Offx84 Offy84.dxf",
+        "file_path": "//190.190.190.9/Ventas/Users/Pantografia/Hierros Ratti/LLLLAAAAASSSSEEEERRRRR PAPA/Paneles Decorativos/Patrones/subte Offx84 Offy84.dxf",
         "step_x": 84.0,
         "step_y": 84.0,
+        "restricted": false,
+        "restricted_reason": ""
+    },
+    "Philo": {
+        "type": "dxf",
+        "file_path": "C:\\SistemaIndustrial\\Nextango\\outputs\\panel_sales_demo\\uploaded_patterns\\Philo_editado.dxf",
+        "step_x": 360.0,
+        "step_y": 623.0,
+        "restricted": false,
+        "restricted_reason": ""
+    },
+    "Cosmos": {
+        "type": "dxf",
+        "file_path": "//190.190.190.9/Ventas/Users/Pantografia/Hierros Ratti/LLLLAAAAASSSSEEEERRRRR PAPA/Paneles Decorativos/Patrones/Cosmos OffXY 500.dxf",
+        "step_x": 500.0,
+        "step_y": 500.0,
+        "restricted": false,
+        "restricted_reason": ""
+    },
+    "Hexagonal": {
+        "type": "dxf",
+        "file_path": "//190.190.190.9/Ventas/Users/Pantografia/Hierros Ratti/LLLLAAAAASSSSEEEERRRRR PAPA/Paneles Decorativos/Patrones/Hexagonal offx 19 offy 32.91.dxf",
+        "step_x": 19.0,
+        "step_y": 32.91,
         "restricted": false,
         "restricted_reason": ""
     }

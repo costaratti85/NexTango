@@ -269,47 +269,32 @@ def generate_centered_full_mode_geometry(
     )
 
     bbox = original_piece.bbox()
+    piece_w = bbox.max_x - bbox.min_x
+    piece_h = bbox.max_y - bbox.min_y
 
-    pattern_width = bbox.width
-    pattern_height = bbox.height
-
-    if (
-        pattern_width > usable_width
-        or pattern_height > usable_height
-    ):
+    if piece_w > usable_width or piece_h > usable_height:
         return output_items
 
-    cols = int(
-        (usable_width - pattern_width)
-        / step_x
-    ) + 1
+    cols = int(usable_width / step_x)
+    rows = int(usable_height / step_y)
 
-    rows = int(
-        (usable_height - pattern_height)
-        / step_y
-    ) + 1
+    # If the piece's visual content exceeds step_x (e.g. DXF tile with bleed),
+    # the last tile would overhang. Reduce cols/rows until visual extent fits.
+    while cols > 0 and (cols - 1) * step_x + piece_w > usable_width:
+        cols -= 1
+    while rows > 0 and (rows - 1) * step_y + piece_h > usable_height:
+        rows -= 1
 
-    occupied_width = (
-        pattern_width
-        + (cols - 1) * step_x
-    )
+    if cols == 0 or rows == 0:
+        return output_items
 
-    occupied_height = (
-        pattern_height
-        + (rows - 1) * step_y
-    )
-
-    start_x = (
-        margin
-        + (usable_width - occupied_width) / 2
-        - bbox.min_x
-    )
-
-    start_y = (
-        margin
-        + (usable_height - occupied_height) / 2
-        - bbox.min_y
-    )
+    # Center the full visual extent within the usable area.
+    # Subtracting bbox.min_x corrects for DXF patterns whose content starts
+    # left of the origin (i.e. bbox.min_x is negative).
+    visual_width = (cols - 1) * step_x + piece_w
+    visual_height = (rows - 1) * step_y + piece_h
+    start_x = margin + (usable_width - visual_width) / 2 - bbox.min_x
+    start_y = margin + (usable_height - visual_height) / 2 - bbox.min_y
 
     for row in range(rows):
 

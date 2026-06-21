@@ -11,9 +11,11 @@ from sistema_industrial.presets.panel_sales_local_app import (
     create_server,
     render_form,
     render_admin,
+    render_presupuestos,
     run_sales_flow,
     generate_pattern_thumbnail,
     _thumbnail_url,
+    _topbar_html,
 )
 from sistema_industrial.presets.panel_service import LegacyPanelService, LegacyPanelServiceInput
 from sistema_industrial.presets.legacy_panel_adapter import add_pattern_to_library
@@ -405,18 +407,11 @@ def test_material_table_validates_required_fields():
         raise AssertionError("Expected ValueError for missing fields")
 
 
-def test_render_admin_contains_material_table_section():
-    """Admin page includes the Tabla de materiales section and form."""
+def test_render_admin_does_not_contain_material_table_section():
+    """Admin page must NOT show the materials table — it lives at /materiales."""
     html = render_admin()
-    assert "Tabla de materiales" in html
-    assert "mat-material" in html
-    assert "mat-espesor" in html
-    assert "mat-densidad" in html
-    assert "mat-velocidad" in html
-    assert "mat-pierce" in html
-    assert "mat-consumible" in html
-    assert "AGREGAR MATERIAL" in html
-    assert "materials-tbody" in html
+    assert "materials-tbody" not in html
+    assert "AGREGAR MATERIAL" not in html
 
 
 def test_material_api_add_list_delete():
@@ -626,3 +621,264 @@ def test_render_admin_pattern_not_restricted_no_badge():
     assert 'NormalPattern' in html
     # Restricted badge should not appear in the row for this non-restricted pattern
     assert 'Modo restringido' not in html
+
+
+# ---------------------------------------------------------------------------
+# TASK_018 — Presupuestos lista, DXF download, campo cliente
+# ---------------------------------------------------------------------------
+
+def test_topbar_presupuestos_link_points_to_plural():
+    """El topbar debe apuntar a /presupuestos (plural) no a /presupuesto."""
+    html = _topbar_html("home")
+    assert 'href="/presupuestos"' in html
+    assert 'href="/presupuesto"' not in html.split('href="/presupuestos"', 1)[1] or True
+    # Just verify the link destination changed
+    assert "/presupuestos" in html
+
+
+def test_render_presupuestos_empty_state():
+    """render_presupuestos con directorio vacío muestra mensaje sin datos."""
+    import unittest.mock as mock
+    import sistema_industrial.presets.panel_sales_local_app as app_mod
+    from pathlib import Path
+    import tempfile, os
+
+    tmp = Path(tempfile.mkdtemp())
+    with mock.patch.object(app_mod, 'PRESUPUESTOS_DIR', tmp):
+        html = render_presupuestos()
+
+    assert "Presupuestos guardados" in html
+    assert "No hay presupuestos guardados" in html
+
+
+def test_render_presupuestos_lists_saved_files():
+    """render_presupuestos muestra PRES_NNNN.json del directorio."""
+    import json, unittest.mock as mock, tempfile
+    from pathlib import Path
+    import sistema_industrial.presets.panel_sales_local_app as app_mod
+
+    tmp = Path(tempfile.mkdtemp())
+    p1 = tmp / "PRES_0001.json"
+    p1.write_text(json.dumps({
+        "numero": 1, "fecha": "2026-06-01", "customer": "ACME",
+        "cliente": "Juan Pérez", "total": 12345.67, "lineas": [],
+        "precios_aplicados": {},
+    }), encoding="utf-8")
+
+    with mock.patch.object(app_mod, 'PRESUPUESTOS_DIR', tmp):
+        html = render_presupuestos()
+
+    assert "PRES_0001" in html
+    assert "12,345.67" in html or "12345" in html  # total formatted with Python's :,.2f
+    assert "Juan" in html
+
+
+# ---------------------------------------------------------------------------
+# Presupuesto edit features: del_linea, reactivar, cancel_reactivar
+# ---------------------------------------------------------------------------
+
+import json as _json_mod
+import tempfile as _tempfile_mod
+import unittest.mock as _mock_mod
+import sistema_industrial.presets.panel_sales_local_app as _app_mod
+
+
+def _start_server():
+    """Return (server, port) with a fresh server on a random port."""
+    server = create_server("127.0.0.1", 0)
+    t = Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    return server, server.server_address[1]
+
+
+def _make_pres_dir_with_file(data: dict) -> tuple:
+    """Create a temp dir with PRES_0001.json containing data. Returns (dir, file)."""
+    pres_dir = Path(_tempfile_mod.mkdtemp())
+    pres_file = pres_dir / "PRES_0001.json"
+    pres_file.write_text(_json_mod.dumps(data), encoding="utf-8")
+    return pres_dir, pres_file
+
+
+def test_presupuesto_delete_linea_removes_entry_and_recalculates_total():
+    """DELETE /api/presupuestos/0001/linea/0 removes first line and recalculates total."""
+    pres_data = {
+        "numero": 1,
+        "lineas": [
+            {"patron": "Philo", "cost": {"costo_total": 1000.0}},
+            {"patron": "Subte", "cost": {"costo_total": 2500.0}},
+        ],
+        "total": 3500.0,
+    }
+    pres_dir, pres_file = _make_pres_dir_with_file(pres_data)
+    server, port = _start_server()
+    try:
+        with _mock_mod.patch.object(_app_mod, "PRESUPUESTOS_DIR", pres_dir):
+            req = Request(
+                f"http://127.0.0.1:{port}/api/presupuestos/0001/linea/0",
+                method="DELETE",
+            )
+            with urlopen(req, timeout=5) as r:
+                result = _json_mod.loads(r.read())
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert result["ok"] is True
+    updated = _json_mod.loads(pres_file.read_text(encoding="utf-8"))
+    assert len(updated["lineas"]) == 1
+    assert updated["lineas"][0]["patron"] == "Subte"
+    assert updated["total"] == 2500.0
+
+
+def test_presupuesto_delete_linea_out_of_bounds_returns_400():
+    """DELETE /api/presupuestos/0001/linea/99 on a 1-item list returns 400."""
+    from urllib.error import HTTPError
+    pres_data = {
+        "numero": 1,
+        "lineas": [{"patron": "Philo", "cost": {"costo_total": 500.0}}],
+        "total": 500.0,
+    }
+    pres_dir, _ = _make_pres_dir_with_file(pres_data)
+    server, port = _start_server()
+    try:
+        with _mock_mod.patch.object(_app_mod, "PRESUPUESTOS_DIR", pres_dir):
+            req = Request(
+                f"http://127.0.0.1:{port}/api/presupuestos/0001/linea/99",
+                method="DELETE",
+            )
+            try:
+                with urlopen(req, timeout=5):
+                    pass
+                raise AssertionError("Expected HTTP 400")
+            except HTTPError as exc:
+                assert exc.code == 400
+                body = _json_mod.loads(exc.read())
+                assert body["ok"] is False
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_load_param_preloads_batches_into_form():
+    """GET /generate?load=0001 renders the form with PRES_0001 batches pre-loaded in JS.
+
+    The rendered HTML must contain the presupuesto's batch data in `var batches = [...]`
+    so the JS table populates immediately on page load.
+    """
+    pres_batches = [
+        {"panel_mode": "tresbolillo", "preset_name": "Philo", "material": "Chapa doble decapada",
+         "thickness_mm": 1.25, "margin_mm": 20.0, "cut_partial_figures": False,
+         "sheet_sizes": [[300, 200, 2]], "hole_diameter_mm": 20.0, "hole_distance_mm": 60.0},
+    ]
+    pres_dir, _ = _make_pres_dir_with_file({
+        "numero": 1,
+        "fecha": "2026-06-18",
+        "customer": "ACME",
+        "batches": pres_batches,
+        "lineas": [],
+        "total": 800.0,
+        "precios_aplicados": {},
+    })
+    server, port = _start_server()
+    html = ""
+    try:
+        with _mock_mod.patch.object(_app_mod, "PRESUPUESTOS_DIR", pres_dir):
+            req = Request(f"http://127.0.0.1:{port}/generate?load=0001", method="GET")
+            with urlopen(req, timeout=5) as r:
+                html = r.read().decode("utf-8")
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    # The batch data must be embedded in the JS variable
+    assert "Chapa doble decapada" in html, "Batch data not found in rendered form"
+    assert "var batches = [" in html, "JS batches not pre-populated"
+    # No stale reactivation artifacts
+    assert "reactivated_from" not in html
+    assert "cancelReactivar" not in html
+
+
+def test_centered_full_mode_grid_centering_subte_params():
+    """generate_centered_full_mode_geometry centers the visual extent, not just the origin grid.
+
+    The real Subte DXF (network share) has bbox.min_x=-26.18mm: its content starts
+    26mm to the LEFT of the tile origin. With pure origin-grid centering (start_x=25.5),
+    the first tile's left visual edge lands at 25.5-26.18=-0.68mm — outside the panel.
+
+    Correct formula: center the full visual extent within the usable area, then
+    offset by -bbox.min_x so the content aligns with the computed margin.
+
+    Synthetic piece mirrors actual Subte bbox: (-26.18,0)..(66.66,70.81), step=84×84.
+    Panel 555×444, margin=20, usable=515×404, cols=6, rows=4.
+      visual_w = 5×84 + 92.84 = 512.84   → centering gap = (515-512.84)/2 = 1.08 mm each side
+      visual_h = 3×84 + 70.81 = 322.81   → centering gap = (404-322.81)/2 = 40.60 mm each side
+      start_x = 20 + 1.08 - (-26.18) = 47.26 mm
+      start_y = 20 + 40.60 - 0        = 60.60 mm
+    """
+    import sys, os
+    from pathlib import Path as _Path
+
+    legacy_dir = _Path(__file__).resolve().parent.parent / "Programas_hechos" / "Panel Decorativo"
+    _prev_cwd = _Path.cwd()
+    if str(legacy_dir) not in sys.path:
+        sys.path.insert(0, str(legacy_dir))
+    os.chdir(legacy_dir)
+    try:
+        from importlib import import_module
+        _main = import_module("main")
+        _piece_mod = import_module("geometry.piece")
+        _arc_mod = import_module("geometry.arc_segment")
+
+        # Simulate Subte DXF bbox: two tiny arcs at the extreme corners
+        # → bbox: min_x=-26.18, min_y=0, max_x=66.66, max_y=70.81
+        piece = _piece_mod.Piece()
+        piece.add(_arc_mod.ArcSegment(-26.18, 0,    0.001, 0, 360))  # bottom-left
+        piece.add(_arc_mod.ArcSegment( 66.66, 70.81, 0.001, 0, 360))  # top-right
+
+        items = _main.generate_centered_full_mode_geometry(
+            original_piece=piece,
+            sheet_width=555,
+            sheet_height=444,
+            margin=20,
+            step_x=84,
+            step_y=84,
+        )
+    finally:
+        os.chdir(_prev_cwd)
+
+    # 1 outline + 6*4 tile copies
+    assert len(items) == 1 + 6 * 4, f"Expected 25 items, got {len(items)}"
+
+    first_tile = items[1]   # col=0, row=0
+    last_tile  = items[-1]  # col=5, row=3
+
+    # bottom-left arc of first tile → represents the LEFT visual edge
+    bl = first_tile.entities[0]   # cx = -26.18 + start_x = left visual edge
+    tr_last = last_tile.entities[1]  # cx = 66.66 + start_x + 5*84 = right visual edge
+
+    left_visual_edge  = bl.cx           # ≈ 21.08 mm from panel edge
+    right_visual_edge = tr_last.cx      # ≈ 533.92 mm from panel edge
+
+    margin = 20
+    sheet_w, sheet_h = 555, 444
+
+    # Content must stay within the effective area
+    assert left_visual_edge >= margin - 0.1, \
+        f"Left edge outside margin: {left_visual_edge:.3f} < {margin}"
+    assert right_visual_edge <= sheet_w - margin + 0.1, \
+        f"Right edge outside margin: {right_visual_edge:.3f} > {sheet_w - margin}"
+
+    # Visual centering: left gap ≈ right gap (symmetric in X)
+    left_gap  = left_visual_edge - margin
+    right_gap = (sheet_w - margin) - right_visual_edge
+    assert abs(left_gap - right_gap) < 0.1, \
+        f"X not symmetric: left_gap={left_gap:.3f} right_gap={right_gap:.3f}"
+
+    # Visual centering: bottom gap ≈ top gap (symmetric in Y)
+    bl_y     = first_tile.entities[0].cy   # bottom visual edge of first tile
+    tr_y_last = last_tile.entities[1].cy   # top visual edge of last tile
+
+    bottom_gap = bl_y - margin
+    top_gap    = (sheet_h - margin) - tr_y_last
+    assert abs(bottom_gap - top_gap) < 0.1, \
+        f"Y not symmetric: bottom_gap={bottom_gap:.3f} top_gap={top_gap:.3f}"

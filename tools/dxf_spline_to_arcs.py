@@ -7,6 +7,7 @@ Convierte splines en arcos y líneas, y los coloca en una capa nueva (ROJO)
 sin eliminar las splines originales.
 """
 
+import bisect
 import os
 import sys
 import math
@@ -100,6 +101,27 @@ def fit_arc_to_points(points, tolerance):
         return None
 
 
+def _find_corner_indices(points, corner_threshold_deg=20.0):
+    """Return set of indices where consecutive chord directions change by more
+    than corner_threshold_deg — these are tangent discontinuities (corners,
+    cusps) where the arc-fitting window must not cross."""
+    corners = set()
+    for i in range(1, len(points) - 1):
+        dx1 = points[i].x - points[i - 1].x
+        dy1 = points[i].y - points[i - 1].y
+        dx2 = points[i + 1].x - points[i].x
+        dy2 = points[i + 1].y - points[i].y
+        len1 = math.sqrt(dx1 * dx1 + dy1 * dy1)
+        len2 = math.sqrt(dx2 * dx2 + dy2 * dy2)
+        if len1 < 1e-9 or len2 < 1e-9:
+            continue
+        cos_a = (dx1 * dx2 + dy1 * dy2) / (len1 * len2)
+        cos_a = max(-1.0, min(1.0, cos_a))
+        if math.degrees(math.acos(cos_a)) > corner_threshold_deg:
+            corners.add(i)
+    return corners
+
+
 def discretize_and_convert_spline(spline_entity, modelspace, layer_name):
     arcs = []
     lines = []
@@ -136,13 +158,23 @@ def discretize_and_convert_spline(spline_entity, modelspace, layer_name):
         if len(points) > max_points:
             step = max(1, len(points) // max_points)
             points = points[::step]
-        
+
+        # Pre-detect tangent discontinuities so the fitting window never
+        # crosses a corner and produces a spurious arc spanning two curves.
+        corners = _find_corner_indices(points)
+        sorted_corners = sorted(corners)
+
         i = 0
         while i < len(points) - 2:
+            # First corner index strictly after i — cap the fitting window there
+            # so no segment ever spans a tangent discontinuity.
+            idx = bisect.bisect_right(sorted_corners, i)
+            corner_limit = sorted_corners[idx] if idx < len(sorted_corners) else len(points)
+
             best_end = i + 2
             best_result = None
-            
-            for end in range(i + 2, min(i + 50, len(points))):
+
+            for end in range(i + 2, min(i + 50, corner_limit, len(points))):
                 segment = points[i:end+1]
                 result = fit_arc_to_points(segment, tolerance)
                 if result:
@@ -154,17 +186,29 @@ def discretize_and_convert_spline(spline_entity, modelspace, layer_name):
             
             if best_result:
                 cx, cy, radius, start_angle, end_angle, num_points = best_result
-                try:
-                    new_arc = modelspace.add_arc(
-                        center=(cx, cy, 0),
-                        radius=radius,
-                        start_angle=start_angle,
-                        end_angle=end_angle
-                    )
-                    new_arc.dxf.layer = layer_name
-                    arcs.append(new_arc)
-                except:
-                    pass
+                span = abs(end_angle - start_angle) % 360
+                if radius > 500 or span < 1.0:
+                    # Nearly-straight arc — emit LINE from start to end point
+                    p1 = points[i]
+                    p2 = points[best_end]
+                    try:
+                        line = modelspace.add_line(p1, p2)
+                        line.dxf.layer = layer_name
+                        lines.append(line)
+                    except:
+                        pass
+                else:
+                    try:
+                        new_arc = modelspace.add_arc(
+                            center=(cx, cy, 0),
+                            radius=radius,
+                            start_angle=start_angle,
+                            end_angle=end_angle
+                        )
+                        new_arc.dxf.layer = layer_name
+                        arcs.append(new_arc)
+                    except:
+                        pass
                 i = best_end
             else:
                 p1 = points[i]

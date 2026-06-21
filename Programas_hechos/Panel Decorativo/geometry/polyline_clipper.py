@@ -3,15 +3,24 @@ from geometry.polyline import (
     points_close,
 )
 
+# Spline-to-arc conversion can leave a sub-millimetre gap between the first
+# and last point of an otherwise closed contour.  Use a looser threshold so
+# the merge logic correctly reconnects the two wrap-around fragments instead
+# of leaving each one with a long interior-to-boundary closing segment.
+_CLOSE_THRESHOLD = 0.01
+
 
 def is_closed(polyline):
 
     if len(polyline.points) < 3:
         return False
 
-    return points_close(
-        polyline.points[0],
-        polyline.points[-1],
+    p0 = polyline.points[0]
+    pl = polyline.points[-1]
+
+    return (
+        abs(p0[0] - pl[0]) <= _CLOSE_THRESHOLD
+        and abs(p0[1] - pl[1]) <= _CLOSE_THRESHOLD
     )
 
 
@@ -58,6 +67,18 @@ class PolylineClipper:
             )
 
             if current is None:
+                current = Polyline()
+            elif not points_close(
+                current.points[-1],
+                (clipped.x1, clipped.y1),
+            ):
+                # Gap between current fragment's last point and this segment's
+                # start — two different boundary clip points created by
+                # consecutive outside segments.  Close the current fragment so
+                # that segment_sources stay aligned with points, then open a
+                # fresh one starting at the new clip point.
+                if len(current.points) >= 2:
+                    result.append(current)
                 current = Polyline()
 
             current.add_segment(

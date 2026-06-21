@@ -1,0 +1,14 @@
+{
+  "pending": [],
+  "dispatched": [
+    { "agent": "Punto", "tasks": ["TASK_019","TASK_020","TASK_021","TASK_022","TASK_023","TASK_024","TASK_025","TASK_026","TASK_027","TASK_028","TASK_029","TASK_030","TASK_031"], "status": "completado" },
+    { "agent": "Punto", "tasks": ["TASK_032"], "status": "completado" },
+    { "agent": "Punto", "tasks": ["TASK_033","TASK_034","TASK_035"], "status": "completado" },
+    { "agent": "Punto", "tasks": ["TASK_036","TASK_037","INVESTIGATE_DXF_PIPELINE"], "status": "completado" },
+    { "agent": "Punto", "tasks": ["ACK_ARCH_001"], "status": "completado", "nota": "3 tests actualizados para arquitectura frontend-driven. 56 tests passed." },
+    { "agent": "Punto", "tasks": ["TASK_038"], "status": "completado", "nota": "Grilla centrada. 57 tests passed. Requiere restart del servidor." },
+    { "agent": "Vega",  "tasks": ["VEGA_TASK_001","VEGA_TASK_002","VEGA_TASK_003"], "status": "completado" },
+    { "agent": "Vega",  "tasks": ["MSG_005_presupuesto_edit","MSG_006_thumbnails","MSG_007_base_lineas","MSG_008_protocolo"], "status": "completado" },
+    { "agent": "Vega",  "tasks": ["MSG_009_mobile_navbar","VEGA_TASK_004_generate_screen","MSG_011_investigate_generate"], "status": "completado" }
+  ]
+}

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import ezdxf
 
-SUPPORTED_TYPES = {"LINE", "ARC", "CIRCLE"}
+SUPPORTED_TYPES = {"LINE", "ARC", "CIRCLE", "LWPOLYLINE"}
 
 
 @dataclass

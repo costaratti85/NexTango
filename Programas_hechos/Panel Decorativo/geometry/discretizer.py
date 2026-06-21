@@ -82,6 +82,13 @@ class Discretizer:
             )
         )
 
+        # When the arc was reversed by the EntityStitcher (_flipped=True),
+        # connectivity expects the polyline to run from end_angle back to
+        # start_angle (CW).  Reversing the point list achieves this without
+        # touching start_angle/end_angle (which export_dxf must keep intact).
+        if getattr(arc, "_flipped", False):
+            points.reverse()
+
         for i in range(len(points) - 1):
 
             x1, y1 = points[i]

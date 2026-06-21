@@ -64,34 +64,15 @@ class PolylineCloser:
         return None
 
     def boundary_path(self, start, end):
-
+        # Normal case (same margin): one direct line A → B.
+        # Corner case (different margins): two lines meeting at the clip-rect
+        # corner — A → corner, corner → B.  This is the only valid reason to
+        # produce 2 closing segments; there is never a need for more than 2.
         side_start = self.point_side(start)
         side_end = self.point_side(end)
-
-        if side_start is None or side_end is None:
-            return [end]
-
-        if side_start == side_end:
-            return [end]
-
-        corner = self.corner_between(
-            side_start,
-            side_end,
-        )
-
+        corner = self.corner_between(side_start, side_end)
         if corner is not None:
-
-            if (
-                points_close(start, corner)
-                or points_close(end, corner)
-            ):
-                return [end]
-
-            return [
-                corner,
-                end,
-            ]
-
+            return [corner, end]
         return [end]
 
     def close_polyline(self, polyline):

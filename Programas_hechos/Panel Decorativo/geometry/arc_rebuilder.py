@@ -53,6 +53,12 @@ def add_line(fig, p1, p2):
     )
 
 
+def _angle_distance(a, b):
+    """Minimum angular distance between two angles in [0, 360)."""
+    d = abs(a - b) % 360.0
+    return min(d, 360.0 - d)
+
+
 def add_arc(fig, source_arc, points):
 
     if len(points) < 2:
@@ -63,11 +69,6 @@ def add_arc(fig, source_arc, points):
 
     if points_close(p_start, p_end):
         return
-
-    if len(points) >= 3:
-        p_mid = points[len(points) // 2]
-    else:
-        p_mid = p_start
 
     a1 = angle_from_point(
         source_arc.cx,
@@ -81,11 +82,28 @@ def add_arc(fig, source_arc, points):
         p_end,
     )
 
-    direction = orientation(
-        p_start,
-        p_mid,
-        p_end,
-    )
+    if len(points) >= 3:
+
+        p_mid = points[len(points) // 2]
+
+        direction = orientation(
+            p_start,
+            p_mid,
+            p_end,
+        )
+
+    else:
+
+        # Only 2 points — the cross product of (p_mid=p_start, p_end) is always
+        # zero, so orientation() is unreliable.  Instead, infer direction from
+        # the source arc: whichever of a1/a2 is closer to source_arc.start_angle
+        # becomes the "start" of the rebuilt arc (CCW ordering preserved).
+        src_start = source_arc.start_angle % 360.0
+
+        if _angle_distance(a1, src_start) <= _angle_distance(a2, src_start):
+            direction = "ccw"   # a1 ~ src start, a2 ~ src end → same direction
+        else:
+            direction = "cw"    # a1 ~ src end, a2 ~ src start → reversed
 
     if direction == "ccw":
 
@@ -101,15 +119,17 @@ def add_arc(fig, source_arc, points):
 
     else:
 
-        fig.add(
-            ArcSegment(
-                source_arc.cx,
-                source_arc.cy,
-                source_arc.radius,
-                a2,
-                a1,
-            )
+        cw_arc = ArcSegment(
+            source_arc.cx,
+            source_arc.cy,
+            source_arc.radius,
+            a2,
+            a1,
         )
+        # _flipped keeps start_point()/end_point() in polyline order (a1→a2)
+        # while export_dxf() still draws the arc using the swapped a2→a1 angles.
+        cw_arc._flipped = True
+        fig.add(cw_arc)
 
 
 class ArcRebuilder:
@@ -135,9 +155,31 @@ class ArcRebuilder:
         if len(points) < 2:
             return fig
 
+        # Scan backwards to find the contiguous "closing" group at the tail.
+        # There can be 1 closing segment (same-margin case) or 2 (corner case,
+        # where the two free nodes lie on perpendicular margins and the path
+        # routes through the clip-rect corner).  All closing segments are held
+        # back and added at the end with corrected endpoints.
+        #
+        # Why: the clipper clips chords (straight lines between discretised arc
+        # points) so a clipped boundary point lies on the chord, NOT on the
+        # circle.  When add_arc() maps that point back via atan2 + cos/sin it
+        # lands on the circle at a slightly different position.  Without this
+        # correction the closing LINE starts/ends at the chord point while the
+        # adjacent ARC entity ends/starts on the circle — producing a gap.
+        closing_start_idx = len(metas)
+        while (
+            closing_start_idx > 0
+            and metas[closing_start_idx - 1].get("source_type") == "closing"
+        ):
+            closing_start_idx -= 1
+
+        has_closing = closing_start_idx < len(metas)
+        process_count = closing_start_idx
+
         i = 0
 
-        while i < len(metas):
+        while i < process_count:
 
             meta = metas[i]
 
@@ -149,7 +191,7 @@ class ArcRebuilder:
 
             j = i + 1
 
-            while j < len(metas):
+            while j < process_count:
 
                 next_meta = metas[j]
 
@@ -193,6 +235,20 @@ class ArcRebuilder:
                     )
 
             i = j
+
+        if has_closing and fig.entities:
+            # Closing endpoints corrected to the actual arc/line entity endpoints.
+            # Any intermediate corner point (corner case) is taken verbatim from
+            # the polyline — it is an exact clip-rect vertex, not a chord
+            # interpolation, so it needs no correction.
+            p_first = fig.entities[-1].end_point()
+            p_last = fig.entities[0].start_point()
+            intermediate = points[closing_start_idx + 1 : len(metas)]
+            current = p_first
+            for pt in intermediate:
+                add_line(fig, current, pt)
+                current = pt
+            add_line(fig, current, p_last)
 
         return fig
 
