@@ -1736,6 +1736,29 @@ def _topbar_html(active: str = "") -> str:
     )
 
 
+def _format_number_locale(value: float, decimals: int = 2) -> str:
+    """Format a number using the OS regional separators so it pastes correctly into Excel.
+
+    Reads the system locale once per call (fast on all modern OSes).
+    Falls back to en-US style if locale is unavailable.
+    """
+    import locale as _lc
+    try:
+        _lc.setlocale(_lc.LC_ALL, "")
+    except Exception:
+        pass
+    conv = _lc.localeconv()
+    dec = conv.get("decimal_point") or "."
+    thou = conv.get("thousands_sep") or ","
+    # Build with en-US format, then swap separators
+    formatted = f"{value:,.{decimals}f}"          # e.g. "56,463.03"
+    if dec != "." or thou not in (",", "."):
+        formatted = formatted.replace(".", "\x00")  # tmp placeholder for decimal
+        formatted = formatted.replace(",", thou)
+        formatted = formatted.replace("\x00", dec)
+    return formatted
+
+
 def _clean_pattern_name(name: str) -> str:
     """Strip engine-added suffixes from pattern name.
 
@@ -1877,7 +1900,7 @@ def render_form(error: str = "", result: SalesRunResult | None = None, load: str
                 f"</tr>"
             )
             _paste_lines_pres.append(
-                f"{_pr_qty}\tPanel {_pr_name_clean}\t{_pr_dims}\ten {_pr_mat_label}\t{_pr_cost:,.2f}"
+                f"{_pr_qty}\tPanel {_pr_name_clean}\t{_pr_dims}\ten {_pr_mat_label}\t{_format_number_locale(_pr_cost)}"
             )
             _paste_lines_ot.append(
                 f"{_pr_qty}\tPanel {_pr_name_clean}\t{_pr_dims}\ten {_pr_mat_label} / [{_pr_name_clean}.dxf]"
