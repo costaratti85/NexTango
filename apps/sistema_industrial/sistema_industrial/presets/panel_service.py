@@ -30,6 +30,10 @@ class LegacyPanelServiceInput:
     margin_mm: float = 20.0
     hole_diameter_mm: float = 20.0
     hole_distance_mm: float = 60.0
+    hole_shape: str = "circle"
+    hole_size_mm: float = 20.0
+    offset_x_mm: float | None = None
+    offset_y_mm: float | None = None
     pattern_dxf_path: Path | None = None
     step_x_mm: float | None = None
     step_y_mm: float | None = None
@@ -46,6 +50,8 @@ def legacy_pattern_type_for_panel_mode(panel_mode: str) -> str:
         return "dxf"
     if panel_mode == "none":
         return "none"
+    if panel_mode == "cuadriculado":
+        return "cuadriculado"
     raise ValueError(f"Unsupported panel_mode: {panel_mode}")
 
 
@@ -56,6 +62,14 @@ def normalize_panel_input(data: LegacyPanelServiceInput) -> LegacyPanelServiceIn
             raise ValueError("pattern_dxf_path is required for dxf_pattern_grid")
         if data.step_x_mm is None or data.step_y_mm is None:
             raise ValueError("step_x_mm and step_y_mm are required for dxf_pattern_grid")
+    # For cuadriculado, map offset_x/y → step_x/y
+    step_x_mm = data.step_x_mm
+    step_y_mm = data.step_y_mm
+    if data.panel_mode == "cuadriculado":
+        if data.offset_x_mm is None or data.offset_y_mm is None:
+            raise ValueError("offset_x_mm and offset_y_mm are required for cuadriculado")
+        step_x_mm = data.offset_x_mm
+        step_y_mm = data.offset_y_mm
     return LegacyPanelServiceInput(
         panel_mode=data.panel_mode,
         preset_code=data.preset_code,
@@ -74,9 +88,13 @@ def normalize_panel_input(data: LegacyPanelServiceInput) -> LegacyPanelServiceIn
         margin_mm=data.margin_mm,
         hole_diameter_mm=data.hole_diameter_mm,
         hole_distance_mm=data.hole_distance_mm,
+        hole_shape=data.hole_shape,
+        hole_size_mm=data.hole_size_mm,
+        offset_x_mm=data.offset_x_mm,
+        offset_y_mm=data.offset_y_mm,
         pattern_dxf_path=data.pattern_dxf_path,
-        step_x_mm=data.step_x_mm,
-        step_y_mm=data.step_y_mm,
+        step_x_mm=step_x_mm,
+        step_y_mm=step_y_mm,
         rows=data.rows,
         columns=data.columns,
         sheet_sizes=data.sheet_sizes,
@@ -205,6 +223,8 @@ class LegacyPanelService:
                 margin_mm=data.margin_mm,
                 hole_diameter_mm=data.hole_diameter_mm,
                 hole_distance_mm=data.hole_distance_mm,
+                hole_shape=data.hole_shape,
+                hole_size_mm=data.hole_size_mm,
                 pattern_dxf_path=data.pattern_dxf_path,
                 step_x_mm=data.step_x_mm,
                 step_y_mm=data.step_y_mm,

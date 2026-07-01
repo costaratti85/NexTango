@@ -18,7 +18,7 @@ import sys
 
 
 DEFAULT_LEGACY_DIR = Path(__file__).resolve().parents[4] / "Programas_hechos" / "Panel Decorativo"
-LEGACY_PATTERN_TYPES = {"tresbolillo", "dxf", "none"}
+LEGACY_PATTERN_TYPES = {"tresbolillo", "dxf", "none", "cuadriculado"}
 
 
 # ---------------------------------------------------------------------------
@@ -166,6 +166,8 @@ class LegacyPanelRunRequest:
     margin_mm: float = 20.0
     hole_diameter_mm: float = 20.0
     hole_distance_mm: float = 60.0
+    hole_shape: str = "circle"
+    hole_size_mm: float = 20.0
     pattern_dxf_path: Path | None = None
     step_x_mm: float | None = None
     step_y_mm: float | None = None
@@ -289,6 +291,15 @@ def _build_settings(settings_class, request: LegacyPanelRunRequest):
         settings.step_y = request.step_y_mm
         return settings
 
+    if request.pattern_type == "cuadriculado":
+        if request.step_x_mm is None or request.step_y_mm is None:
+            raise ValueError("step_x_mm and step_y_mm are required for cuadriculado patterns")
+        settings.hole_shape = request.hole_shape
+        settings.hole_size = request.hole_size_mm
+        settings.step_x = request.step_x_mm
+        settings.step_y = request.step_y_mm
+        return settings
+
     raise ValueError(f"Unsupported legacy panel pattern_type: {request.pattern_type}")
 
 
@@ -386,12 +397,229 @@ def delete_pattern_from_library(name: str, legacy_dir: Path | None = None) -> No
         lib.delete_pattern(name)
 
 
+def calcular_zonas(w_mm: float, h_mm: float, target: float = 250.0):
+    """Divide el área del panel en n_cols × n_rows zonas de flycut.
+
+    CypCut procesa 16 capas (0-15) en orden secuencial; cada zona ocupa una
+    capa.  Si total_zonas > 16 se necesitan múltiples archivos DXF.
+
+    Devuelve (n_cols, n_rows, zone_w, zone_h, total_zonas).
+    """
+    n_cols = math.ceil(w_mm / target)
+    n_rows = math.ceil(h_mm / target)
+    zone_w = w_mm / n_cols
+    zone_h = h_mm / n_rows
+    return n_cols, n_rows, zone_w, zone_h, n_cols * n_rows
+
+
+def zona_de_agujero(
+    x: float, y: float,
+    n_cols: int, n_rows: int,
+    zone_w: float, zone_h: float,
+) -> int:
+    """Número de zona (0-indexed) para un agujero en (x, y) relativo al origen del panel."""
+    col_zona = min(int(x / zone_w), n_cols - 1)
+    row_zona = min(int(y / zone_h), n_rows - 1)
+    return row_zona * n_cols + col_zona
+
+
+def _write_cuadriculado_square_to_doc(
+    doc,
+    msp,
+    hole_size_mm: float,
+    step_x_mm: float,
+    step_y_mm: float,
+    sheet_width_mm: float,
+    sheet_height_mm: float,
+    margin_mm: float,
+    offset_x: float = 0.0,
+    offset_y: float = 0.0,
+    zone_size_mm: float = 250.0,
+    file_index: int = 0,
+) -> dict:
+    """Write cuadriculado square entities into an *existing* ezdxf doc/msp.
+
+    Each hole is placed on the CypCut layer that corresponds to its zone:
+    ``layer = str(zona % 16)``.  When total_zones > 16 the caller creates one
+    doc per chunk of 16 zones and passes file_index to select which holes to
+    include.  The CONTORNO outline is always written regardless of file_index.
+
+    Returns {pierce_count, cut_length_mm, zone_cols, zone_rows,
+             total_zones, n_files}.
+    """
+    half = hole_size_mm / 2.0
+    usable_w = sheet_width_mm - 2.0 * margin_mm
+    usable_h = sheet_height_mm - 2.0 * margin_mm
+
+    cols = int(usable_w / step_x_mm) if step_x_mm > 0 else 0
+    rows = int(usable_h / step_y_mm) if step_y_mm > 0 else 0
+
+    while cols > 0 and (cols - 1) * step_x_mm + hole_size_mm > usable_w:
+        cols -= 1
+    while rows > 0 and (rows - 1) * step_y_mm + hole_size_mm > usable_h:
+        rows -= 1
+
+    ox, oy = offset_x, offset_y
+    msp.add_lwpolyline(
+        [(ox, oy), (ox + sheet_width_mm, oy),
+         (ox + sheet_width_mm, oy + sheet_height_mm), (ox, oy + sheet_height_mm)],
+        close=True,
+        dxfattribs={"layer": "CONTORNO"},
+    )
+
+    n_cols, n_rows, zone_w, zone_h, total_zones = calcular_zonas(
+        sheet_width_mm, sheet_height_mm, zone_size_mm
+    )
+    n_files = math.ceil(total_zones / 16)
+
+    if cols == 0 or rows == 0:
+        return {
+            "pierce_count": 0, "cut_length_mm": 0.0,
+            "zone_cols": n_cols, "zone_rows": n_rows,
+            "total_zones": total_zones, "n_files": n_files,
+        }
+
+    visual_w = (cols - 1) * step_x_mm + hole_size_mm
+    visual_h = (rows - 1) * step_y_mm + hole_size_mm
+    start_x = ox + margin_mm + (usable_w - visual_w) / 2.0 + half
+    start_y = oy + margin_mm + (usable_h - visual_h) / 2.0 + half
+
+    for r in range(rows):
+        for c in range(cols):
+            cx = start_x + c * step_x_mm
+            cy = start_y + r * step_y_mm
+            # Position relative to sheet origin for zone lookup
+            rx, ry = cx - ox, cy - oy
+            zona = zona_de_agujero(rx, ry, n_cols, n_rows, zone_w, zone_h)
+            if zona // 16 != file_index:
+                continue
+            msp.add_lwpolyline(
+                [(cx - half, cy - half), (cx + half, cy - half),
+                 (cx + half, cy + half), (cx - half, cy + half)],
+                close=True,
+                dxfattribs={"layer": str(zona % 16)},
+            )
+
+    pierce_count = cols * rows
+    return {
+        "pierce_count": pierce_count,
+        "cut_length_mm": pierce_count * 4.0 * hole_size_mm,
+        "zone_cols": n_cols,
+        "zone_rows": n_rows,
+        "total_zones": total_zones,
+        "n_files": n_files,
+    }
+
+
+def _generate_cuadriculado_square_dxf_files(
+    hole_size_mm: float,
+    step_x_mm: float,
+    step_y_mm: float,
+    sheet_width_mm: float,
+    sheet_height_mm: float,
+    margin_mm: float,
+    output_dir,
+    stem: str,
+    zone_size_mm: float = 250.0,
+) -> dict:
+    """Generate 1 or N DXF files for a cuadriculado square panel.
+
+    When total_zones ≤ 16  → one file:  ``{stem}.dxf``
+    When total_zones > 16  → N files:   ``{stem}_flycut_1deN.dxf`` …
+
+    Returns {paths, pierce_count, cut_length_mm, zone_cols, zone_rows,
+             total_zones, n_files}.
+    """
+    import ezdxf as _ezdxf
+    from pathlib import Path as _Path
+
+    output_dir = _Path(output_dir)
+    n_cols, n_rows, zone_w, zone_h, total_zones = calcular_zonas(
+        sheet_width_mm, sheet_height_mm, zone_size_mm
+    )
+    n_files = math.ceil(total_zones / 16) if total_zones > 0 else 1
+
+    paths = []
+    last_result: dict = {}
+
+    for fi in range(n_files):
+        doc = _ezdxf.new("R2010")
+        msp = doc.modelspace()
+        result = _write_cuadriculado_square_to_doc(
+            doc, msp,
+            hole_size_mm=hole_size_mm,
+            step_x_mm=step_x_mm,
+            step_y_mm=step_y_mm,
+            sheet_width_mm=sheet_width_mm,
+            sheet_height_mm=sheet_height_mm,
+            margin_mm=margin_mm,
+            zone_size_mm=zone_size_mm,
+            file_index=fi,
+        )
+        last_result = result
+        if n_files == 1:
+            fpath = output_dir / f"{stem}.dxf"
+        else:
+            fpath = output_dir / f"{stem}_flycut_{fi + 1}de{n_files}.dxf"
+        doc.saveas(str(fpath))
+        paths.append(fpath)
+
+    return {
+        "paths": paths,
+        "pierce_count": last_result.get("pierce_count", 0),
+        "cut_length_mm": last_result.get("cut_length_mm", 0.0),
+        "zone_cols": last_result.get("zone_cols", n_cols),
+        "zone_rows": last_result.get("zone_rows", n_rows),
+        "total_zones": total_zones,
+        "n_files": n_files,
+    }
+
+
+def _generate_cuadriculado_square_dxf(
+    hole_size_mm: float,
+    step_x_mm: float,
+    step_y_mm: float,
+    sheet_width_mm: float,
+    sheet_height_mm: float,
+    margin_mm: float,
+    output_path,
+    zone_size_mm: float = 250.0,
+) -> dict:
+    """Generate a standalone single-file DXF for a cuadriculado square pattern.
+
+    When total_zones > 16, only file 0 is generated at output_path.
+    Use _generate_cuadriculado_square_dxf_files for multi-file support.
+    Returns dict: {pierce_count, cut_length_mm, zone_cols, zone_rows,
+                   total_zones, n_files}.
+    """
+    import ezdxf as _ezdxf
+    doc = _ezdxf.new("R2010")
+    msp = doc.modelspace()
+    result = _write_cuadriculado_square_to_doc(
+        doc, msp,
+        hole_size_mm=hole_size_mm,
+        step_x_mm=step_x_mm,
+        step_y_mm=step_y_mm,
+        sheet_width_mm=sheet_width_mm,
+        sheet_height_mm=sheet_height_mm,
+        margin_mm=margin_mm,
+        zone_size_mm=zone_size_mm,
+        file_index=0,
+    )
+    doc.saveas(str(output_path))
+    return result
+
+
 class LegacyPanelAdapter:
     def __init__(self, legacy_dir: Path | None = None):
         self.legacy_dir = legacy_dir or find_legacy_panel_dir()
 
     def run(self, request: LegacyPanelRunRequest) -> LegacyPanelRunResult:
         request.output_dxf_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Cuadriculado + square → dedicated generator: LWPOLYLINE per hole + DXF GROUP per zone
+        if request.pattern_type == "cuadriculado" and request.hole_shape == "square":
+            return self._run_cuadriculado_square(request)
 
         with _legacy_import_context(self.legacy_dir):
             legacy_main = import_module("main")
@@ -425,5 +653,53 @@ class LegacyPanelAdapter:
                 "legacy_dir": str(self.legacy_dir),
                 "request": _raw_request_payload(request),
                 "items": resources,
+            },
+        )
+
+    def _run_cuadriculado_square(self, request: LegacyPanelRunRequest) -> LegacyPanelRunResult:
+        """Direct DXF generation for cuadriculado+square: LWPOLYLINE + flycut zone groups."""
+        sheet_sizes = request.sheet_sizes or [(request.width_mm, request.height_mm, request.quantity)]
+        sheet_width, sheet_height, quantity = sheet_sizes[0]
+
+        geo = _generate_cuadriculado_square_dxf(
+            hole_size_mm=request.hole_size_mm,
+            step_x_mm=request.step_x_mm,
+            step_y_mm=request.step_y_mm,
+            sheet_width_mm=sheet_width,
+            sheet_height_mm=sheet_height,
+            margin_mm=request.margin_mm,
+            output_path=request.output_dxf_path,
+        )
+
+        if not request.output_dxf_path.exists():
+            raise FileNotFoundError(f"DXF was not generated: {request.output_dxf_path}")
+
+        sheet_area_m2 = calculate_sheet_area_m2(sheet_width, sheet_height)
+        resource = {
+            "name": f"{request.preset_name} {sheet_width}x{sheet_height}",
+            "material": request.material,
+            "thickness_mm": request.thickness_mm,
+            "quantity": quantity,
+            "occupied_width_mm": sheet_width,
+            "occupied_height_mm": sheet_height,
+            "geometry_item_count": geo["pierce_count"] + 1,  # +1 for outline
+            "cut_length_mm": geo["cut_length_mm"],
+            "cut_length_m": geo["cut_length_mm"] / 1000.0,
+            "pierce_count": geo["pierce_count"],
+            "sheet_area_m2": sheet_area_m2,
+            "bend_count": 0,
+        }
+
+        zone_info = f"{geo['zone_cols']} col × {geo['zone_rows']} fila"
+        return LegacyPanelRunResult(
+            dxf_path=request.output_dxf_path,
+            calculated_resources=[resource],
+            warnings=[f"Flycut: {geo['pierce_count']} cuadrados en {zone_info} zonas de ≤250mm"] if geo["pierce_count"] > 0 else [],
+            legacy_result_raw={
+                "generator": "cuadriculado_square_direct",
+                "zone_cols": geo["zone_cols"],
+                "zone_rows": geo["zone_rows"],
+                "request": _raw_request_payload(request),
+                "items": [resource],
             },
         )

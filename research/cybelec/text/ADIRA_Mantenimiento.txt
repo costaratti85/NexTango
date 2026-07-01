@@ -1,0 +1,687 @@
+===== PAGE 1 =====
+MANUAL DE MANTENIMIENTO
+QHD-NCE
+===== PAGE 2 =====
+
+===== PAGE 3 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: ÍNDICE
+PLEGADORA HIDRÁULICA ADIRA TIPO QIHF-PLS
+ÍNDICE
+1. Mantenimiento............................................................................................1.1
+1.1. Cuidados generales..................................................................................1.1
+1.2. Regulación de las guías principales.............................................................1.1
+1.3. Fijación de los cilindros hidráulicos al tablero móvil.......................................1.2
+2. Lubricación.................................................................................................2.1
+2.1. Mapa de lubricación..................................................................................2.1
+2.2. Instrucciones para cambio del aceite hidráulico ............................................2.8
+2.3. Instrucciones para a desmontaje y montaje de las tapas de vigilia ..................2.9
+2.4. Instrucciones para cambio de filtro.............................................................2.9
+2.5. Aceites hidráulicos recomendados de las principales marcas......................... 2.10
+3. Recomendaciones en caso de anomalía...........................................................3.1
+3.1. El motor no arranca..................................................................................3.1
+3.2. El tablero móvil no se desplaza..................................................................3.1
+3.3. El tablero móvil para antes de la profundidad de plegado pretendida...............3.3
+3.4. El tablero móvil no sube en la posición "ciclo a ciclo con retorno automático"....3.3
+3.5. La pieza plegada tiene ángulos diferentes en sus extremos ............................3.4
+3.6. Lo eje Y (Batiente de la profundidad de plegado) está descalibrado.................3.6
+3.7. Lo tope no está paralelo à matriz................................................................3.7
+3.8. Lo contador del tope está descalibrado........................................................3.8
+3.9. El tablero móvil inclinó..............................................................................3.9
+4. Tablas .......................................................................................................4.1
+4.1. Binario de apretó de los tornillos ................................................................4.1
+4.2. Binario de apretó de los tornillos de las válvulas hidráulicas ...........................4.2
+(cid:9) MAN829.doc v1 17 de abril de 2007 >i.1
+===== PAGE 4 =====
+
+===== PAGE 5 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Mantenimiento
+1. MANTENIMIENTO
+Para ayudar a controlar los intervalos de inspección y mantenimiento, las plegadoras son
+suministradas con un contador de horas, montado en el interior del cuadro eléctrico.
+1.1. CUIDADOS GENERALES
+Mantener la máquina limpia y proteger todas las superficies maquinadas con una película de
+aceite.
+Mantener las herramientas, en especial los ves de la matriz, limpios y libres de cuerpos
+extraños tales como recortas metálicas o partículas de carepa que damnifican las
+herramientas.
+Verificar se hay fugas de aceite en el circuito hidráulico, apretando los accesorios
+respectivos se necesario.
+Verificar periódicamente el ahogo de las guías del delantal móvil (manual de instrucciones,
+sección 9.1) corrigiéndolo se necesario.
+Sustituir el cartucho del filtro de retorno siempre que la bombilla de señalización de filtro
+sucio - opción - encender. Para hacer esta sustitución ver capítulo 2.4 Instrucciones
+de cambio del filtro
+1.2. REGULACIÓN DE LAS GUÍAS PRINCIPALES
+Figura 1.1- Guía del tablero móvil.
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >1.1
+===== PAGE 6 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Mantenimiento
+El conjunto de las guías del tablero móvil tiene posibilidad de ajuste.
+Los tornillos de ajuste (pos.3 y 4) deben ser apretados para eliminar cualquier holgura
+excesiva entre los bloques fijos de guía, en los montantes (pos. 8) y los bloques móviles del
+tablero (pos.1). Los tornillos de ajuste deberán ser inmovilizados, después del ajuste de la
+guía, a través de las hembras de bloqueo (pos.2).
+Las guías deben mantenerse ajustadas y de modo la que no presentaran holgura excesiva -
+se recomienda una holgura de 0,1 mm. Las guías nunca deberán ser demasiado apretadas.
+1.3. FIJACIÓN DE LOS CILINDROS HIDRÁULICOS AL TABLERO
+MÓVIL
+Sistema de fijación por tornillo céntrico (LI-2847)
+Figura 1.2 – Cilindro hidráulico.
+Los tornillos de fijación de los cilindros hidráulicos al tablero móvil (pos. 4) deberán ser bien
+apretados y bloqueados, de lo contrario, ciertos errores o aún vibraciones podrán aparecer.
+Sin embargo, esto no impide que el tablero móvil y los cilindros tengan un cierto
+movimiento, cuando necesario, debido à las rotondas de articulación y a los resortes de
+disco de suspensión, insertadas en el sistema de fijación.
+Si necesario, reapretar los cilindros y proceder como sigue:
+− Descender el tablero móvil hasta al apoyo total de las herramientas;
+− Desapretar las piezas de fijación (pos. 7) desapretando los tornillos de fijación (pos. 8);
+− Apretar los tornillos de suspensión (pos. 4) hasta que se obtenga una pre-tensión sobre
+los resortes de disco (pos. 6) suficiente para sostener el peso del tablero móvil y
+también las cargas dinámicas durante las inversiones del movimiento del tablero.
+− Apretar nuevamente las piezas de fijación (pos. 7), apretando los tornillos (pos.8)
+respectivos
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >1.2
+===== PAGE 7 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Lubricación
+2. LUBRICACIÓN
+2.1. MAPA DE LUBRICACIÓN
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >2.1
+===== PAGE 8 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Lubricación
+Modelo A:
+4A1
+1A
+3A 5A
+1A 4A
+1A
+2A 3A
+Semanal Mensual Trimestral Anual* Lubricantes
+( cada 8h) ( cada 50h) ( cada 250h) ( cada 2000h) Recomendados
+Lubricar los Mobilux EP-
+1A •
+rodamientos 2
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >2.2
+===== PAGE 9 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Lubricación
+Semanal Mensual Trimestral Anual* Lubricantes
+( cada 8h) ( cada 50h) ( cada 250h) ( cada 2000h) Recomendados
+Tope Posterior:
+Eje X
+Lubricar los
+patines,
+2A / guías
+• ISO VG 68
+3A lineales y el
+husillo de
+esferas.
+Eje R
+Lubricar los
+patines, las
+ISO VG 150
+guías
+4A • o
+lineales y el
+ISO VG 220
+husillo de
+esferas.
+Ejes manuales R1 /
+R2
+Lubricar los
+patines,
+ISO VG 150
+guías
+4A1 • o
+lineales,
+ISO VG 220
+husillo y
+hembra.
+Eje Z
+Lubricar las ISO VG 150
+5A1 guías • o
+lineales. ISO VG 220
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >2.3
+===== PAGE 10 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Lubricación
+Modelo B
+2B
+5B
+1B
+3B
+4B
+4B
+Figura 2-1 – Tope – Modelo B
+Semanal Mensual Trimestral Anual* Lubricantes
+( cada 8h) ( cada 50h) ( cada 250h) ( cada 2000h) Recomendados
+Eje X
+1B Rodamientos • Mobilux EP-2
+Lubricar las
+2B guías y husillo • Mobilux EP-2
+de lo tope
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >2.4
+===== PAGE 11 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Lubricación
+Semanal Mensual Trimestral Anual* Lubricantes
+( cada 8h) ( cada 50h) ( cada 250h) ( cada 2000h) Recomendados
+Eje X
+Lubricar
+las
+3B hembras • Mobilux EP-2
+de esferas
+de lo tope
+Eje R
+Lubricar
+las guías
+4B • Mobilux EP-2
+lineales
+(patines).
+Lubricar el
+4B husillo de • Mobilux EP-2
+esferas
+Ejes manuales R1 /
+R2 Lubricar
+los
+patines,
+4B1 guías • Mobilux EP-2
+lineales,
+husillo y
+hembra
+Eje Z
+Lubricar
+las guías
+5B • Mobilux EP-2
+lineales
+(patines).
+Lubricar el
+eje de
+torsión en
+6A • Mobilux EP-2
+los puntos
+A y B
+señalados
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >2.5
+===== PAGE 12 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Lubricación
+TODOS lOS MODELOS
+Semanal Mensual Trimestral Anual* Lubricantes
+( cada 8h) ( cada 50h) ( cada 250h) ( cada 2000h) Recomendados
+A pesar de las
+guías del tablero
+que sean hechas
+de material auto-
+lubricante es
+conveniente
+6 Guía mantenerlas • Mobilux EP-2
+también
+protegidas con
+masa lubricante
+aplicada en sus
+superficies de
+desliz.
+Lubricar las cajas
+reductoras de
+accionamiento de
+la profundidad de
+plegado
+inyectando masa
+en los picos de
+7 • Mobilux EP-2
+Localización: por lubricación y
+encima de los aplicar aceite en
+cilindros los husillos
+situados en la
+parte superior de
+cada cilindro
+hidráulico.
+Verificar la
+limpieza del filtro
+de aire que se
+encuentran en el
+tapón de
+henchimiento.
+Siempre que
+8 necesario, • 
+limpiarlo y
+recolocarlo, luego
+que
+completamente
+seco.
+Instrucciones en
+la sección 2.2
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >2.6
+===== PAGE 13 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Lubricación
+Semanal Mensual Trimestral Anual* Lubricantes
+( cada 8h) ( cada 50h) ( cada 250h) ( cada 2000h) Recomendados
+Verificar el
+nivel de
+aceite
+hidráulico
+del depósito
+con el
+tablero en
+9 su punto • 
+muerto
+superior. El
+nivel de
+aceite es
+indicado por
+Aceite el visor de
+nivel.
+hidráu
+lico
+Cambiar el
+aceite del
+sistema
+hidráulico
+(es posible
+Instrucciones un periodo
+para cambio del superior a
+10 • Mobil DTE15
+aceite en la un año en la
+sección 2.2 condición de
+que el
+aceite sea
+verificado
+por
+análisis).
+Limpieza del
+depósito con
+petróleo.
+11 • 
+Instrucciones en la
+sección 0
+Cambiar el filtro del
+aceite.
+12 • 
+Instrucciones en la
+sección 2.4 (1)
+El primer cambio debe tener lugar después de 3 meses o 250 horas de trabajo.
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >2.7
+===== PAGE 14 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Lubricación
+2.2. INSTRUCCIONES PARA CAMBIO DEL ACEITE HIDRÁULICO
+4
+3
+2
+1
+Figura 2.2 – Unidad hidráulica.
+1. Desconectar la máquina de acuerdo con el indicado en el manual de instrucciones
+sección 6.8;
+2. Desapretar ligeramente el accesorio hexagonal que está por bajo del depósito
+(pos. 1);
+3. Dejar salir todo el aceite hasta el depósito estar completamente vacío.
+4. Retirar las tapas del depósito (pos. 2).
+5. Limpiar el depósito, para no utilizar los paños de la limpieza que liberan los
+alambres. Usar paños de boa calidad.
+6. Montar las tapas otra vez.
+7. Apretar lo accesorio hexagonal nuevamente.
+8. Limpiar el filtro de aire asociado al tapón de llenado (pos. 3). Siempre que necesario
+limpiarlo y volver a colocarlo sólo después de completamente seco.
+9. Sustituir el filtro de retorno.
+10. Llenar el depósito con aceite nuevo y limpio. Filtrar el aceite con un grado de
+filtración de cerca de 40 la 60 micrones.
+11. Cerrar el tapón de henchimiento de aceite.
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >2.8
+===== PAGE 15 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Lubricación
+2.3. INSTRUCCIONES PARA A DESMONTAJE Y MONTAJE DE LAS
+TAPAS DE VIGILIA
+1. De acuerdo con la desconexión
+la máquina indicada en el
+manual de las instrucciones
+sección 6.8;
+2. Retirar los tornillos.
+3. Retirar la tapa.
+4. Retirar el O-ring (anillo tórico), y
+en caso de que sea necesario,
+sustitúyanlo.
+5. Para hacer el montaje, repitan
+las operaciones en orden
+inverso.
+2.4. INSTRUCCIONES PARA CAMBIO DE FILTRO
+Desconectar la máquina de acuerdo con el indicado en el manual de instrucciones 6.8.
+Figura 2.3 – Filtro de retorno
+1. Colocar la llave de filtro;
+2. Remover el filtro usado. Aplicar aceite en el vedante del nuevo filtro;
+3. Montar el nuevo filtro.
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >2.9
+===== PAGE 16 =====
+MANUAL DE MANTENIMIENTO
+Capítulo: Lubricación
+2.5. ACEITES HIDRÁULICOS RECOMENDADOS DE LAS PRINCIPALES
+MARCAS
+Aceite hidráulico recomendado: ISO VG 46
+Marca Referencia comercial
+MOBIL DTE 15
+GALP HIDROLIV 46
+SHELL TELLUS OIL T46
+ESSO UNIVIS N46
+FINA HIDRAN 46
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >2.10
+===== PAGE 17 =====
+MANUAL DE INSTRUCCIONES
+Capítulo: Recomendaciones en caso de anomalía
+3. RECOMENDACIONES EN CASO DE ANOMALÍA
+ANOMALÍA CAUSA PROCEDIMIENTO
+Verificar conexiones eléctricas, fusibles, las tensiones en las
+diferentes fases así como los disyuntores.
+Verificar también si alguno de los micro-interruptores de protección
+contra la inclinación excesiva del tablero ((cid:7) manual de
+3.1. EL MOTOR NO
+instrucciones sección 9.4.2) fue accionado. Para inhibir su acción y
+ARRANCA
+ser posible recuperar el paralelismo del tablero, mantener
+presionado el botón de arranque del motor en
+simultáneo con la orden de subida del tablero (pedal de subida).
+a) El punto muerto superior está
+Ajustar el punto muerto superior ((cid:7)manual de instrucciones
+mucho próximo al punto muerto
+sección 6.6).
+inferior (profundidad de plegado)
+3.2. EL TABLERO
+MÓVIL NO SE
+DESPLAZA
+b) La presión ajustada es
+Aumentar su valor ((cid:7)manual de instrucciones sección 6.5).
+excesivamente baja
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >3.1
+===== PAGE 18 =====
+MANUAL DE INSTRUCCIONES
+Capítulo: Recomendaciones en caso de anomalía
+ANOMALÍA CAUSA PROCEDIMIENTO
+Actuar sobre el socorro manual de las electro-válvulas (colocados
+en las extremidades de los solenoides) H1, H6 y H7 para
+descendida lenta (ver LI-2844) y H2 y H3 para subida. Hacerlo
+simultáneamente con las respectivas órdenes eléctricas. Alguna
+válvula puede estar "pegada" y no moverse bajo la acción del
+3.2 EL TABLERO
+a) Las electro-válvulas reciben solenoide.
+MÓVIL NO SE corriente (ver LEDS
+Intentar de nuevo con control eléctrico.
+DESPLAZA correspondientes en el interior del
+(cont.) cuadro eléctrico) Atención: Un aprieto excesivo de los tornillos de fijación puede
+provocar empeño en el cuerpo de la válvula. Binario
+recomendado:
+NG 6: 10 Nm
+NG 10: 15,5 Nm
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >3.2
+===== PAGE 19 =====
+MANUAL DE INSTRUCCIONES
+Capítulo: Recomendaciones en caso de anomalía
+ANOMALÍA CAUSA PROCEDIMIENTO
+a) La presión de trabajo es insuficiente Ajustar la presión para un valor más elevado ((cid:7)manual de
+para el trabajo. instrucciones, sección 6.4).
+3.3. EL TABLERO
+MÓVIL PARA
+b) El tablero móvil para cuando lo
+ANTES DE LA
+punción arrincona a la pieza. La
+PROFUNDIDA
+válvula de pre-henchimiento (pos.
+D DE PLEGADO 16, LI-2844) no cierra por estar Observar el estado del resorte ( pos. 15, DH-0481 o pos. 19, DH-
+PRETENDIDA "bloqueada" o tener el resorte de 00654)
+recuperación partida. La válvula de
+pre-henchimiento está situada en el
+interior del bloque de la válvula.
+3.4. EL TABLERO
+MÓVIL NO
+SUBE EN LA
+a) El tablero móvil no alcanzó la
+POSICIÓN Aumentar la fuerza de plegado.
+profundidad de plegado programada
+"CICLO A Y0 pos. < Y0 MEM. Lo plegado no Atención: verificar si las herramientas soportan la fuerza de
+plegado necesaria.
+CICLO CON fue completada.
+RETORNO
+AUTOMÁTICO"
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >3.3
+===== PAGE 20 =====
+MANUAL DE INSTRUCCIONES
+Capítulo: Recomendaciones en caso de anomalía
+ANOMALÍA CAUSA PROCEDIMIENTO
+Cortar 2 chapas con las mismas dimensiones y espesor (p.ej.
+100 x 50 x 2 mm).
+Colocar las piezas en la matriz, una bajo cada cilindro hidráulico,
+y plegarlas después de ajuste conveniente de la profundidad de
+plegado - plegado en el aire ((cid:7) manual de instrucciones,
+sección 6.7). Utilizar la máquina en control "SENSITIVO" ((cid:7)
+manual de instrucciones, sección 6.3.1).
+Controlar los ángulos de plegado y, si necesario, corregir el
+3.5. LA PIEZA
+paralelismo ((cid:7) manual de instrucciones, sección 9.4) del
+PLEGADA siguiente modo:
+TIENE
+− Regular la presión de trabajo de la máquina para un 20% de la
+ÁNGULOS
+fuerza de plegado, introducir el valor de la tonelaje en el
+DIFERENTES campo respectivo en el DNC.
+EN SUS
+− Ajustar la profundidad de plegado correspondiente la una
+EXTREMOS apertura entre tableros de cerca de 275 mm.
+− Descender el tablero móvil para la posición de profundidad de
+plegado escogida.
+− Con el auxilio de un comparador (u otro instrumento de
+precisión) posado sobre la mesa de la máquina, medir con rigor
+la distancia entre tableros por bajo de cada cilindro (la matriz
+debe ser retirada previamente). La medición debe ser
+efectuada manteniendo la orden de descendida.
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >3.4
+===== PAGE 21 =====
+MANUAL DE INSTRUCCIONES
+Capítulo: Recomendaciones en caso de anomalía
+ANOMALÍA CAUSA PROCEDIMIENTO
+La diferencia entre las dos medidas no debe exceder 0,025
+mm.
+Si la diferencia fuera mayor, ajustar el batiente del lado
+correspondiente a la medida más corta entre tableros, procediendo
+del siguiente modo:
+3.5 LA PIEZA − Desplazar el tablero para el punto muerto superior.
+PLEGADA TIEN − Desapretar los tornillos de fijación (LI-2843; detalle A, pos. 35)
+ÁNGULOS del acoplamiento (pos. 9 y 11, LEÍ-2843)
+DIFERENTES
+− Rodar lo vino de la caja de accionamiento (pos. 12, LI-2843,
+EN SUS detalle A) en el sentido contrario a lo de los punteros del reloj,
+EXTREMOS en el sentido de hacer el batiente subir. De notar que 1/4 de
+vuelta en lo vino corresponde a un desplazamiento vertical de
+(CONT.)
+aproximadamente 0,2 mm en los modelos de 70.XX, 100.XX, y
+150.XX ton. y de 0,0625 en los modelos de 200.XX ton.
+− Después de hecho el necesario ajuste, reapretar el sistema y
+verificar de nuevo con el tablero en la posición de profundidad
+de plegado. Controlar de nuevo los ángulos de plegado de dos
+chapas de prueba.
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >3.5
+===== PAGE 22 =====
+MANUAL DE INSTRUCCIONES
+Capítulo: Recomendaciones en caso de anomalía
+ANOMALÍA CAUSA PROCEDIMIENTO
+Ajustar la presión de trabajo de la máquina para un 20% de la fuerza
+máxima de plegado. Ajustar el tablero móvil para una profundidad de
+plegado correspondiente la una apertura entre tableros de cerca de 275
+mm.
+Presionar el pedal de cierro de herramientas para que el tablero móvil
+se desplace. Mantener presionado el pedal de cierro y con el auxilio de
+un comparador (u otro instrumento de precisión) posado sobre la mesa
+de la máquina, medir con rigor la distancia entre tableros, por bajo de
+3.6. LO EJE Y
+uno de los cilindros (la matriz debe ser retirada previamente).
+(BATIENTE DE
+Seguidamente proceder como indicado en los párrafos siguientes.
+LA
+PROFUNDIDAD
+Control numérico CYBELEC DNC 60
+DE PLEGADO)
+• En el menú principal escoger la opción 14.
+ESTÁ
+DESCALIBRADO
+No hay correspondencia entre • Presionar + , introducir la password, buscar la página
+la indicación del control
+"PROGR. AXES DATUM" e introducir el valor de la distancia entre
+numérico (eje Y) y la
+tableros en el campo "POS" del eje "Y", usando el teclado numérico.
+profundidad de plegado
+• Desplazar el cursor para cualquiera otra posición para confirmar la
+alteración de la posición del eje "Y".
+• Para una información más completa consultar el manual de
+instrucciones del control numérico CYBELEC DNC 60.
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >3.6
+===== PAGE 23 =====
+MANUAL DE INSTRUCCIONES
+Capítulo: Recomendaciones en caso de anomalía
+ANOMALÍA CAUSA PROCEDIMIENTO
+Control numérico CYBELEC ModEva 10/12
+3.6 LO EJE Y
+(BATIENTES No hay Presionar + , presionar , opción “INICIALIZACIÓN DE LA MÁQUINA
+DE LA correspondencia
+PROFUNDID entre la
+indicación del DNC/NC”, presionar , ir hacia la columna “PEDIDA” en el eje correspondiente, introducir el
+AD DE
+control numérico
+PLEGADO)
+(eje Y) y la
+ESTÁ profundidad de valor pretendido, presionar , escoger la opción “VALIDAR”.
+DESCALIBR plegado
+ADO (cont.)
+Para una información más completa consultar el manual de instrucciones del control numérico
+CYBELEC ModEva 10/12.
+Tope husillo de bolas – Modelo A
+Verificar se todos los tornillos de fijación están bien apretados.
+Ajuste el paralelismo entre la matriz y lo tope del siguiente modo:
+3.7. LO TOPE NO
+a) Utilizar uno de los dedos o cabezas de lo tope como referencia. Medir la distancia de
+ESTÁ
+este(a) para el centro de lo "ve" de la matriz, recurriendo a un paquimetro. Desplazar ese
+PARALELO dedo o la cabeza para la otra extremidad de la máquina y repetir la medición.
+À MATRIZ b) Se las distancias que sean diferentes, corregir actuando solamente en un de los lados.
+Aliviar ligeramente los tornillos A y apretar los tornillos B para desplazar el tope para la
+retaguardia y viceversa para desplazar el tope para el frente.
+c) Apretar firmemente los tornillos B (ver Figura 2-1)
+d) Se necesario ajustar los otros dedos o cabezas para obtener la misma distancia al centro de
+la “V” de la matriz en todos los dedos o cabezas
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >3.7
+===== PAGE 24 =====
+MANUAL DE INSTRUCCIONES
+Capítulo: Recomendaciones en caso de anomalía
+ANOMALÍA CAUSA PROCEDIMIENTO
+Colocar lo tope a aproximadamente 50 mm del centro de la matriz.
+Recurriendo a un paquímetro medir la distancia de uno de los dedos o
+cabezas de lo tope hasta al centro de lo "ve" de la matriz. Certifíquese
+que lo tope está paralelo a lo "ve" de la matriz.
+Seguidamente proceder como indicado en los párrafos siguientes.
+Control numérico CYBELEC DNC 60
+3.8. LO CONTADOR
+− En el menú principal escoger la opción 14.
+DEL TOPE
+No hay correspondencia entre la
+ESTÁ
+indicación del control numérico (Eje − Presionar + , introducir la password, presionar la tecla
+DESCALIBRAD X) y la posición de lo tope posterior.
+O
+Buscar la página "PROGR. AXES DATUM" e introducir el valor
+de la distancia entre tableros en el campo "POS" del eje "X", usando
+el teclado numérico.
+− Desplazar el cursor para cualquiera otra posición para confirmar la
+alteración de la posición del eje "X".
+− Para una información más completa consultar el manual de
+instrucciones del control numérico CYBELEC DNC 60.
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >3.8
+===== PAGE 25 =====
+MANUAL DE INSTRUCCIONES
+Capítulo: Recomendaciones en caso de anomalía
+ANOMALÍA CAUSA PROCEDIMIENTO
+Control numérico CYBELEC ModEva
+Presionar + , presionar , opción “INICIALIZACIÓN DE LA
+3.8 EL CONTADOR
+DEL TOPE No hay correspondencia entre la MÁQUINA DNC/NC”, presionar , ir hacia la columna “PEDIDA” en el eje
+indicación del control numérico
+ESTÁ
+(Eje X) y la posición de lo tope
+DESCALIBRAD
+posterior.
+correspondiente, introducir el valor pretendido, presionar , escoger la opción
+O (CONT.)
+“VALIDAR”.
+Para una información más completa consultar el manual de instrucciones del control
+numérico CYBELEC ModEva.
+3.9. EL TABLERO
+MÓVIL Fue aplicada una fuerza plegado Conectar la máquina , presionar el pedal de subida.
+excesiva descentrada
+INCLINÓ
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >3.9
+===== PAGE 26 =====
+
+===== PAGE 27 =====
+MANUAL DE INSTRUCCIONES
+Capítulo: Tablas
+4. TABLAS
+4.1. BINARIO DE APRETÓ DE LOS TORNILLOS
+TABLA 4.1 - BINARIO DE APRETÓ DE LOS TORNILLOS (Nm)
+Tornillo Tornillo
+Tornillo sextavado Tornillo sextavado
+cabeza sextavado
+Tipo interior de cabeza interior de cabeza
+sextavada interior cabeza
+cilíndrica de embutir
+pulida oval
+Clase
+12.9 8.8 10.9 10.9
+M3 2,1 1,3 1,8 1,8
+M4 4,6 2,7 3,8 3,8
+M5 9,5 5,5 8 8
+M6 16 9,5 13 13
+M8 39 23 32 32
+M10 77 46 64 64
+M12 135 80 110 110
+M14 215 125 180 180
+M16 330 195 275 275
+M20 650 385 540 540
+M24 1100 660 930 930
+M27 1650 980 1400 1400
+M30 2250 1350 1850 1850
+M36 3850 2280 3210 3210
+IMPORTANTE
+Esta tabla indica los valores máximos para el binario de apriete.
+ATENCIÓN
+Esta tabla no es aplicable a los tornillos de fijación de las válvulas hidráulicas.
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >4.1
+===== PAGE 28 =====
+MANUAL DE INSTRUCCIONES
+Capítulo: Tablas
+4.2. BINARIO DE APRETÓ DE LOS TORNILLOS DE LAS VÁLVULAS
+HIDRÁULICAS
+TABLA 4.2 - BINARIO DE APRETÓ DE LOS TORNILLOS DE LAS VÁLVULAS HIDRÁULICAS (Nm)
+BINARIO de
+APRETÓ
+VÁLVULAS
+(recomendado)
+[Nm]
+NG 6
+10
+Válvula
+direccional
+NG 10
+15,5
+NG 6
+10
+Válvula
+direccional
+NG 10
+15,5
+Válvula
+limitadora de 70
+presión
+Válvula de
+asiento axial
+(cid:9) MAN829.doc v1 17 de Abril de 2007 >4.2

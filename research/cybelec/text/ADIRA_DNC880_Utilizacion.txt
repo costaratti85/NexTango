@@ -1,0 +1,1964 @@
+===== PAGE 1 =====
+ModEva/DNC880S
+Manual de utilización
+CYBELEC SA Tel. ++ 41 24 447 02 00
+RUE DES UTTINS 27 Fax ++ 41 24 447 02 01
+CH - 1400 YVERDON-LES-BAINS E-Mail: info@cybelec.ch
+SUÍZA
+V-DOC-MODEVA-ES
+===== PAGE 2 =====
+Las informaciones que figuran en el presente documento están sometidas a revisión sin
+preaviso y no representan ningún compromiso por parte de CYBELEC SA.
+El software descrito en este documento se divulga con arreglo a un acuerdo de licencia o de no-
+divulgación y sólo se puede utilizar o copiar de conformidad con las estipulaciones del acuerdo.
+Cualquier copia del programa CYBELEC en cassette, disco u otro soporte a efectos otros que el uso
+personal del programa por el comprador está prohibida por la ley.
+Copyright CYBELEC SA. Derechos reservados.
+Nota:
+El presente manual explica la programación normal y estándar del mando numérico.
+Siendo este último dotado de funciones configurables por el constructor de la máquina para sus
+necesidades específicas, sirvanse referirse a las instrucciones adicionales suministradas por el constructor
+de la máquina para la programación de estas funciones.
+Autocad es una marca depositada por Autodesk Inc.
+CYBELEC es una marca deposada por CYBELEC S.A.
+Ethernet es una marca de posada por Xerox Corporation.
+IBM , PC/AT , PC Network , Token Ring Network
+son marcas deposadas por International Business Machines Corporation.
+MS-DOS es una marca deposada por Microsoft Corporation.
+MS-Windows es una marca deposada por Microsoft Corporation.
+Novell Netware es una marca deposada por Novell, Incorporated.
+Windows NT es una marca deposada por Microsoft Corporation.
+===== PAGE 3 =====
+C
+ONSIGNAS DE SEGURIDAD Y MANTENIMIENTO
+(cid:121) El operario se debe formar para utilizar la máquina en la
+cual va instalado el control numérico.
+(cid:121) Una mala utilización del control numérico puede
+ocasionar un perjuicio grave para el equipo y/o las
+personas.
+(cid:121) Una modificación de los parámetros máquina puede
+ocasionar daños materiales importantes o una producción
+de calidad irregular.
+(cid:121) Sólo se debe sacar el panel trasero por un técnico
+cualificado (peligro de electrocución).
+(cid:121) No expongan el control numérico a una humedad
+excesiva para evitar todo riesgo de electrocución y
+deterioro del aparato.
+(cid:121) Asegurarse que el control numérico sea desconectado
+antes de proceder a un limpiado. No utilizar líquidos a
+base de alcohol o amoníaco.
+(cid:121) Recurrir a un técnico en caso de disfunción del control
+numérico.
+(cid:121) Evitar de exponer el control numérico a la radiación solar
+directa o a cualquier otra fuente de calor.
+(cid:121) No colocar en proximidad del control numérico objetos
+magnéticos tales como transformadores, motores, etc ... o
+aparatos que produzcan parásitos (soldadoras de arco,
+etc ...)
+(cid:121) Cambiar regularmente los filtros de los ventiladores para
+evitar un sobrecalentamiento.
+CONSIGNAS DE SEGURIDAD Y MANTENIMIENTO PÁGINA I
+===== PAGE 4 =====
+Esta página fue intencionalmente dejada blanca.
+===== PAGE 5 =====
+A CYBELEC
+CUERDO DE LICENCIA PARA LOGICIAL
+COPYRIGHT GENERAL
+Los logiciales CYBELEC están protegidos por copyright y todos los derechos de copia son reservados.
+Los logiciales CYBELEC pueden solamente ser implicados y utilizados en los equipamientos (PC ou
+DNC) autorizados.
+Los manuales de utilización están también cubiertos por copyright y todos los derechos de utilización y de
+copia son reservados.
+Este documento, no puede ser, por completo ni por una ni varias partes, copiado,fotocopiado,reproducido
+traducido o reducido sin el consentimiento anterior por escrito de CYBELEC.
+COPYRIGHT ESPECIAL DISQUETAS
+Los utilizadores légales de este producto esta autorizados unicamente a copiar la disqueta en la memoria
+del ordenador para ejecutar el programa y a hacer una copia de salvaguarda (backup) de la disqueta
+original, con el unico fin de poder remediar a una perdida casual del programa original.
+Las copias no autorizadas, la duplicacion, la venta o la distribucion de este producto, constituyen una
+violación de la ley.
+COPYRIGHT ESPECIAL EPROMS
+Los aparatos DNC y CNC de CYBELEC en los cuales el logicial original producido en CYBELEC
+hubiera sido remplazado por una copia no hecha por CYBELEC y sin la autorización escrita de
+CYBELEC, pierden inmediatamente su garantia.
+GARANTIA
+CYBELEC no garantiza que sus productos logiciales puedan funcionar correctamente en cualquier
+entorno o sistemas de ordemador y de programación.
+Los limites de empleo de un logicial y sus esplicaciones técnicas son decididas unicamente por
+CYBELEC;
+CYBELEC es la unica habilitada a decidir de la conformidad y de las performancias del logicial.
+Los logiciales no están preparados para compensar las incompatibilidades entre los sistemas de
+esploatación y sus revisiones, o cabiamiento de versión.
+La utilización de diferentes revisiones o de diferentes versiones del logicial CYBELEC,o el pasaje de una
+version o revision a otra puede causar la perdida o la modificación de informaciones.
+ACUERDO DE LICENCIA PÁGINA III
+===== PAGE 6 =====
+SERVICIO DE CAMBIO DEL LOGICIAL
+La compra del logicial da derecho durante un año al suministro de los logiciales de las revisiones de los
+logiciales de tipo"corrección".
+Durante el empleo de una revision revisada o corregida del logicial, es posible que haya perdidas de datos
+(programa, parámetros de reglaje, ect.) o que sea necesario hacer modificaciones al aparato, o a su
+empalme; estos efectos, no siempre son previsibles, y no comprometen la responsabilidad de CYBELEC.
+TERMINACIÓN
+El acuerdo sera automaticamente terminado si el tomador de licencia ha fallido,o quebrado y si el tomador
+de licencia, fuese implicado en puesta en requerimiento, por credenciales del licenciado o en caso de
+obligaciones, de ejecuciones judiciarias, de embargo de sus bienes.o de procesos instruidos contra el
+licenciado y que reducen de manera importante la capacidad de conducir sus negocios, o en caso de
+disolución de la sociedad del tomador de licencia.
+CYBELEC tendra el derecho de terminar este acuerdo inmediatamente, en caso de violación de las
+condiciones aqui citadas, por el licenciado.
+En los 30 dias, despues de haber terminado este acuerdo por cualquier razón, el licenciado pude escojer
+una de las opciones siguientes:
+(cid:121) Devolver a CYBELEC o a un vendedor oficial todas las copias existentes de todos los logiciales y del
+material y lo relativo
+(cid:121) Dar a CYBELEC Una Prueba Satisfaciente para CYBELEC que el logicial y todas las copias
+eventuales bajo cualquier forma, han sido destruidas definitivamente.
+LIMITACIÓN DE LA RESPONSABILIDAD
+Las condiciones de garantia estipuladas aqui remplazan todas las otras condiciones de garantia esprimidas
+o sobreentendidas.
+El tomador de licencia acepta por otra parte que CYBELEC no es responsable en caso de falta de gano,
+perdida de informaciones o otros perjuicios acidentales surgiendo en consecuencia de la utilización, o de
+la imposibilidad de utilizar el logicial.Lo mismo CYBELEC no es responsable en caso de queja o otra
+procedura legal, por parte de una tercera parte, en contra del tomador de licencia.
+En ningún caso se puede tener a CYBELEC por responsable de perjuicios, aunque CYBELEC haya sido
+advertido de la posibilidad que los perjuicios sobrevengan.
+CYBELEC no garantiza que las funciones contenidas en el logicial satisfazcan a todas las necesidades del
+licenciado ni que la utilización del logicial sera totalmente excluida de errores.
+Si el logicial debiera ser defectuoso, el licenciado (y ni CYBELEC ni un vendedor o representante
+autorizado) soporta la integralidad de gastos y servicios necesarios para eventuales reparaciones o
+correcciones.
+CYBELEC garatiza que las disquetas o eproms o otros suportes magneticos o casettes sobre los cuales,
+los logiciales estan surtidos, son sin defecto de material o de trabajo en las condiciones de uso normales y
+por un periodo de 90 dias.Este periodo comienza a la fecha de expedición del material al licenciado, la
+copia del billete de reparto haciendo fé.
+PÁGINA IV MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 7 =====
+LIMITACIÓN DE REMEDIOS
+La responsabilidad y los deberes de CYBELEC y los unicos remedios previstos son los siguientes :
+El remplazamiento de disquetas o eprons o suportes magneticos o cassettes que no satisfacen a las
+condicionnes de garantia limitada de CYBELEC y que han sido devueltos a CYBELEC o a un
+representante autorizado de CYBELEC con una copia del billete de reparto.
+Si CYBELEC o su representante son incapaces de librar disquetas, suportes magneticos, eprons o cassetes
+sin defectos ni de material, ni de trabajo, el licenciado puede denunciar este acuerdo al terminó con las
+condiciones mencionadas, el comprador será reembolsado.
+GENERALIDADES
+El tomador de licencia confirma que ha leido este acuerdo, que lo comprende y reconoce estar liado por
+sus términos y condiciones.
+El licenciado acepta de no tener a CYBELEC por responsable de todas las perdidas y perjuicios
+resultando de una falta del tomador de licencia con respecto a este acuerdo y comprendido pero no
+limitado a todos los gastos de justicia aferente.
+Este acuerdo de licencia esta controlado por el derecho Suizo, el fuero juridico es Lausanne, Suiza.
+MANTENENCIA
+CYBELEC asegura la mantenencia del logicial durante un año. El estendido de esta mantenencia y el
+tiempo de reacción para proveer son solo la decision de CYBELEC. La mantenencia incluye normalmente
+la corrección de errores en el código del logicial, la corrección de errores en la documentación adjunta, las
+versiones de puesta al día que pueden haber sido realizadas por CYBELEC durante el periodo de
+mantenencia.
+En ningún caso CYBELEC estara obligado de procurar un suporte técnico para ensayar de resolver los
+problemas o dificultades resultando de modificaciones efectuadas al locicial por el licenciado; las
+modificaciones consentidas por el licenciado son a sus riesgos y cargos.
+ACUERDO DE LICENCIA PÁGINA V
+===== PAGE 8 =====
+Esta página fue intencionalmente dejada blanca.
+PÁGINA VI MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 9 =====
+3 de agosto de 2006 V. 1.2
+TABLA DE MATERIAS
+CONSIGNAS DE SEGURIDAD Y MANTENIMIENTO.....................................................................I
+ACUERDO DE LICENCIA PARA LOGICIAL CYBELEC..................................................................III
+INTRODUCCIÓN.............................................................................................................................5
+Seguridad, copyright y licencia............................................................................................5
+DNC con sistema operativo Windows 5
+Acerca del presente manual................................................................................................6
+Instalación del programa.....................................................................................................7
+Convenciones tipográficas..................................................................................................7
+Definiciones.........................................................................................................................7
+Cursor Rápido (sobre ModEva solo)...................................................................................9
+Funciones: 9
+PRÁCTICA RÁPIDA.........................................................................................................................11
+Salir del programa 12
+PROGRAMACIÓN POR MEDIO DEL MÉTODO L-ALFA (2D)........................................................13
+Paso a paso.........................................................................................................................14
+Vaciar la zona de trabajo 14
+Ajuste del punzón 15
+Ajuste de la matriz 17
+Selección de las herramientas 18
+Datos generales 20
+Programación del corte 1 20
+Programación del corte 2 22
+Cálculo de la pieza 23
+Gama de plegado (PLEGADO 2D) 24
+Posición de los ejes, otras funciones 25
+PROGRAMACIÓN DIRECTA (PLEGADO NUM).............................................................................27
+Paso a paso.........................................................................................................................28
+Vaciar la zona de trabajo 28
+Datos generales 29
+Selección de las herramientas 30
+Introducción de los datos (1) 30
+Introducción de los datos (2) 32
+QSMODEVA_ES.DOC TABLA DE MATERIAS PÁGINA 1
+===== PAGE 10 =====
+PLEGADO, PRUEBAS Y CORRECCIONES..................................................................................35
+PROGRAMACIÓN EN 3D...............................................................................................................37
+Creación de la pieza...........................................................................................................37
+Paso a paso........................................................................................................................38
+Vacíe la zona de trabajo 38
+MEMORIZAR, BUSCAR UNA PIEZA..............................................................................................45
+Memorizar una pieza..........................................................................................................45
+Buscar una pieza................................................................................................................46
+Método rápido 46
+Método estándar: 48
+Método gráfico: 49
+Organización de la memoria...............................................................................................50
+PROTECCIÓN DE LOS NIVELES DE ACCESO............................................................................51
+Información general............................................................................................................51
+Usuarios..............................................................................................................................52
+Acceso por contraseña.......................................................................................................53
+Acceso a los niveles superiores a 3...................................................................................54
+Cambiar la contraseña........................................................................................................55
+Procedimiento: 55
+Contraseña olvidada 56
+Procedimiento: 56
+RESUMEN GENERAL DE LAS PÁGINAS......................................................................................59
+Página menú.......................................................................................................................59
+Página Lista de piezas........................................................................................................59
+Página Lista de piezas gráficas..........................................................................................60
+Página Búsqueda de piezas/criterios..................................................................................60
+Página Transferencia..........................................................................................................60
+Página Lista de punzones...................................................................................................61
+Página Lista de matrices....................................................................................................61
+Página Programación de punzones....................................................................................62
+Página Programación de matrices......................................................................................62
+Página Bienvenida..............................................................................................................63
+Página Inicialización............................................................................................................63
+Página Parámetros máquina..............................................................................................64
+Página Pieza num...............................................................................................................64
+Página Posición herramientas............................................................................................65
+Página Comentarios...........................................................................................................65
+Página Pliegue num............................................................................................................66
+Página Plegado 2D.............................................................................................................66
+Página Plegado 3D.............................................................................................................67
+Página Plegado función......................................................................................................67
+Página Herramientas de Plegado.......................................................................................68
+Página Correcciones...........................................................................................................68
+PROGRAMA PC1200......................................................................................................................69
+Llave de protección del PC.................................................................................................69
+Instalación PC1200.............................................................................................................71
+Instalación en un directorio existente 72
+PÁGINA 2 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 11 =====
+Instalación en Windows NT, 2000 o XP 72
+INSTALACIÓN DEL PROGRAMA CYBELEC..................................................................................73
+Instalación del programa DNC............................................................................................73
+Instalación del software ENC..............................................................................................74
+Si el teclado del DNC no funciona:......................................................................................74
+ÍNDICE.............................................................................................................................................75
+TABLA DE MATERIAS PÁGINA 3
+===== PAGE 12 =====
+Esta página fue intencionalmente dejada blanca.
+PÁGINA 4 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 13 =====
+I
+NTRODUCCIÓN
+SEGURIDAD, COPYRIGHT Y LICENCIA
+Consulte las páginas de seguridad, de copyright y de licencia que encontrará
+al inicio del presente manual.
+DNC con sistema operativo Windows
+Los DNC CYBELEC equipados con Windows han sido especialmente
+configurados en fábrica para trabajar con el control numérico (véase las
+notas técnicas).
+Esta configuración garantiza que en el DNC exista la cantidad mínima de
+archivos, ofreciendo de este modo el máximo de velocidad de ejecución
+de los programas. Esta configuración también garantiza que los drivers
+sean los correctos y que el conjunto garantice un funcionamiento óptimo
+del control numérico.
+Windows es un sistema muy abierto, de modo que se recomienda no
+modificar la instalación de Windows ni instalar otros programas, ya que
+correría el riesgo de dañar el funcionamiento del control numérico. Si
+desea instalar una red o una impresora, llame a un especialista.
+Recuerde que el DNC está equipado con un lector CD-ROM y que es muy
+fácil verse tentado a instalar programas de otros fabricantes, utilidades o
+juegos procedentes de revistas especializadas.
+En caso de mal funcionamiento del control numérico como
+consecuencia de la instalación de otros programas o la
+modificación de la configuración, CYBELEC declina toda
+responsabilidad.
+También le recordamos que el entorno Windows está infestado de virus y
+que se impone tener gran prudencia durante el uso de datos o programas
+procedentes del exterior. Una copia de seguridad regular de los datos
+permite tenerlos a salvo.
+Certificamos que nuestros controles numéricos se entregan
+sin virus.
+INTRODUCCIÓN PÁGINA 5
+===== PAGE 14 =====
+ACERCA DEL PRESENTE MANUAL
+Este Manual de utilización muestra algunos ejemplos simples con el fin de
+permitir el aprendizaje rápido del concepto de programación.
+El Manual de referencia aporta información complementaria a este
+documento.
+Notas: En este manual, se considera que el DNC ya está configurado
+listo para funcionar, es decir, con los parámetros de la
+máquina y las herramientas ya programados.
+Este manual describe la versión del programa U3 o superior.
+Puede que algunas figuras representadas no correspondan con
+las de versiones anteriores.
+Algunas funcionalidades tratadas en este manual no están disponibles en
+el control numérico DNC 880S.
+Este manual puede evolucionar. Para que esto suceda, los usuarios son los
+que mejor nos pueden ayudar. Si desea hacer algún comentario acerca de este
+documento, escríbanos a:
+CYBELEC S.A.
+Département Communication
+Rue des Uttins 27
+CH-1401 Yverdon-les-Bains
+Suiza
+Fax: +41 24 447 02 01
+E-mail: info@cybelec.ch
+PÁGINA 6 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 15 =====
+INSTALACIÓN DEL PROGRAMA
+Véase al final de este manual, en la página 69.
+CONVENCIONES TIPOGRÁFICAS
+Arial negrita Citas de textos, como los que aparecen visibles
+en la pantalla.
+Arial negrita cursiva Sirve para indicar el nombre de las entradas y
+salidas del DNC.
+Cursiva Reenvío a un elemento escrito en un párrafo o
+manual.
+Por ejemplo, véase: Convenciones tipográficas.
+Indica que debe pulsarse dos veces sobre la
+tecla .
+DEFINICIONES
+En el presente manual se emplean los siguientes términos:
+Seleccionar Este término indica una operación de selección.
+La selección se puede realizar de distintos modos
+según la situación. Para aceptar la selección,
+basta con abandonar el campo o pulsar la tecla
+.
+También se empleará la palabra "seleccionar"
+para acceder a una página específica.
+Apuntar Colocar el cursor en el lugar indicado. Utilice
+las teclas de desplazamiento del cursor
+o el tracksensor.
+Ratón/Tracksensor Entiéndase ratón en el caso de un PC y
+tracksensor en el caso de un DNC.
+Clic Pulsar el botón izquierdo del tracksensor.
+Clic derecho Pulsar el botón derecho del tracksensor.
+Clic izquierdo/derecho Pulsar simultáneamente los botones izquierdo y
+derecho del tracksensor.
+INTRODUCCIÓN PÁGINA 7
+===== PAGE 16 =====
+Listas desplegables o campos de selección múltiple. De color violeta,
+indican que existen varias opciones disponibles.
+La selección del contenido se realiza pulsando la
+tecla o haciendo clic con el botón
+derecho.
+Aparece una ventana con la lista de opciones
+disponibles para ese campo.
+Para aceptar la opción:
+- introduzca el número asociado a la opción, o
+- coloque el cursor sobre la opción y pulse la
+tecla .
+También es posible hacer que aparezcan las
+distintas opciones de manera sucesiva sin
+necesidad de abrir la ventana con las opciones.
+Para ello, pulse la tecla .
+Para aceptar la opción, basta con abandonar el
+campo.
+Menú Designa la página del menú principal, al que se
+accede pulsando la tecla .
+También se denomina "menú nombredemenu" a
+la ventana de opciones que aparece al pulsar las
+teclas a .
+Tecla de función Cada vez que se solicita la pulsación de una
+tecla de función de a , aparece el
+menú apropiado.
+Generalmente, se empleará el nombre de la tecla
+de función. Por ejemplo: pulsar PIEZA indica la
+tecla .
+Aceptación rápida Para facilitar el trabajo del operario, el DNC
+memoriza la última selección realizada en el
+menú. Para aceptar una opción de un modo más
+rápido, basta con pulsar dos veces una tecla de
+función (por ejemplo ), para aceptar
+directamente la última página seleccionada.
+Para conocer más detalles, véase el mismo párrafo en el Manual de
+referencia.
+PÁGINA 8 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 17 =====
+CURSOR RÁPIDO
+(SOBRE MODEVA SOLO)
+Funciones:
+1) Permite el desplazamiento y la colocación del cursor, de forma rápida,
+en los distintos campos de la página seleccionada.
+Procedimiento:
+Gire el botón en el sentido de las agujas del reloj o en el sentido contrario. El
+cursor se desplaza de campo en campo, desde arriba hacia la parte baja de la
+página y de izquierda a derecha o inversamente.
+2) Permite el cambio de página.
+Procedimiento:
+Mantenga pulsado el botón. Gírelo en el sentido de las agujas del reloj o en el
+contrario. El sentido de las agujas del reloj corresponde a la función «página
+siguiente» y el sentido contrario a «página anterior».
+3) Permite abrir la ventana de un campo de elección múltiple y la selección
+de la opción.
+Ejemplo: elección del material
+INTRODUCCIÓN PÁGINA 9
+===== PAGE 18 =====
+Procedimiento:
+Coloque el cursor sobre un campo de elección múltiple.
+Pulse el botón y soltarlo. Se abre la ventana de las diferentes opciones.
+Coloque el cursor sobre su elección con ayuda del botón y pulse de nuevo
+para seleccionarla.
+4) Movimiento de los ejes eléctricos en modo manual.
+Procedimiento:
+Ponga la DNC en modo manual. Coloque el cursor en el campo del eje a
+mover. Pulse el botón y, manteniéndolo pulsado, gírelo. El sentido de las
+agujas del reloj corresponde al movimiento positivo y viceversa. Un giro
+pequeño desplaza el eje lentamente y un giro grande lo desplaza rápidamente.
+Para detener el eje, suelte el botón.
+PÁGINA 10 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 19 =====
+P
+RÁCTICA RÁPIDA
+Este capítulo describe por medio de algunos ejemplos sencillos diversos
+modos de utilizar el DNC.
+(cid:121) Programación L-alfa.
+Este método de trabajo es el más rápido y el más comúnmente
+empleado en el taller cuando el operario debe crear una pieza a partir
+de un croquis dibujado en un papel.
+(cid:121) Programación directa.
+Este método de programación se emplea a menudo en el caso de las
+piezas sencillas o en el caso de lo operarios que han trabajado con
+prensas plegadoras convencionales sin control numérico. Esta página
+está muy próxima al operario ya que en una pantalla dispone de toda la
+información y los campos necesarios para la programación de la pieza.
+(cid:121) Programación en 3D.
+Este modo de programación permite que el usuario vea en modo 3D la
+construcción de la pieza. Este modo también permite realizar
+construcciones y modificaciones más elaboradas que en el modo 2D.
+En esta parte, admitimos que tanto las herramientas necesarias como los
+parámetros de la máquina ya han sido programados.
+Niveles de acceso Admitimos que el operario conoce el modo de acceder al nivel 1. Si éste no
+fuera el caso, véase el capítulo Protección de los niveles de acceso más
+adelante en este manual.
+Las pantallas de este manual han sido capturadas del programa PC 1200
+Windows. Por tanto, las pantallas son idénticas a las del ModEva y
+DNC 880S, aparte del aspecto Windows.
+Recuerde: en el Manual de referencia 2D, en el párrafo Teclado externo
+encontrará la correspondencia entre las teclas del DNC y las de un teclado
+para PC.
+Estos procedimientos indican al operario un camino, un método de
+programación aconsejado por CYBELEC que permite asimilar, por ejemplo,
+el funcionamiento del programa.
+Si necesitara más información, consulte el Manual de referencia 2D y/o el
+Manual de referencia 3D, donde encontrará en cada uno de ellos una tabla de
+contenido y un índice muy detallados que facilitan la búsqueda de un tema.
+PRÁCTICA RÁPIDA PÁGINA 11
+===== PAGE 20 =====
+SALIR DEL PROGRAMA
+En cualquier momento puede finalizar el trabajo guardando el estado actual.
+Para ello, deberá procurar salir del programa correctamente desde la página
+MENU y pulsando la tecla SALIR.
+En el programa del PC realice la misma operación o pulse las teclas Alt + F1
+desde cualquier página en la que se encuentre.
+PÁGINA 12 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 21 =====
+P L-
+ROGRAMACIÓN POR MEDIO DEL MÉTODO ALFA
+(2D)
+Este capítulo describe por medio de un ejemplo concreto el modo de
+programar una pieza empleando el método L-alfa (longitud-ángulo).
+Esta forma de proceder es simple, rápida y permite mostrar la pieza en 2D,
+generalmente suficiente cuando la pieza se programa en el taller.
+La pieza de ejemplo empleada incluye 2 cortes (perfiles), pero el
+procedimiento es idéntico tanto para uno como para varios cortes.
+0
+0.
+0
+2
+40.0
+30.0
+45.0
+150.0
+2
+0
+.0
+Primero se realizarán las alas laterales, con los agujeros oblongos, que
+pertenecen al corte 1, con el fin de poder emplear un punzón de longitud
+idéntica al empleado para el corte 2.
+Para fabricar esta pieza, emplearemos acero del tipo ST37 de 2 mm.
+PROGRAMACIÓN POR L-ALFA PÁGINA 13
+===== PAGE 22 =====
+PASO A PASO
+VACIAR LA ZONA DE TRABAJO
+Antes de crear una nueva pieza, el usuario deberá vaciar la memoria de
+trabajo.
+(cid:121) Acuda a la página PIEZA NUMÉRICA, página que permite la
+introducción de los datos en el modo L-alfa.
+(cid:121) Pulse la tecla de función PIEZA .
+(cid:121) Seleccione PIEZA NUMÉRICA, para ello introduzca el número
+relacionado con la pieza,
+es decir, la tecla
+o coloque el cursor sobre la opción y pulsar la tecla o haga clic
+sobre la opción deseada.
+La siguiente figura muestra la página PIEZA NUMÉRICA que contiene una
+pieza anterior.
+Vacíe la zona de
+trabajo para crear
+una pieza nueva
+PÁGINA 14 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 23 =====
+(cid:121) Pulse la tecla ACCIONES .
+(cid:121) Seleccione BORRAR PIEZA. Para ello, introduzca el número
+relacionado con la opción, es decir,
+la tecla o coloque el cursor sobre la opción deseada y pulse la
+tecla o haga clic sobre la opción y CONFIRME ( ).
+Esta operación únicamente borra los datos de la memoria de trabajo. Ello
+significa que si la pieza que eventualmente se encuentra en la memoria de
+trabajo ha sido guardada anteriormente, esta pieza no se perderá.
+AJUSTE DEL PUNZÓN
+Durante la programación en 2D, tanto este capítulo como el siguiente (Ajuste
+de la matriz) son opcionales. Aún así, es interesante que les eche un vistazo,
+ya que la página POSICIÓN DE LAS HERRAMIENTAS permite definir
+varios puestos de trabajo y, de este modo, el operario puede visualizar el
+montaje de las herramientas.
+Si el montaje de las herramientas no es importante, puede saltarse estos dos
+capítulos.
+La identificación de las herramientas se realizará directamente en la página
+PIEZA NUMÉRICA (página en la que aún se encuentra en esta etapa del
+procedimiento).
+(cid:121) Acceda a la página POSICIÓN DE LAS HERRAMIENTAS
+pulsando la tecla de función PIEZA y seleccionando la opción
+POSICIÓN DE LAS HERRAMIENTAS.
+Ajuste del punzón
+Campo de selección: P o M
+Ventana que no
+comporta ninguna
+selección de
+herramientas.
+Campo L (longitud total
+disponible)
+(cid:121) Compruebe que en la ventana de la derecha aparece un punzón y/o la
+letra P (campo de selección).
+PROGRAMACIÓN POR L-ALFA PÁGINA 15
+===== PAGE 24 =====
+Si apareciera una matriz o la letra M, cámbielas pulsando la tecla
+.
+(cid:121) Coloque el cursor sobre el campo P y pulse la tecla para abrir
+el menú LISTA DE OPCIONES de los punzones.
+(cid:121) Seleccione el punzón deseado introduciendo las dos cifras asociadas al
+mismo (por ejemplo, 01 para el primero – 02 para el segundo, etc.),
+o
+coloque el cursor sobre la opción y acéptela pulsando la tecla ,
+o
+haga clic sobre la opción deseada.
+(cid:121) Modifique el campo introduciendo un valor igual a la mitad del
+campo L menos la mitad de la longitud de las herramientas, que
+corresponde al punto central de la máquina sobre la que está fijada el
+punzón. En el ejemplo: (3500/2) - (195/2) = 1652.5 mm.
+(cid:121) Modifique el campo L introduciendo del valor 195 mm que
+corresponde con la longitud de la herramienta deseada . En la vista
+frontal, la herramienta seleccionada aparece de color azul oscuro.
+Ajuste del punzón
+Punzón colocado en
+medio de la máquina
+PÁGINA 16 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 25 =====
+AJUSTE DE LA MATRIZ
+Misma nota que en el apartado Ajuste del punzón.
+Ajuste de la matriz
+Ventana con selección
+del punzón pero sin
+matriz.
+Campo de selección: M
+(cid:121) Permanezca en la página POSICIÓN DE LAS HERRAMIENTAS.
+(cid:121) Seleccione la matriz con la tecla .
+(cid:121) Coloque el cursor sobre el campo M y pulse la tecla para abrir
+el menú con las opciones de las matrices.
+(cid:121) Seleccione la matriz deseada introduciendo las 2 cifras situadas al lado
+(por ejemplo, 01 para la primera – 02 parar la segunda – etc.),
+o
+coloque el cursor sobre la opción y acéptela con la tecla ,
+o
+haga clic sobe la opción deseada.
+(cid:121) Modifique el campo introduciendo un valor igual a la mitad del
+campo L menos la mitad de la longitud de la herramienta, que
+corresponde con el punto central de la máquina a la que se encuentra
+fijada la matriz (en nuestro ejemplo: (3500/2) – (195/ 2) = 1652.5
+mm).
+(cid:121) Modifique el campo L introduciendo el valor 195 mm, que
+corresponde con la longitud de la herramienta deseada.
+PROGRAMACIÓN POR L-ALFA PÁGINA 17
+===== PAGE 26 =====
+Ajuste de la matriz
+Montaje final de las
+herramientas
+Ventana con selección
+del punzón de la matriz.
+(cid:121) Vuelva a la página PIEZA NUMÉRICA desde el menú PIEZA.
+SELECCIÓN DE LAS HERRAMIENTAS
+Como se indica más arriba, si la posición de las herramientas no es
+indispensable, puede definir las herramientas directamente en la página
+PIEZA NUMÉRICA.
+Selección de las
+herramientas
+(cid:121) Coloque el cursor en el campo PUNZÓN (parte superior de la
+pantalla)*.
+(cid:121) Pulse la tecla o haga clic derecho para lograr que aparezca la
+LISTA DE OPCIONES.
+(cid:121) Seleccione la herramienta deseada introduciendo las 2 cifras situadas
+al lado (por ejemplo, 01 para la primera – 02 para la segunda – etc.),
+o
+coloque el cursor sobre la opción y acéptela pulsando la tecla
+o
+haga clic sobre la opción deseada.
+PÁGINA 18 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 27 =====
+Nota:
+Cada ventana contiene 20 herramientas. Pulsando las teclas o
+puede acceder a la herramienta siguiente o anterior, respectivamente.
+Cada base de datos (punzones y matrices) está limitada a 200 herramientas.
+También pude saltar al final de la lista introduciendo el valor 999 o volver al
+inicio de la lista introduciendo el valor 001.
+(cid:121) En el caso de la MATRIZ, proceda del mismo modo.
+Nota:
+En la página HERRAMIENTAS DE PLEGADO (desde el menú
+PLEGADO) también puede realizar la misma selección y del mismo modo,
+permitiéndole ver el perfil de las herramientas y de los datos principales.
+* Los campos PUNZÓN y MATRIZ de la página superior de la pantalla
+muestran la herramienta general para el cálculo. Si programa una pieza desde
+la página PIEZA NUMÉRICA, deberá introducir estas dos informaciones
+obligatoriamente.
+Las columnas PUNZÓN y MATRIZ de la tabla permiten especificar una
+herramienta para un plegado determinado.
+En la página PLEGADO NUMÉRICO, encontrará los campos PUNZÓN y
+MATRIZ.
+Si programa la pieza desde la página PIEZA NUMÉRICA, estos campos
+estarán vacíos o parcialmente programados si ha introducido herramientas en
+las columnas respectivas de la tabla de la página PIEZA NUMÉRICA.
+Efectivamente, estos campos corresponden con los de la tabla (véase también
+el capítulo Programación directa (PLEGADO NUM), más adelante en este
+manual).
+PROGRAMACIÓN POR L-ALFA PÁGINA 19
+===== PAGE 28 =====
+DATOS GENERALES
+Introduzca:
+- el punzón
+- la matriz
+- la sigma/el material
+- el tipo de material
+- la longitud de plegado
+(cid:121) Coloque el cursor sobre el campo ESPESOR e introduzca el espesor
+del material empleado.
+(cid:121) Coloque el cursor sobre el campo SIGMA e introduzca la fuerza/mm²
+del material empleado (por ejemplo, acero = 37 Kg/mm²).
+(cid:121) Deje la lista desplegable en ACERO.
+(cid:121) Coloque el cursor sobre el campo LARGO PL. e introduzca la
+longitud de plegado de la pieza (1er corte = 150.0 mm).
+PROGRAMACIÓN DEL CORTE 1
+Las medidas de los lados se acotan exteriormente, según la norma DIN.
+Véase el Manual de referencia 2D, capítulo Longitud desarrollada.
+45.0 45.0
+45.0
+90.0° 200.0 90.0°
+200.0
+Durante la introducción de datos en modo L-alfa, basta con "iniciar" el perfil
+por uno de los dos extremos e introducir ordenadamente los valores de cada
+lado y ángulo. Al último lado no le corresponde ningún ángulo.
+45.0 45.0
+90.0° 200.0 90.0°
+Nota:
+Como aparece en la siguiente figura, el perfil del corte 1 se dibuja
+automáticamente poco a poco en función de los datos introducidos (longitud
+y ángulo), de este modo, el valor del radio interno se calcula
+automáticamente. También se calcula la longitud desarrollada.
+PÁGINA 20 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 29 =====
+Corte 1
+Perfil dibujado automáticamente
+Método:
+(cid:121) Coloque el cursor sobre el primer campo de la columna LONGITUD e
+introduzca el valor 45, que corresponde con el valor de la primera
+longitud.
+(cid:121) Coloque el cursor sobre el primer campo de la columna ÁNGULO e
+introduzca el valor 90°, que corresponde con el primer ángulo a
+plegar.
+(cid:121) Coloque el cursor sobre el segundo campo de la columna LONGITUD
+e introduzca el valor 200, que corresponde con la segunda longitud.
+(cid:121) Coloque el cursor sobre el segundo campo de la columna ÁNGULO e
+introduzca el valor 90°, que corresponde con el segundo ángulo a
+plegar.
+(cid:121) Coloque el cursor sobre el tercer campo de la columna LONGITUD e
+introduzca el valor 45, que corresponde con el último tramo, antes del
+extremo de la pieza.
+Sugerencia Introduzca primero todas las longitudes y, a continuación, los ángulos. Este
+modo de trabajo es mucho más rápido.
+PROGRAMACIÓN POR L-ALFA PÁGINA 21
+===== PAGE 30 =====
+PROGRAMACIÓN DEL CORTE 2
+La definición del sentido de plegado se realiza de manera inversa al signo del
+ángulo, aunque la elección del lado es arbitraria, si bien debe ser constante en
+todo el perfil de la pieza.
+30.0
+-90.0°
+40.0
+90.0° 150.0 -135.0°
+20.0
+o
+30.0
+90.0°
+-90.0° 150.0 135.0°
+20.0
+Corte 2
+Método:
+(cid:121) Sitúese en la página PIEZA NUMÉRICA.
+(cid:121) Coloque el cursor sobre el campo CORTE, introduzca el valor 2 y
+abandone el campo. De este modo, inicia una nueva página para la
+programación del corte 2.
+(cid:121) Coloque el cursor en el campo LARGO PL. e introduzca la longitud
+de plegado para este corte (200).
+(cid:121) Coloque el cursor en el primer campo de la columna LONGITUD e
+introduzca el valor 30, correspondiente a la primera longitud.
+(cid:121) Coloque el cursor en el primer campo de la columna ÁNGULO e
+introduzca el valor 90°, correspondiente al primer ángulo a plegar.
+(cid:121) Coloque el cursor en el segundo campo de la columna LONGITUD e
+introduzca el valor 40, correspondiente a la segunda longitud.
+PÁGINA 22 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 31 =====
+(cid:121) Coloque el cursor sobre el segundo campo de la columna ÁNGULO e
+introduzca el valor -90°, correspondiente al segundo ángulo a plegar.
+(cid:121) Coloque el cursor sobre el tercer campo de la columna LONGITUD e
+introduzca el valor 150, correspondiente a la tercera longitud.
+(cid:121) Coloque el cursor sobre el tercer campo de la columna ÁNGULO e
+introduzca el valor 135°, correspondiente al tercer ángulo a plegar.
+(cid:121) Coloque el cursor sobre el cuarto campo de la columna LONGITUD e
+introduzca el valor 20, correspondiente a la última longitud antes de
+llegar al extremo de la pieza.
+Nota:
+Como se muestra en la anterior figura, el perfil del corte 2 se dibuja
+automáticamente en función de los datos introducidos poco a poco (longitud
+y ángulo) y, de este modo, el valor del radio interior se calcula
+automáticamente. También se calcula la longitud desarrollada.
+CÁLCULO DE LA PIEZA
+Cálculo de longitudes
+desarrolladas
+(cid:121) Permanezca en la página PIEZA NUMÉRICA.
+(cid:121) Seleccione CÁLCULO en el menú ACCIONES.
+(cid:121) Aparece el mensaje CÁLCULO... en el campo interactivo, en la
+esquina superior derecha de la pantalla.
+Aparecen los datos contenidos en los campos L. DESARR. DIN
+(longitud de chapa desarrollada) y Ri (radio interno).
+Nota: Si no pulsa la tecla CÁLCULO, el cálculo se realiza
+automáticamente al acceder a otra página.
+Esta función se emplea en las versiones del programa
+anteriores a U2.
+PROGRAMACIÓN POR L-ALFA PÁGINA 23
+===== PAGE 32 =====
+GAMA DE PLEGADO (PLEGADO 2D)
+Búsqueda de la gama
+de plegado
+(cid:121) Llame a la página PLEGADO 2D (menú PLEGADO).
+(cid:121) En el campo SIMULA seleccione la opción SIN PLIEGUE
+IMPUESTO.
+(cid:121) En el menú ACCIONES elija BUSCAR ÓRDEN DE PLEGADO.
+(cid:121) En el campo interactivo de la esquina superior derecha de la pantalla
+aparecen consecutivamente los mensajes SIMULACIÓN EN
+CURSO... y CÁLCULO....
+(cid:121) A continuación, se puede visualizar la sucesión de secuencias con las
+teclas y .
+En el ejemplo que acabamos de programar, se puede constatar que la
+búsqueda de la gama de plegado ha colocado primero el corte 1 y, a
+continuación, el corte 2.
+El operario puede modificar la gama de plegado (véase el capítulo que se ha
+dedicado en el Manual de referencia 2D) o pedir al programa que respete los
+criterios específicos tales como el número mínimo de pivotamientos o
+retornos. Para conocer más detalles al respecto, véase el Manual de
+referencia 2D, capítulo Criterios de simulación.
+En el caso de que el programa no encontrara ninguna solución, deberá
+imponer manualmente la gama de plegado.
+Véase el capítulo Gama de plegado en el Manual de referencia 2D.
+PÁGINA 24 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 33 =====
+POSICIÓN DE LOS EJES, OTRAS FUNCIONES
+Menú PLEGADO, página PLEGADO NUMÉRICO.
+Se puede comprobar que la posición de los ejes, la fuerza de plegado, el
+bombeado y, en caso necesario, el retroceso, el punto muerto superior (según
+como estén definidos los parámetros de la máquina) se calculan
+automáticamente. Estos valores son reprogramables por el operario.
+Según sus necesidades, el operario puede modificar los siguientes parámetros:
+PMS punto muerto superior. Si no se programa, el
+carro sube hasta el PMS máximo.
+RETR. TOPE TRA. retroceso del tope posterior.
+PCV punto de cambio de velocidad (alta velocidad -
+velocidad de plegado).
+TIEMPO PRESIÓN tiempo de mantenimiento de la presión.
+VELOCIDAD PLEG. velocidad de plegado en descenso o durante la
+fase de subida hasta el punto de contacto con la
+chapa.
+DISTANCIA PV permite definir que únicamente una porción (en
+porcentaje) del ascenso entre el punto muerto
+inferior y el punto de contacto con la chapa se
+ejecutará a velocidad lenta, mientras que el resto
+del ascenso se realiza a alta velocidad.
+En el Manual de referencia 2D encontrará las explicaciones
+complementarias.
+Para ejecutar la pieza véase el capítulo Plegado, pruebas y correcciones, en
+la página 35.
+PROGRAMACIÓN POR L-ALFA PÁGINA 25
+===== PAGE 34 =====
+Esta página ha sido dejada en blanco intencionadamente.
+PÁGINA 26 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 35 =====
+P (PLEGADO NUM)
+ROGRAMACIÓN DIRECTA
+Este método de programación se emplea a menudo en la programación de
+piezas sencillas o es utilizado por operarios que han trabajado en presas
+plegadoras convencionales sin control numérico.
+Esta página es muy próxima al operario ya que en una única pantalla dispone
+de toda la información y de los campos necesarios para la programación de la
+pieza.
+CORTE 1
+CORTE 2 0
+0.
+0
+2
+40.0
+30.0
+45.0
+150.0
+2
+0
+.0
+El operario elige el orden de los pliegues, ya que es él quien programa
+directamente cada pliegue.
+En este ejemplo, primero se realizan las alas laterales, con los agujeros
+oblongos, situados en el corte 1, con el fin de poder utilizar un punzón de
+longitud idéntica al que se empleará en el corte 2.
+Para fabricar esta pieza emplearemos acero del tipo ST37 de 2 mm de
+espesor.
+PROGRAMACIÓN DIRECTA PÁGINA 27
+===== PAGE 36 =====
+PASO A PASO
+VACIAR LA ZONA DE TRABAJO
+Antes de crear una pieza nueva, el usuario debe vaciar la memoria de trabajo.
+(cid:121) Vaya a la página PLEGADO NUMÉRICO.
+(cid:121) Pulse la tecla de función PLEGADO .
+(cid:121) Seleccione PLEGADO NUMÉRICO. Para ello, introduzca el número
+asociado a la opción : tecla
+o coloque el cursor sobre la opción y pulse
+o haga clic sobre la opción.
+(cid:121) Pulse la tecla ACCIONES .
+(cid:121) Seleccione BORRAR PIEZA. Para ello, introduzca el número
+asociado a la opción : tecla ,
+o coloque el cursor sobre la opción y pulse
+o haga clic sobre la opción y, a continuación, CONFIRME.
+PÁGINA 28 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 37 =====
+Vacíe la zona de
+trabajo para construir
+una pieza nueva
+Esta operación únicamente borra los datos de la memoria de trabajo. Ello
+significa que si la pieza que eventualmente se encuentra en la memoria de
+trabajo ha sido guardada anteriormente, esta pieza no se perderá.
+DATOS GENERALES
+Introduzca:
+- la sigma/el material
+- el tipo de material
+(cid:121) Coloque el cursor sobre el campo ESPESOR e introduzca el espesor
+del material empleado.
+(cid:121) Coloque el cursor sobre el campo SIGMA e introduzca la fuerza/mm²
+del material empleado (p. ejem.: ACERO = 37 kg/mm²).
+Nota: Estos datos, así como las herramientas, deberán estar
+programados obligatoriamente (véase la página siguiente).
+PROGRAMACIÓN DIRECTA PÁGINA 29
+===== PAGE 38 =====
+SELECCIÓN DE LAS HERRAMIENTAS
+Selección de las
+herramientas
+(cid:121) Permanezca en la página PLEGADO NUMÉRICO.
+(cid:121) Coloque el cursor en el campo PUNZÓN.
+(cid:121) Pulse la tecla o haga clic derecho para que aparezca la LISTA
+DE OPCIONES.
+(cid:121) Seleccione la herramienta deseada pulsando la cifra situada junto a ella.
+Dos cifras, por ejemplo: 01 para la primera – 02 para la segunda – etc.
+o
+Coloque el cursor sobre la opción y acéptela pulsando la tecla
+o
+Haga clic sobre la opción deseada.
+(cid:121) Proceda del mismo modo con la MATRIZ.
+Nota: En la página HERRAMIENTAS DE PLEGADO (desde el
+menú PLEGADO) puede realizar la misma selección y del
+mismo modo, lo que permite ver el perfil de las herramientas y
+los datos principales.
+INTRODUCCIÓN DE LOS DATOS (1)
+El modo convencional de introducir los datos es programándolos desde la
+página PLEGADO NUMÉRICO:
+(cid:121) El ángulo deseado (la profundidad Y se calculará automáticamente en
+función de las herramientas y del material ya programado). Sin
+embargo, puede introducir los valores Y1/Y2 directamente sin
+programar el ángulo.
+(cid:121) La posición real del tope.
+(cid:121) Los datos propios de la secuencia en curso (punto muerto superior,
+longitud de plegado y, si fuera necesario, el tipo de tope, el retroceso,
+la temporización de la presión, etc.).
+PÁGINA 30 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 39 =====
+A continuación se puede ver la pantalla con los valores para estos dos
+pliegues.
+La página ilustra cómo programar las dos alas con los agujeros oblongos
+(corte 1).
+Como se trata de dos pliegues idénticos, programe el campo CY con el
+valor 2. Programe el ángulo a 90°, el eje X con su valor absoluto (43.00) e
+introduzca la longitud de plegado (150).
+La fuerza de plegado y de bombeado se calculan automáticamente. El
+operario puede modificar estos valores a conveniencia.
+Según las necesidades del operario, también puede modificar:
+PMS punto muerto superior. Sin programar, el carro
+sube hasta el PMS máximo.
+RETR. TOPE TRA. retroceso del tope posterior.
+PCV el punto de cambio de la velocidad (alta
+velocidad - velocidad de plegado).
+TIEMPO PRESIÓN el tiempo de mantenimiento de la presión.
+VELOCIDAD PLEG. la velocidad de plegado en el descenso o durante
+la fase de ascenso hasta el punto de contacto con
+la chapa.
+DISTANCIA PV permite definir que únicamente una porción (en
+porcentaje) del ascenso entre el punto muerto
+inferior y el punto de contacto con la chapa se
+ejecutará a velocidad lenta, mientras que el resto
+del ascenso se realiza a alta velocidad.
+PROGRAMACIÓN DIRECTA PÁGINA 31
+===== PAGE 40 =====
+INTRODUCCIÓN DE LOS DATOS (2)
+SUGERENCIA El modo anterior de programación (véase el capítulo Introducción de los
+datos (1), más arriba) exige que el operario reste el espesor de la chapa de la
+cota exterior de la pieza.
+A continuación se describe una sugerencia que facilita la programación.
+Evidentemente, tiene sus límites, los cuales van en función de la pieza y de la
+serie de pliegues decidida.
+La sugerencia consiste en introducir las cotas exteriores en el campo X del
+tope posterior y programar una corrección constante negativa correspondiente
+(aproximadamente, según su experiencia, las herramientas y el material) con
+el espesor del material para toda la pieza.
+Es este modo de proceder el que se describe a continuación.
+(cid:121) Página PLEGADO NUMÉRICO, las mismas notas que en la pantalla
+anterior, salvo que X ha sido programado con la cota exterior como se
+ha explicado (45).
+Esta secuencia ejecuta el plegado de las dos alas de 45.0 mm con los
+agujeros oblongos.
+(cid:121) Para crear la siguiente secuencia, pulse la tecla ACCIONES y
+seleccione COPIAR PLEGADO.
+Todos los datos se copian en la segunda secuencia.
+(cid:121) Introduzca la primera ala del segundo corte, es decir, X = 30.00.
+(cid:121) Modifique el campo CY = 1 o déjelo sin programar.
+(cid:121) Modifique la longitud de plegado (ANCHO PL. = 200) y,
+eventualmente, el resto de campos según sus necesidades.
+(cid:121) Pulse la tecla ACCIONES y seleccione la opción COPIAR
+PLIEGUE.
+PÁGINA 32 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 41 =====
+(cid:121) Programe X = 40.00.
+(cid:121) Pulse la tecla ACCIONES y seleccione COPIAR PLIEGUE.
+(cid:121) Para el último pliegue introduzca ÁNGULO = 135.0° y X = 20.00.
+(cid:121) Vaya a la página CORRECCIONES (tecla ).
+(cid:121) Introduzca en la columna PIEZA el valor que desea restar a la cota
+exterior para obtener una posición correcta del tope (generalmente, un
+valor próximo al espesor del material). En nuestro ejemplo, el valor es
+–2.00 mm.
+PROGRAMACIÓN DIRECTA PÁGINA 33
+===== PAGE 42 =====
+Esta página ha sido dejada en blanco intencionadamente.
+PÁGINA 34 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 43 =====
+P ,
+LEGADO PRUEBAS Y CORRECCIONES
+En este capítulo se aborda un procedimiento para la ejecución de una pieza.
+Esta manera de hacer únicamente tiene el fin de demostrar el modo de utilizar
+el control numérico.
+Las operaciones de prueba y de ajuste pueden ejecutarse en el orden decidido
+por el operario.
+(cid:121) Pase al modo semiautomático .
+(cid:121) Si fuera necesario, pase a la primera secuencia con las teclas o
+.
+(cid:121) Pulse la tecla de arranque para situar los ejes en la primera
+secuencia.
+(cid:121) Realice el plegado con una pieza de prueba.
+(cid:121) Mida el ala y ángulo obtenidos.
+(cid:121) Sáltese o permanezca en la página CORRECCIONES.
+(cid:121) Si fuera necesario, corrija el ala (en este ejemplo, se admite una
+corrección de X = - 0.10) para el pliegue en curso.
+Recuerde: en la página pantalla anterior, la corrección de -2.00 mm
+corresponde al espesor del material programado en el capítulo
+Introducción de los datos (2).
+(cid:121) Coloque el cursor en el campo ÁNGULO, columna PLEGADO e
+introduzca el ángulo medido (en este caso 93.0°). El programa
+calculará automáticamente la corrección necesaria (-0.292, visible en
+los campos Y1, Y2, columna PLEGADO). Véase también el Manual
+de referencia 2D, apartado Correcciones.
+PLEGADO, PRUEBAS Y CORRECCIONES PÁGINA 35
+===== PAGE 44 =====
+(cid:121) Realice un segundo pliegue de prueba (sobre la misma secuencia con
+una segunda pieza de prueba). Si fuera necesario, realice correcciones
+nuevamente.
+Según el material, el ajuste de la máquina, la exactitud de los datos
+introducidos, puede que sea necesario realizar dos o tres correcciones
+en un pliegue, en cuyo caso se considera normal.
+Cuando el pliegue en curso está bien ajustado:
+(cid:121) Pase a la secuencia siguiente pulsando la tecla .
+(cid:121) Realice la corrección como se ha descrito anteriormente.
+Cuando todos los pliegues de la pieza sean correctos:
+(cid:121) Pase al modo automático y seleccione la página de trabajo que
+desee:
+⇒ PLEGADO NUMÉRICO
+⇒ PLEGADO EN 2D
+⇒ PLEGADO EN 3D, para los programas en 3D
+PÁGINA 36 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 45 =====
+P 3D
+ROGRAMACIÓN EN
+CREACIÓN DE LA PIEZA
+El presente capítulo describe, a través de un ejemplo concreto, el modo de
+programar una pieza empleando el método de programación en 3D
+(disponible únicamente en los programas ModEva con 3D).
+En el ejemplo siguiente ejecutaremos la misma pieza que en las páginas
+anteriores, es decir:
+Programación por medio del método L-alfa (2D) y Programación directa
+(PLEGADO NUM).
+Ejemplo en volumen
+de la pieza
+En el Manual de referencia 3D, en el capítulo Definición de los iconos, se
+describe la definición de los distintos iconos que encontrará en estas páginas.
+PROGRAMACIÓN EN 3D PÁGINA 37
+===== PAGE 46 =====
+PASO A PASO
+VACÍE LA ZONA DE TRABAJO
+El usuario deberá vaciar la memoria de trabajo antes de crear una nueva
+pieza.
+Se ofrecen tres posibilidades:
+1. Desde la página PLEGADO NUMÉRICO (véase Vaciar la zona de
+trabajo)
+2. Desde la página PIEZA NUMÉRICA (véase Vaciar la zona de trabajo)
+3. Mediante el método que se explica a continuación.
+(cid:121) Vaya a la página PIEZA 3D.
+(cid:121) Pulse la tecla de función MENÚ .
+(cid:121) Seleccione PIEZA 3D. Para ello, introduzca el valor asociado a la
+opción , es decir, la tecla ,
+o coloque el cursor sobre la opción y pulse la tecla
+o haga clic sobre la opción.
+(cid:121) Pulse la tecla ACCIONES .
+(cid:121) Seleccione BORRAR PIEZA. Para ello, introduzca el número
+correspondiente con la opción
+, es decir, la tecla ,
+o coloque el cursor sobre la opción y pulse la tecla ,
+o haga clic sobre la opción y ACEPTE.
+PÁGINA 38 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 47 =====
+Borrado de la
+memoria de
+trabajo
+Esta operación únicamente borra los datos de la memoria de trabajo. Ello
+quiere decir que si la pieza que eventualmente se encuentra en la memoria de
+trabajo se guardó anteriormente, no se perderá.
+Introducir los datos
+de la pieza
+Campo: DATOS PIEZA
+(cid:121) Haga clic sobre el campo: DATOS PIEZA.
+(cid:121) Introduzca los valores ESPESOR y SIGMA en los campos
+correspondientes. (2.00 y 37)
+(cid:121) Introduzca el MATERIAL: haga clic derecho para abrir el menú
+desplegable.
+(cid:121) Introduzca el PUNZÓN y la MATRIZ según el método ya
+mencionado (véase Selección de las herramientas) en este documento.
+(cid:121) Haga clic en SALIR para confirmar los valores elegidos.
+El programa vuelve a la ventana anterior. Para continuar, pulse la tecla
+y elija MODIF. 1F o la tecla
+o bien, MODIF. 2F o la tecla .
+PROGRAMACIÓN EN 3D PÁGINA 39
+===== PAGE 48 =====
+Diferencias entre las dos funciones:
+MODIF. 1F: muestra la pieza en modo plano (2D).
+MODIF. 2F: muestra la pieza en modo plano y en modo axonométrico (3D).
+Creación del
+elemento base.
+Selección actual:
+MODIF. 2F
+Modo axonométrico
+Modo plano
+(cid:121) Haga clic sobre . El rectángulo rojo asociado (a la derecha) se
+ilumina indicando que la función está activada.
+(cid:121) El rectángulo base aparece tanto en modo plano como axonométrico
+en la ventana de trabajo. El diagrama y la tabla de cotas se adaptan.
+(cid:121) Introduzca las medidas A y B. En nuestro ejemplo: 150 y 200.
+PÁGINA 40 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 49 =====
+Pegado de un ala
+(cid:121) Haga clic sobre . El rectángulo rojo asociado (a la derecha) se
+ilumina indicando que la función está activada.
+(cid:121) Haga clic sobre el segmento de contorno donde deba pegar la cara.
+(cid:121) Ajuste la altura del ala: valor del campo A. (45.00). Por defecto, el
+valor del ángulo es de 90º. El radio interno ya está calculado.
+Pegado de una
+segunda ala
+La misma función aún está activada.
+(cid:121) Haga clic sobre el segmento inferior donde debe pegar la segunda
+cara.
+(cid:121) Se memoriza el valor A y se atribuye automáticamente a la nueva ala.
+PROGRAMACIÓN EN 3D PÁGINA 41
+===== PAGE 50 =====
+Pegado de una
+tercera ala
+La misma función aún está activada.
+(cid:121) Haga clic sobre el segmento de la izquierda donde debe pegar la
+tercera cara.
+(cid:121) El valor A queda memorizado y asociado automáticamente a la nueva
+ala. Modifique el campo A con un nuevo valor: 40.00.
+Pegado de una
+cuarta ala
+La misma función aún está activada.
+(cid:121) Haga clic sobre el segmento de la izquierda en la que debe pegar la
+cuarta cara.
+(cid:121) El valor A queda memorizado y asociado automáticamente a la nueva
+ala. Modifique el campo A con un nuevo valor: 30.00 y modifique
+también el valor del ángulo: - 90.0.
+PÁGINA 42 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 51 =====
+Pegado de la
+última ala
+La misma función aún está activada.
+(cid:121) Haga clic sobre el segmento de la derecha donde deba pegar la última
+cara.
+(cid:121) El valor A queda memorizado y asociado automáticamente a la nueva
+ala. Modifique el campo A con un nuevo valor: 20.00 y modifique
+también el valor del ángulo: - 135.0.
+La pieza ya está acabada.
+Control de la
+construcción
+Visualización de la pieza en modo volumen.
+(cid:121) Pulse la tecla y, a continuación, la tecla .
+Para volver al modo de construcción.
+(cid:121) Pulse la tecla y, a continuación, la tecla .
+PROGRAMACIÓN EN 3D PÁGINA 43
+===== PAGE 52 =====
+Esta página ha sido dejada en blanco intencionadamente.
+PÁGINA 44 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 53 =====
+M ,
+EMORIZAR BUSCAR UNA PIEZA
+MEMORIZAR UNA PIEZA
+La operación de memorización de la pieza puede realizarse desde todas las
+páginas que contienen el campo PIEZA en la parte superior de la pantalla.
+(cid:121) Ponga el DNC en modo programación .
+(cid:121) Coloque el cursor sobre el campo PIEZA e introduzca el número de
+referencia (de 1 a 89.999).
+(cid:121) Menú ACCIONES, seleccione MEMORIZAR PIEZA.
+(cid:121) Si aparece el mensaje EXISTE, ello indica que el número de pieza ya
+está siendo utilizado.
+CANCELE y elija otro número
+o
+ACEPTE para machacar la pieza existente.
+Página Lista de piezas Si lo desea, realice una operación de copia de seguridad con una visión global
+de las piezas existentes:
+(cid:121) Llame a la página LISTA DE PIEZAS con la tecla MENÚ y
+seleccionando la opción LISTA DE PIEZAS del menú.
+(cid:121) En el campo DIBUJO, introduzca una referencia eventual.
+MEMORIZAR, BUSCAR UNA PIEZA PÁGINA 45
+===== PAGE 54 =====
+(cid:121) Si desea memorizar la pieza en un lugar distinto de la memoria
+interna, coloque el cursor en el campo INTERNO de PIEZAS Y
+GRUPOS EN ... .
+o pulse el clic derecho para que aparezca la lista y pueda
+realizar su selección.
+(cid:121) Coloque el cursor sobre el campo PIEZA e introduzca el número de
+referencia (de 1 a 89.999).
+(cid:121) Pulse la tecla ACCIONES.
+(cid:121) Seleccione la opción MEMORIZAR.
+(cid:121) En el campo interactivo, en la esquina superior derecha de la pantalla
+aparece el mensaje MEMORIZANDO....
+(cid:121) A continuación, el número de la pieza grabada aparece en la lista.
+Véase el capítulo siguiente y los capítulos Periféricos activos y Gestión de
+piezas en el Manual de referencia 2D.
+BUSCAR UNA PIEZA
+Método rápido
+(cid:76)
+Este método es válido solamente desde la versión W2.
+Desde cualquier página que muestre el campo PIEZA:
+(cid:121) Colocar el cursor en el campo PIEZA.
+(cid:121) Clic derecho con el ratón o pulsar la tecla .
+(cid:121) La ventana seguiente aparece:
+PÁGINA 46 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 55 =====
+Las piezas se enumeran inicialmente en orden creciente por número de pieza.
+(cid:121) Para recorrer, coloque el cursor en la tabla y mueva con las teclas
+o .
+(cid:121) Para cambiar la pieza: clic o pulse .
+Clasificación: (cid:121) Para enumerar en orden decreciente:
+creciente / decreciente colocar el cursor sobre el título de la columna y clic izquierda
+o pulsar la tecla .
+La orden es invertido (la flecha roja es vuelta para arriba (cid:24))
+(cid:121) Para clasificar por nombre de dibujo o de la fecha, proceder de la
+misma manera en los títulos de las columnas correspondientes.
+(DIBUJO o FECHA).
+Para buscar una pieza (cid:121) Colocar el cursor en la tabla y en la columna deseada e introducir el
+número de pieza, el nombre de dibujo o la fecha buscada.
+(cid:121) Su introducción es mostrada en la última línea (en blanco), y el cursor
+va a la primera línea de la tábla. Los nombres clasificados por orden
+creciente, el primero correspondiendo a la primera línea.
+Para más explicaciones, refiérase al Manual de referencia 2D.
+MEMORIZAR, BUSCAR UNA PIEZA PÁGINA 47
+===== PAGE 56 =====
+Método estándar:
+(cid:121) Si desea buscar la pieza en un lugar distinto de la memoria interna,
+coloque el cursor en el campo INTERNO de PIEZAS Y GRUPOS
+EN ....
+o haga clic derecho para que aparezca la lista y pueda realizar
+su selección.
+(cid:121) En la lista, coloque el cursor sobre el número de pieza deseado y pulse
+la tecla
+o
+Coloque el cursor en el campo PIEZA, introduzca el número de pieza
+y seleccione CARGAR desde el menú ACCIONES.
+(cid:121) Ahora la pieza se encuentra en la memoria de trabajo (su número
+aparece indicado en el campo PIEZA).
+Si conoce el número de la pieza que busca (que debe encontrarse en el
+periférico activo), puede buscarla desde cualquiera de las páginas que
+muestran el campo PIEZA en la parte superior izquierda de la pantalla.
+Para ello:
+(cid:121) Introduzca el número de pieza en el campo PIEZA.
+(cid:121) Seleccione BUSCAR PIEZA en el menú ACCION.
+PÁGINA 48 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 57 =====
+Método gráfico:
+Procedimiento:
+(cid:121) Acceda a la página MENÚ pulsando la tecla y llame a la página
+Lista de piezas gráficas (tecla ).
+(cid:121) Aparecerá la ventana anterior, que le permitirá realizar una búsqueda
+de piezas.
+Las funciones y permiten visualizar la lista de piezas
+gráficas.
+La selección de la pieza es idéntica a la realizada en el modo estándar.
+MEMORIZAR, BUSCAR UNA PIEZA PÁGINA 49
+===== PAGE 58 =====
+ORGANIZACIÓN DE LA MEMORIA
+Este capítulo está destinado a suministrar los elementos esenciales al
+funcionamiento de la DNC. Para obtener más información sobre las distintas
+memorias, consulte el Manual de referencia.
+El control numérico está provisto de varias memorias. Cuando el operario
+programa una pieza o modifica el contenido de una pieza, lo hace en la
+memoria de trabajo, denominada también buffer de trabajo.
+La memoria de trabajo no es volátil, es decir, cuando enciende el DNC, los
+datos de la pieza en curso permanecen en la memoria hasta que son
+remplazados por otra pieza o borrados.
+Floppy
+INTERNAL Network
+Memoria de trabajo
+o buffer
+ENC
+Una vez confeccionada la pieza programada y si no va a volver a utilizar la
+programación, ya no es necesario que permanezca guardada en la memoria de
+trabajo.
+Generalmente, únicamente deberá memorizar la pieza si debe conservarla
+para usos futuros.
+Puede reconocer si una pieza de la memoria de trabajo ya ha sido guardada o
+no comprobando si el campo PIEZA muestra un código o está vacío.
+Además, el ENC posee una memoria que contiene una copia de la pieza que
+se encuentra en la memoria de trabajo. Esta copia se transfiere al ENC
+durante el cambio al modo semiautomático o automático.
+Otra memoria que siempre está presente en el DNC es el Floppy (disquete).
+Generalmente, utilizamos el Floppy para realizar una copia de seguridad
+(back up) de las piezas importantes, las herramientas y/o los parámetros de la
+máquina.
+Para ello se emplea la página de transferencia. Buscar o memorizar piezas
+directamente en el Floppy son operaciones que se realizan muy raramente
+debido a la velocidad de acceso.
+Mediante el acceso a una red puede proveerse memorias complementarias.
+Con la configuración normal, el DNC memoriza y busca siempre sus piezas
+en la memoria INTERNA. Si lo desea, puede atribuirle otra memoria por
+defecto (véase Periféricos activos en el Manual de referencia).
+PÁGINA 50 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 59 =====
+P
+ROTECCIÓN DE LOS NIVELES DE ACCESO
+INFORMACIÓN GENERAL
+De este modo, en los manuales siempre hablaremos de la posición de la llave
+(virtual) del modo: "Coloque la llave en la posición 3".
+Niveles Existen 4 niveles de acceso: de 0 a 3.
+0 = programación prohibida
+1 = creación, corrección, modificación, copia de seguridad, borrado,
+transferencia de una (o varias) pieza(s).
+2 = creación, corrección, modificación, copia de seguridad, borrado y
+transferencia de herramientas.
+3 = programación, modificación y transferencia de los parámetros de la
+máquina.
+Acceso Pulsando las siguientes teclas se accede a los distintos niveles:
++ , + , + o + .
+Nota: suelte la tecla del teclado numérico antes de soltar la tecla Alt.
+La posición de la llave aparecerá con la forma de un pequeño icono en la
+parte inferior derecha de la pantalla.
+Durante el paso a un nivel no autorizado, aparece una solicitud de
+modificación de contraseña.
+Al introducir la contraseña, podrá "navegar" por los niveles inferiores y en el
+nivel autorizado sin necesidad reintroducir la contraseña.
+El paso al nivel 0 reinicia la solicitud de contraseña.
+Usuarios Existen diferentes usuarios predefinidos. Un usuario no es una persona física
+en particular, sino todos los operarios que tengan autorización a trabajar
+sobre la máquina, por ejemplo.
+Cada usuario predefinido posee su propia contraseña y un nivel máximo de
+acceso. Véase más adelante: Usuarios y Acceso por contraseña.
+Contraseña Algunos usuarios pueden modificar su propia contraseña. En cambio, en el
+caso de otros usuarios, únicamente un usuario con derechos de acceso
+superior podrá modificar la contraseña.
+Características La contraseña puede estar compuesta de caracteres alfanuméricos, si dispone
+del teclado adecuado. En caso contrario, únicamente podrá introducir
+caracteres numéricos.
+Pérdida de la contraseña En caso de pérdida de la contraseña, deberá solicitar a un usuario de nivel
+superior que la reprograme.
+PROTECCIÓN DE LOS NIVELES DE ACCESO PÁGINA 51
+===== PAGE 60 =====
+USUARIOS
+Tabla de usuarios, acceso y contraseñas.
+Nivel Nombres de Modificación Modificación Nivel de la Contraseña Usuario generalmente
+usuario de la de las llave virtual por defecto atribuido a:
+predefinidos contraseña contraseñas
+personal de los
+usuarios de
+niveles
+inferiores
+1 EUL1 NO NO 1 111 Operarios con derechos de
+acceso al nivel 1
+2 EUL2 NO NO 2 222 Operarios con derechos de
+acceso al nivel 2
+3 EUL3 NO NO 3 333 Operarios con derechos de
+acceso al nivel 3
+4 WSSUPER SÍ SÍ 3 817 Jefe de taller en casa del
+usuario de la máquina
+5 MACHMAN NO SÍ 3 Técnicos de servicio del
+constructor de la máquina
+6 MACHMAN0 SÍ SÍ 3 Responsable técnico en
+casa del constructor de la
+máquina
+Puede atribuir un usuario predefinido a varias personas.
+Por ejemplo, el nivel 1 (EUL1) se atribuye a todas las personas que tengan acceso a la máquina.
+Tras la instalación de la máquina, se recomienda que modifique la contraseña por defecto del nivel 4
+(WSSUPER Workshop supervisor = jefe de taller)
+y del nivel 3 (EUL3 Usuarios con autorización en el nivel 3), ya que las contraseñas se encuentran en este
+manual.
+PÁGINA 52 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 61 =====
+ACCESO POR CONTRASEÑA
+Con el arranque del programa, la llave virtual siempre está colocada en 0.
+Cuando el operario selecciona una de las combinaciones + ,
+o , aparece el siguiente mensaje:
+o 2 o 3 según
+la combinación
+Nivel 1 de tecla
+Contraseña
+(cid:121) Introduzca la contraseña.
+(cid:121) Pulse la tecla .
+(cid:121) El nivel autorizado aparece en la casilla inferior derecha de la pantalla.
+En caso contrario aparece un mensaje indicando que el usuario no está
+autorizado.
+Una vez admitida la autorización, el operario puede cambiar de nivel dentro
+de los que está autorizado sin que se le vuelva a solicitar la contraseña
+nuevamente.
+Por ejemplo, un usuario con acceso al nivel 3 puede navegar por los niveles
+1, 2 y 3 sin necesidad de volver a introducir la contraseña.
+Si el nivel 0 está activado, el acceso a cualquiera de los demás niveles
+demanda una nueva solicitud de la contraseña.
+Esta solicitud también aparecerá cuando el usuario acceda a un nivel superior
+(de 0 a 1, de 1 a 2, de 2 a 3, etc.) y no posea de derechos de acceso.
+Consejo Tras la intervención, si ha accedido al nivel 3 acceda de nuevo al nivel 0. De
+este modo, evitará realizar por descuido cambios no deseados.
+PROTECCIÓN DE LOS NIVELES DE ACCESO PÁGINA 53
+===== PAGE 62 =====
+ACCESO A LOS NIVELES SUPERIORES A 3
+Algunos usuarios pueden acceder a un nivel superior a 3, lo que le permite,
+entre otras cosas, modificar las contraseñas. Para conocer los derechos, véase
+Usuarios y Acceso por contraseña.
+(cid:121) Pulse la combinación de teclas + .
+(cid:121) Aparecerá el siguiente mensaje.
+Cambio de la posición de la llave
+Usuario WSSUPER
+Contraseña
+Aceptar
+Salir
+Contraseña olvidada
+Modificar contraseña
+(cid:121) Elija el nivel de usuario deseado (véase la tabla).
+Para ello, coloque el cursor en el campo Usuario y pulse la tecla
+, realice su selección y acéptela pulsando la tecla .
+(cid:121) Coloque el cursor en el campo Contraseña e introduzca la
+contraseña correspondiente al nivel solicitado y acéptela pulsando la
+tecla .
+(cid:121) El DNC pasa al nivel 1. El operario puede “navegar” entre los niveles
+1 y 3 sin tener que volver a introducir su contraseña.
+Si su nivel se lo permite, puede llamar al procedimiento de
+modificación de contraseñas (véase el siguiente párrafo).
+(cid:121) Al final de la intervención, no olvide pasar al nivel 0 para salir del
+nivel en curso.
+PÁGINA 54 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 63 =====
+CAMBIAR LA CONTRASEÑA
+Si lo desea, puede modificar las contraseñas atribuidas por defecto.
+Algunos usuarios pueden hacerlo ellos mismos, pero otros no. Para conocer
+los derechos de cada usuario, véase el capítulo Usuarios, más arriba.
+Procedimiento:
+(cid:121) Pulse la combinación de teclas + .
+(cid:121) Aparecerá el siguiente mensaje:
+Cambio de la posición de la llave
+Usuario WSSUPER
+Contraseña
+Aceptar
+Salir
+Contraseña olvidada
+Modificar contraseña
+(cid:121) Identifíquese como WSSUPER, como mínimo.
+(cid:121) Introduzca su contraseña.
+(cid:121) Haga clic sobre Modificar contraseña.
+(cid:121) Aparecerá la siguiente ventana:
+Modificar contraseña
+Usuario WSSUPER
+Nueva contraseña
+Confirmar contraseña
+Aceptar
+Salir
+(cid:121) Elija el usuario del que desea modificar la contraseña. Para ello,
+coloque el cursor en el campo Usuario, pulse la tecla , realice
+su selección y acéptela pulsando la tecla .
+(cid:121) Introduzca la nueva contraseña.
+(cid:121) Vuelva a introducir la contraseña en Confirmar contraseña.
+(cid:121) Coloque el cursor sobre Aceptar y pulse la tecla (o haga clic
+sobre aceptar).
+PROTECCIÓN DE LOS NIVELES DE ACCESO PÁGINA 55
+===== PAGE 64 =====
+CONTRASEÑA OLVIDADA
+Si un usuario pierde/olvida su contraseña, solicítela al responsable de la
+máquina.
+Si la contraseña la ha perdido definitivamente, dispone de dos posibilidades:
+a) El usuario no tiene asignados derechos de modificación.
+En este caso existen dos soluciones:
+- Solicitar a un usuario “superior” que modifique su contraseña
+(véase el capítulo Cambiar la contraseña).
+- Utilizar el método que se describe más abajo.
+b) El usuario tiene asignado derechos de modificación.
+Proceda como se describe a continuación.
+Nota: si la contraseña olvidada se refiere a los niveles 1, 2 o 3, solicite al jefe
+de taller que modifique las contraseñas de estos niveles según el
+procedimiento descrito en el capítulo Cambiar la contraseña.
+Procedimiento:
+(cid:121) Pulse la combinación de teclas + .
+(cid:121) Aparecerá la siguiente ventana:
+Cambio de la posición de la llave
+Usuario WSSUPER
+Contraseña
+Aceptar
+Salir
+Contraseña olvidada
+Modificar la contraseña
+(cid:121) Seleccione el usuario que ha olvidado la contraseña. Para ello, coloque
+el cursor en el campo Usuario, pulse la tecla , realice su
+selección y acéptela pulsando la tecla .
+(cid:121) Haga clic sobre la opción Contraseña olvidada.
+PÁGINA 56 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 65 =====
+Aparecerá la siguiente ventana:
+Contraseña olvidada
+Usuario WSSUPER
+Código de emergencia Kl2398saf58sdf7
+Póngase en contacto con su proveedor
+Salir
+El operario deberá anotar el código de emergencia que aparece en la pantalla
+y dirigirse a su proveedor. Éste último posee un programa que le permite
+generar nuevas contraseñas.
+Para recuperar una contraseña olvidada, proceda del siguiente modo:
+(cid:121) Llame a la función Contraseña olvidada.
+(cid:121) Anote el código de emergencia que aparece.
+(cid:121) Obtenga la nueva contraseña del proveedor tras comunicarle el código
+de emergencia. La contraseña perdida le será comunicada.
+PROTECCIÓN DE LOS NIVELES DE ACCESO PÁGINA 57
+===== PAGE 66 =====
+Esta página ha sido dejada en blanco intencionadamente.
+PÁGINA 58 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 67 =====
+R
+ESUMEN GENERAL DE LAS PÁGINAS
+En el Manual de referencia 2D se indican numerosas explicaciones
+complementarias a la información contenida en estas páginas y/o las
+funciones que descritas. Este manual está organizado como un diccionario,
+con una tabla de materias y un índice muy completos que le permitirán
+localizar fácilmente el tema buscado.
+PÁGINA MENÚ
+La página MENÚ
+aparece al pulsar la
+tecla MENÚ .
+Para aceptarla:
+desplace el cursor
+sobre la opción
+deseada y pulse la tecla
+, o introduzca el
+número asociado a la
+opción.
+PÁGINA LISTA DE PIEZAS
+Esta página permite
+extraer las piezas
+memorizadas en el CN
+en orden numérico
+creciente.
+RESUMEN GENERAL DE LAS PÁGINAS PÁGINA 59
+===== PAGE 68 =====
+PÁGINA LISTA DE PIEZAS GRÁFICAS
+Esta página permite
+extraer las piezas
+memorizadas en el CN
+en orden numérico
+creciente y con la
+gráfica asociada.
+PÁGINA BÚSQUEDA DE PIEZAS/CRITERIOS
+Esta página permite
+buscar diferentes
+piezas memorizadas en
+el control numérico
+según determinados
+criterios.
+PÁGINA TRANSFERENCIA
+Permite seleccionar y
+activar las trans-
+ferencias de datos de
+una memoria a otra
+(disquete, red, etc.)
+PÁGINA 60 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 69 =====
+PÁGINA LISTA DE PUNZONES
+Esta página permite
+visualizar de una
+ojeada rápida los
+principales parámetros
+de los punzones
+memorizados en el
+control numérico.
+En esta lista, si desea ver la descripción completa de la herramienta, basta con
+colocar el cursor sobre el nombre de la herramienta y pulsar la tecla o
+hacer clic. Aparecerá la página PROGRAMACIÓN DE PUNZONES.
+PÁGINA LISTA DE MATRICES
+Esta página permite
+visualizar de una
+ojeada rápida los
+principales parámetros
+de las matrices
+memorizadas en el
+control numérico.
+En esta lista, si desea ver la descripción completa de la herramienta, basta con
+que coloque el cursor sobre el nombre de la herramienta y pulse la tecla
+o haga clic. Aparecerá la página PROGRAMACIÓN DE MATRICES.
+RESUMEN GENERAL DE LAS PÁGINAS PÁGINA 61
+===== PAGE 70 =====
+PÁGINA PROGRAMACIÓN DE PUNZONES
+La programación de
+todos los punzones se
+realiza desde esta
+página.
+En ella se encuentran
+todas las medidas
+relativas al punzón.
+En la parte derecha de
+la pantalla aparece el
+croquis del punzón.
+PÁGINA PROGRAMACIÓN DE MATRICES
+La programación de
+todas las matrices se
+realiza desde esta
+página.
+En ella se encuentran
+todas las medidas
+relativas a la matriz.
+En el lado derecho de
+la pantalla aparece un
+croquis que representa
+el perfil de la matriz.
+PÁGINA 62 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 71 =====
+PÁGINA BIENVENIDA
+En ella se indican los
+principales datos de la
+máquina y del control
+numérico.
+Los campos de color
+verde son campos con
+opciones múltiples que
+pueden ser
+modificados.
+PÁGINA INICIALIZACIÓN
+Esta página está
+reservada al
+mantenimiento técnico
+del control numérico o
+de la máquina.
+Esta página permite
+vaciar los datos del
+DNC y modificar los
+orígenes físicos de la
+máquina.
+Para actuar en esta
+página es necesario
+utilizar la llave del panel
+delantero.
+RESUMEN GENERAL DE LAS PÁGINAS PÁGINA 63
+===== PAGE 72 =====
+PÁGINA PARÁMETROS MÁQUINA
+Esta página es la
+primera de las páginas
+que conforman la serie
+de parámetros que
+condicionan el
+funcionamiento del
+control numérico.
+Únicamente el uso de
+la llave del panel en la
+posición 3 permite
+modificar estos datos.
+La modificación de
+estos datos únicamente
+debe realizarse con la
+asistencia de soporte
+técnico competente.
+PÁGINA PIEZA NUM
+Esta página aparece al
+pulsar la tecla PIEZA
+y se selecciona
+la opción PIEZA
+NUMÉRICA.
+Esta página permite
+construir y calcular una
+pieza, así como
+visualizar el perfil de
+corte en tiempo real.
+PÁGINA 64 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 73 =====
+PÁGINA POSICIÓN HERRAMIENTAS
+Esta página aparece al
+pulsar la tecla PIEZA
+y se selecciona la
+opción POSICIÓN
+HERRAMIENTAS.
+Esta página permite
+definir varios puestos
+de trabajo.
+PÁGINA COMENTARIOS
+Esta página aparece en
+sobreimpresión al
+pulsar la tecla PIEZA
+y seleccionar la
+opción
+COMENTARIOS.
+Esta página permite
+completar los datos de
+la pieza por medio de
+una serie de
+comentarios. Estos
+comentarios se
+programan con la
+ayuda de un programa
+para PC.
+RESUMEN GENERAL DE LAS PÁGINAS PÁGINA 65
+===== PAGE 74 =====
+PÁGINA PLIEGUE NUM
+Esta página aparece al
+pulsar la tecla
+PLEGADO y
+seleccionar la función
+PLEGADO
+NUMÉRICO.
+Esta página recapitula
+todos los datos
+relacionados con la
+secuencia en curso.
+PÁGINA PLEGADO 2D
+Esta página aparece al
+pulsar la tecla
+PLEGADO y
+seleccionar PLEGADO
+2D.
+Esta página permite
+simular la factibilidad de
+la pieza y corregir el
+orden de plegado si
+fuera necesario.
+PÁGINA 66 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 75 =====
+PÁGINA PLEGADO 3D
+Esta página aparece al
+pulsar la tecla
+PLEGADO y se
+selecciona la opción
+PLEGADO 3D.
+Esta página permite
+simular la factibilidad de
+la pieza y corregir, si
+fuera necesario, la
+posición de los topes,
+así como la posición de
+la pieza con relación a
+las herramientas.
+PÁGINA PLEGADO FUNCIÓN
+Est página aparece al
+pulsar la tecla
+PLEGADO y
+seleccionar la función
+PLEGADO FUNCIÓN.
+Esta página permite
+programar eventuales
+funciones auxiliares de
+la máquina.
+RESUMEN GENERAL DE LAS PÁGINAS PÁGINA 67
+===== PAGE 76 =====
+PÁGINA HERRAMIENTAS DE PLEGADO
+Esta página aparece al
+pulsar la tecla
+PLEGADO y
+seleccionar
+HERRAMIENTA DE
+PLEGADO.
+Esta página permite
+modificar la posición de
+la longitud de las
+herramientas instaladas
+en la máquina.
+También se pueden
+modificar algunas
+características de
+seguridad.
+PÁGINA CORRECCIONES
+Esta página aparece al
+pulsar la tecla
+CORRECCIONES y ha
+seleccionar
+CORRECCIONES.
+Esta página permite
+aplicar las correcciones
+a distintos ejes de la
+máquina en función de
+los resultados
+obtenidos durante el
+transcurso del plegado.
+PÁGINA 68 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 77 =====
+P PC1200
+ROGRAMA
+Hay que distinguir dos casos:
+1. Software PC 1200 2D (= PC 1200) proporcionado con ModEva 10S
+y DNC 880S. Este software no necesita ninguna llave de protección.
+2. Software PC1200 3D proporcionado con ModEva 12S y 15S. Este
+software necesita una llave de protección para funcionar.
+LLAVE DE PROTECCIÓN DEL PC
+Únicamente para PC1200 3D:
+La llave debe incluir como mínimo las opciones 20, 25 para autorizar el
+funcionamiento de PC1200 3D:
+Instale la llave de protección en el puerto paralelo LPT1 (impresora) o en un
+puerto USB según el modelo de la llave de protección.
+(cid:41)
+(cid:76)
+Importante: sobre todo, no coloque la llave en un puerto serie, ya que
+corre el riesgo de destruir la llave.
+Notas:
+(cid:121) ¡Apague el PC o el DNC antes de conectar o desconectar la llave
+de protección!
+Si conecta o desconecta la llave con el sistema encendido, puede llegar
+a dañar la salida de la impresora del PC o del DNC y/o la llave de
+protección.
+(cid:121) La llave de protección debe estar conectada (primero) al puerto de la
+impresora (puerto paralelo LPT1) del PC o del DNC. ¡Nunca
+conecte la llave de protección a un puerto serie (“COM port”)!
+Podría llegar a dañar la llave de protección y/o el puerto serie del PC o
+del DNC.
+(cid:121) Si una impresora está conectada a la llave de protección, para asegurar
+su funcionamiento correcto deberá estar enganchada.
+(cid:121) En principio, es posible conectar varias llaves de protección, una
+detrás de otra, en una misma salida de impresora del PC.
+En algunos casos, el orden de las llaves puede ser importante para que
+los distintos programas funcionen correctamente. En caso de
+problemas, comience siempre por conectar una única llave (sin
+conectar la impresora) para ver si de este modo elimina el problema.
+En tal caso, intente añadir las demás llaves en distinto orden para
+determinar el orden correcto. Si no puede resolver el problema, deberá
+considerar el uso de una caja de selección de impresoras que le
+permita conmutar entre las distintas llaves.
+(cid:121) En el caso de las llaves de protección CYBELEC, únicamente se
+pueden conectar juntas las llaves que son de distinto color. Las llaves
+del mismo color no deben combinarse entre sí. Esto también significa
+que podría ser necesario realizar un cambio de llaves en el caso de una
+versión del programa instalado y actualizado con una versión que
+incluya opciones distintas.
+PROGRAMA PC1200 PÁGINA 69
+===== PAGE 78 =====
+Durante el arranque, el programa muestra la página de BIENVENIDA.
+En la parte inferior de esta página encontrará el número de serie de la llave,
+así como las opciones disponibles.
+Si por casualidad no se pudiera reconocer la llave, aparecería el mensaje
+ILLEGAL CONFIGURATION, el número de serie de la llave estaría vacío y
+no sería posible ir a otras páginas del programa.
+En este caso, salga del programa, realice pruebas, siga cada uno de los puntos
+que se indican a continuación y vuelva a arrancar el programa en cada
+ocasión para saber si la operación ha resuelto el problema:
+- Compruebe que la llave está bien introducida en el puerto de la impresora
+LPT1 o en un puerto USB según el modelo de la llave de protección.
+- Deje conectada la llave únicamente, sin impresora, sin cable, sin otra
+llave, ni ningún otro periférico (durante el resto de las pruebas).
+- Instale el driver Sentinel que se encuentra en el CD, dentro de la carpeta
+\Tools\Sentinel_Pro_Drivers\SproDriver_7_2_2.
+Para ello, ejecute el archivo Sentinel Protection Installer 7.2.2.exe que
+se encuentra dentro de la carpeta.
+- En el caso de Windows NT, Windows 2000 o Windows XP debe disponer
+de una llave Sentinel Super Pro, que podrá distinguir por su tamaño
+(véase la foto). Las demás llaves (más grandes) NO serán reconocidas.
+- Si trabaja "bajo" Windows NT, 2000 o XP es posible que también tenga
+que instalar el driver RAINPORT que también se encuentra en el CD de
+ModEva/DNC 880S, dentro de la carpeta
+\Tools\Win_NT_2000\Rainport.
+- Si tras todos estos intentos no se resuelve el problema, arranque el
+programa cybdng3.exe que se encuentra en la carpeta \Tools\Prot_key.
+La ejecución de esta aplicación deberá devolverle el número de la llave,
+así como las opciones disponibles.
+- Si aún así no consiguiera ningún resultado, intente realizar la misma
+operación en un PC de marca diferente y, si es posible, con otro sistema
+operativo (Windows 95, Windows 98). Puede que el puerto no sea
+compatible con la llave.
+- Si el resultado fuera negativo en el otro PC, puede que la llave de
+protección esté dañada. En este caso, deberá sustituirla.
+En una configuración en red, el programa PC puede estar instalado en un
+servidor. Sin embargo, esto puede representar un problema si varios usuarios
+intentan acceder al programa al mismo tiempo. Por otro lado, piense que
+necesitará una llave de protección para cada PC que utilice el programa y que
+ésta no debe estar instalada en el servidor.
+Según la configuración y las opciones, el DNC también necesita una llave de
+protección. Si no se detecta ninguna llave, puede que aparezca el mensaje
+Configuration Illégale (y en este caso no podrá utilizar el DNC), o que no
+pueda disponer de una o varias opciones del DNC.
+Para la instalación del programa no necesita ninguna llave de protección.
+PÁGINA 70 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 79 =====
+INSTALACIÓN PC1200
+(cid:121) Instale la llave de protección (sólo PC1200 3D).
+(cid:121) Introduzca el CD-ROM en el lector de CDs y siga las instrucciones.
+(cid:121) Cuando el programa se lo pregunte, seleccione la instalación en PC
+(y no en DNC).
+(cid:121) Por defecto, el programa se instalará en la carpeta CYB/ y en una
+carpeta con el nombre de la versión instalada. De este modo, podrá
+disponer de varias versiones diferentes en un mismo PC.
+(cid:121) Cuando el programa lo solicite, introduzca el disquete CONFIG 03
+(o superior) y prosiga con la instalación.
+(cid:121) Si no dispusiera del disquete, haga clic sobre NON y el programa se
+instalará con las opciones estándar.
+PROGRAMA PC1200 PÁGINA 71
+===== PAGE 80 =====
+Instalación en un directorio existente
+Si no desea guardar su anterior versión, sino realizar un “update” en la misma
+carpeta de su antiguo programa, responda NO a la pregunta "instalar el
+disquete CONFIG 03".
+De este modo, se conservarán los parámetros de su anterior versión: la
+configuración, los parámetros, las piezas y los caminos.
+Instalación en Windows NT, 2000 o XP
+Atención: para instalar el programa en todos estos sistemas deberá disponer
+de derechos de ADMINISTRADOR.
+Antes o después de la instalación del programa, pero antes de arrancar
+PC1200:
+- Instale el driver Sentinel que encontrará en el CD, dentro de la carpeta
+\Tools\Sentinel_Pro_Drivers\SproDriver_7_2_2.
+Para ello, ejecute el archivo Sentinel Protection Installer 7.2.2.exe
+que se encuentra dentro de la carpeta.
+PÁGINA 72 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 81 =====
+I C
+NSTALACIÓN DEL PROGRAMA YBELEC
+INSTALACIÓN DEL PROGRAMA DNC
+(cid:121) Se supone que Windows ya está instalado en el DNC.
+En el caso contrario, se debe restaurar la imagen según el
+procedimiento descrito en el CD de restauración proporcionado con el
+DNC.
+(cid:121) Instale un teclado externo.
+(cid:121) Encienda el DNC.
+(cid:121) Dejar que el software DNC Cybelec se cargue por completo (si es
+funcional).
+(cid:121) Entre en el nivel 3.
+(cid:121) Salga del programa DNC Cybelec.
+(cid:121) En estos momentos, nos hallamos en el escritorio de Windows.
+(cid:121) Inserte el CD-ROM del programa Cybelec en el lector de CDs y siga
+las instrucciones.
+(cid:121) Cuando el programa lo pregunte, seleccione la opción "Instalación
+sobre DNC".
+(cid:121) Cuando el programa lo solicite, introduzca el disquete CONFIG 03
+(o superior) y prosiga con la instalación.
+Si no dispone del disquete, seleccione NON.
+(cid:121) Salga de Windows.
+(cid:121) Encienda el control numérico.
+(cid:121) Continuar con la instalación del software ENC en el capítulo siguiente.
+INSTALACIÓN DEL PROGRAMA CYBELEC PÁGINA 73
+===== PAGE 82 =====
+INSTALACIÓN DEL SOFTWARE ENC
+(cid:121) Encender el DNC.
+(cid:121) Dejar que el software DNC Cybelec se cargue por completo.
+(cid:121) Ponerse en nivel 3.
+(cid:121) Salir del software DNC Cybelec.
+(cid:121) Abrir el software Flash 12 que está en el escritorio.
+(cid:121) Seleccionar el software ENC que corresponde al software DNC en
+Select File ENC.
+(cid:121) Pulsar con el ratón el botón Upload.
+(cid:121) Salir del software Flash 12.
+(cid:121) Abrir el software DNC Cybelec.
+(cid:121) Hacer un initialise ENC.
+SI EL TECLADO DEL DNC NO FUNCIONA:
+(cid:121) Salga de Windows.
+(cid:121) Apague el DNC.
+(cid:121) Instale un teclado externo.
+(cid:121) Encienda el DNC.
+Durante el boot, pulse la tecla Del u F2.
+(cid:121) En el setup de la BIOS, en la página STANDARD SETUP,
+compruebe que la opción Halt on contenga Halt all but keyboard.
+(cid:121) Guarde y salga del setup de la BIOS.
+PÁGINA 74 MANUAL DE UTILIZACIÓN MODEVA/DNC 880S
+===== PAGE 83 =====
+ÍNDICE
+Acceso Llave virtual, 51
+a los niveles superiores a 3, 54
+Memoria
+por contraseña, 53
+Floppy, 50
+Protección de los niveles..., 51
+interna, 50
+Ajuste de la matriz, 17
+Memoria de trabajo, 50
+Ajuste del punzón, 15 vaciar, 14, 28
+Buffer de trabajo, 50 Memorizar una pieza, 45
+Buscar una pieza Niveles de acceso, 51
+Método estándar, 48
+Pegar un ala, 41
+Método gráfico, 49
+Método rápido, 46 Plegado
+copiar, 32
+configuración ilegal, 69
+Programación
+Contraseña, 51
+Corte 1, 20
+cambiar, 55
+Corte 2, 22
+olvidada, 56
+Pérdida de la ..., 51 Programación directa, 27
+perdido, 56
+Programación en 3D, 37
+Copyright y licencia, 5
+Programación por L-alfa, 13
+Cursor rápido, 9
+Ratón, 7
+Funciones, 9
+Seguridad, 5
+Driver
+Rainport, 70 Sentinel Super Pro, 70
+Sentinel, 70
+Sistema operativo, 5
+illegal configuration, 69
+Tracksensor, 7
+Instalación, 69
+Usuarios
+Lista de piezas, 45 Tabla de ..., 52
+llave de protección, 69 Windows NT, 2000 o XP, 69, 72
+Llave de protección, 69, 71
+ÍNDICE PÁGINA 75

@@ -1,0 +1,339 @@
+===== PAGE 1 =====
+CTI N° 42 E
+ModEva
+This document is part of a few general reminders and information relating to the ModEva numerical control
+system. You will find this information in the technical leaflet on the ModEva.
+- CNC wiring and console
+- Cards, differences, compatibilities, etc.
+- Configuration of the axes
+- Software
+Installation in the electrical cabinet
+• When installing the new rack, it is advisable to leave sufficient space (at least 8 cm) above and
+below the rack to guarantee the best possible natural ventilation.
+• Never install heating systems under the rack.
+• The cabinet containing the rack must comply with EC standards and must be ventilated if the
+operating temperatures are close to the limits specified in the Cybelec data sheet.
+• Use of the earthing kit offered by Cybelec is earnestly recommended.
+In any case, it is best to earth all shielded cables at both ends and as near to the end of the cables
+as possible.
+• The servo-amplifiers for the motors must be located as far from the CNC rack as possible.
+Power supply
+• The CNC and console are supplied by a 24 VDC
+supply (max. consumption 4A), which is rectified
+and smoothed at the CPU.
+The 24 VDC supply has a tolerance of ± 15 %.
+Therefore, it is best to connect all the terminals of
+connector D1 with a separate 1.5 mm2 supply wire
+for each terminal.
+CTI42EN.doc C-PUB-CTI-42EN 1/9 07.04.03
+Modification rights reserved / Sous réserve de modifications / Änderungen vorbehalten / Con riserva di modifica
+===== PAGE 2 =====
+Earthing the cables on the ModEva 10 / 12 control panel side
+• If command signals pass through the ModEva 10/12 console, shielded cables have to be used. The
+shield must be as close as possible to the wired components. Like the CNC earthing kit, it is best to
+connect the shield to the rail provided for this purpose.
+• RJ 45 cables must not be stripped and earthed, but must be fixed to avoid deterioration of the
+contacts and/or of the cables caused by rotation of the console.
+.
+Panel Link
+• Panel Link is a very high performance interface developed by CYBELEC. All the signals from the
+screen, keyboard and CD pass via 2 cables. The same applies to the supply of the console and
+various other signals.
+The two standard RJ 45 cables must be category 6 to guarantee a quality transfer. The cables
+supplied by Cybelec are 5 m or 10 m long. Special cables can be made up to a maximum length of
+15 metres as an option. This length can be increased even more with an intermediate amplifier
+designed by Cybelec.
+Remote inputs/outputs
+• To simplify the wiring between the console and the electrical cabinet even further, the ModEva
+series offers 12 inputs and 12 outputs that pass through the 2 RJ 45 cables of the Panel Link.
+ModEva control panel CNC
+Panel Link
+interface
+To CPU D8
+Auxiliary command
+A
+interface 5 - 24 VDC
+5VDC commands
+B
+Auxiliary command panel
+24 VDC In outputs
+to electrical box
+CTI42EN.doc 2/9 07.04.03
+Modification rights reserved / Sous réserve de modifications / Änderungen vorbehalten / Con riserva di modifica
+===== PAGE 3 =====
+• The enormous advantage of these inputs/outputs is to simplify the wiring and the installation and
+removal of the ModEva console in particular, because this information passes through the 2 RJ 45
+cables of the Panel Link.
+• These inputs/outputs are available on the SUB D 25 pin socket at the console (P_Link connector
+J 13) and the CNC (CPU connector D 8).
+The input and output signals have a 5 VDC TTL, which requires a 5 VDC <-> 24 VDC interface on
+the CNC side. An example of an interface is given below.
+Generally, therefore, the commands at the console have to be wired directly using the 5 VDC. The
+warning lamps will be 5 VDC LEDs.
+Each 5 VDC output can supply a 20 mA current, which allows an LED or a small interface relay, as
+shown in the following example, to be activated without any problem.
+ModEva P_Li nk J 1 3 C PU D 8 Inte c r a f a r d ce Wa c g o o nnect or
+5V 1
+2
+Mode Select 5V
+3 5 VDC interface connection to CPU D 8.
+Shortest possible cable.
+5V
+Pump ON
+4
+5V
+Reset
+5
+5V
+6
+7
+Pump ON
+24V 9
+Reset
+24V 10
+END
+24V 11 24 VDC inputs/outputs to the cabinet
+12
+25 p cable between the CPU
+and the interface card.
+Example of 5 – 24 VDC interface
+CTI42EN.doc 3/9 07.04.03
+Modification rights reserved / Sous réserve de modifications / Änderungen vorbehalten / Con riserva di modifica
+===== PAGE 4 =====
+NIN/NOT cards
+• The current NIN and NOT cards are fully compatible with the ModEva CNC.
+NLR cards
+• NB: only NLR 200 cards can be installed in a ModEva CNC.
+You must never install a 100 series NLR card in a ModEva CNC, because this will cause
+irretrievable damage to the CNC and to the equipment connected to the NLR.
+There is a simple procedure for transforming a 100 series NLR card into a 200 series. The NLR 200
+cards are compatible with the old NLR 100 and can therefore be installed instead of an NLR 100 in
+an ENC 900 rack, but not the other way round. Please contact our customer service department if
+there is any doubt.
+To determine whether an NLR card can be installed in a rack, check whether the last 4 pins of the
+connector or their connections have been cut. Here are two examples.
+or
+CAN bus
+• The NCX card can control up to 8 CAN axes. Two NCX cards can equip the ModEva CNC.
+The number of CAN axes is authorised by a software option located in the protection code.
+NM2 card
+• The NM2 card is an N2X card of the new generation.
+This card is totally compatible with the N2X.
+It is intended to replace the N2X card in the short term and can be used in the ENC 900, DNC 900,
+etc. But just like the N2X, it can be installed in a ModEva CNC in certain combinations. See the
+combination table for the axis card.
+Encoder signals
+• Like all the new numerical control systems, the ModEva range requires the presence of ALL the
+complementary signals on each encoder input, including for the axes Y1 and Y2. Therefore the
+signals A, A/, B, B/, Z, Z/ (index) and obviously the 0 and 5 VDC have to be connected. The same
+applies to the shield. Therefore it is necessary to use an 8 conductor shielded sensor cable.
+CTI42EN.doc 4/9 07.04.03
+Modification rights reserved / Sous réserve de modifications / Änderungen vorbehalten / Con riserva di modifica
+===== PAGE 5 =====
+Configuration of the axes
+• The ModEva CNC is equipped with NMX and NSX or NCX cards. The NMX and NSX are classic
++/- 10 VDC analog interface and incremental encoder cards. Each card allows 2 axes to be
+controlled. An NMX card (M = master) is suitable for 3 NSX cards (S = slave). The NSX card
+requires an NMX card to function. See the following table.
+The NCX card has a CAN interface and can control up to 8 CAN axes (the CAN axis number is
+controlled by an option contained in the protection code).
+It is possible to mix NCX and NMX/NSX cards according to the configuration table.
+• From software version SSBFxB1 or higher, the numbering of the axes is adapted to the ModEva
+rack.
+So the first slot on the left (slot 0) of the rack concerns axes 0 and 1, the following slots, 2-3, etc.
+The following tables provide all the possible card combinations, including combinations using the
+NLR card. Only these combinations are possible.
+• Remark:
+- In all the following configurations, the NLR card is optional.
+- An NM2 card can be replaced by an N2X card if necessary.
+RACK VERSION C (Combination used by production)
+Slot 0 1 2 3 4 5
+Axis
+No 0-1 2-3
+NMX - NOTA NINA NPU1201 CPU1201
+NMX NSX NOTA NINA NPU1201 CPU1201
+NMX NLR NOTA NINA NPU1201 CPU1201
+NCX - NOTA NINA NPU1201 CPU1201
+NCX NLR NOTA NINA NPU1201 CPU1201
+NCX NCX NOTA NINA NPU1201 CPU1201
+NMX NCX NOTA NINA NPU1201 CPU1201
+RACK VERSION C (Other combination that may be used for after sales service)
+Slot 0 1 2 3 4 5
+Axis
+No 0-1 2-3
+NMX NM2 NOTA NINA NPU1201 CPU1201
+NM2 NM2 NOTA NINA NPU1201 CPU1201
+NM2 - NOTA NINA NPU1201 CPU1201
+NM2 NLR NOTA NINA NPU1201 CPU1201
+NLR NM2 NOTA NINA NPU1201 CPU1201
+- NM2 NOTA NINA NPU1201 CPU1201
+CTI42EN.doc 5/9 07.04.03
+Modification rights reserved / Sous réserve de modifications / Änderungen vorbehalten / Con riserva di modifica
+===== PAGE 6 =====
+RACK VERSION M (Combination used by production)
+Slot 0 1 2 3 4 5 6 7 8 9
+0-1 2-3 4-5 6-7 8-9 10-11
+NMX NSX NSX NSX NMX NSX NOTA NINA NPU1201 CPU1201
+NMX NSX NSX NLR NMX NSX NOTA NINA NPU1201 CPU1201
+NMX NSX NSX NSX NMX - NOTA NINA NPU1201 CPU1201
+NMX NSX NSX NLR NMX - NOTA NINA NPU1201 CPU1201
+NMX NSX NSX NSX - - NOTA NINA NPU1201 CPU1201
+NMX NSX NSX NLR - - NOTA NINA NPU1201 CPU1201
+NMX NSX NSX - - - NOTA NINA NPU1201 CPU1201
+NMX NSX NLR - - - NOTA NINA NPU1201 CPU1201
+NMX NSX - - - - NOTA NINA NPU1201 CPU1201
+NMX NLR - - - - NOTA NINA NPU1201 CPU1201
+NMX - - - NOTA NINA NPU1201 CPU1201
+NCX NLR - - NMX NSX NOTA NINA NPU1201 CPU1201
+NCX NLR - - NMX - NOTA NINA NPU1201 CPU1201
+NCX NCX NLR - - - NOTA NINA NPU1201 CPU1201
+NCX NLR - - - - NOTA NINA NPU1201 CPU1201
+NCX - - - - - NOTA NINA NPU1201 CPU1201
+RACK VERSION M (Other combination that may be used for after sales service)
+Slot 0 1 2 3 4 5 6 7 8 9
+0-1 2-3 4-5 6-7 8-9 10-11
+NMX NSX NSX NSX NM2 NM2 NOTA NINA NPU1201 CPU1201
+NMX NSX NSX NSX NM2 - NOTA NINA NPU1201 CPU1201
+NMX NSX NSX - NM2 - NOTA NINA NPU1201 CPU1201
+NMX NSX - - NM2 - NOTA NINA NPU1201 CPU1201
+NMX NSX NSX NLR NM2 NM2 NOTA NINA NPU1201 CPU1201
+NMX NSX NSX NLR NM2 - NOTA NINA NPU1201 CPU1201
+NM2 NM2 NM2 NM2 NM2 NM2 NOTA NINA NPU1201 CPU1201
+NM2 NM2 NM2 NM2 NM2 - NOTA NINA NPU1201 CPU1201
+NM2 NM2 NM2 NM2 - - NOTA NINA NPU1201 CPU1201
+NM2 NM2 NM2 - - - NOTA NINA NPU1201 CPU1201
+NM2 NM2 - - - - NOTA NINA NPU1201 CPU1201
+NM2 - - - - - NOTA NINA NPU1201 CPU1201
+NLR NM2 NM2 NM2 NM2 NM2 NOTA NINA NPU1201 CPU1201
+NLR NM2 NM2 NM2 NM2 - NOTA NINA NPU1201 CPU1201
+NLR NM2 NM2 NM2 - - NOTA NINA NPU1201 CPU1201
+NLR NM2 NM2 - - - NOTA NINA NPU1201 CPU1201
+NLR NM2 - - - - NOTA NINA NPU1201 CPU1201
+NCX - - - NM2 NM2 NOTA NINA NPU1201 CPU1201
+NCX - - - NM2 - NOTA NINA NPU1201 CPU1201
+NCX NLR - - NM2 NM2 NOTA NINA NPU1201 CPU1201
+NCX NLR - - NM2 - NOTA NINA NPU1201 CPU1201
+CTI42EN.doc 6/9 07.04.03
+Modification rights reserved / Sous réserve de modifications / Änderungen vorbehalten / Con riserva di modifica
+===== PAGE 7 =====
+BM20 and Quick Cursor
+• The BM 20 is an external control unit connected to the numerical control system which allows the
+axes required to be moved via a jog type handle and an axis selector, while being close to the axes
+and far from the DNC.
+The Quick Cursor also allows the axes to be moved manually if it is configured for this.
+However, the BM 20 can only be used if this functionality offered by the Quick Cursor is
+abandoned. The other functionalities of the Quick Cursor are not affected.
+Quick Cursor
+• In the manual mode, and using the Quick Cursor, it is possible to perform manual movements.
+• To do this, you have to program certain machine parameters.
+- First of all, on the page Preferences, program the parameter Manual movements with the
+Quick Cursor on YES.
+- Then press F1 to obtain the parameter menu and select the Quick Cursor page.
+- Program the values as follows.
+- Parameter page N2X no 2, parameters No 149 Size of pitch: leave empty.
+- Parameters No 150 Deceleration factor: If the reaction of the axis is too hard, put 50 % or
+other values to soften the movement.
+• Use
+Manual mode, position the cursor on the axis to be moved.
+Press the Quick Cursor and while holding it down, turn clockwise to go to positive or anti-clockwise
+to go to negative.
+The more the amplitude of the movement is accentuated, the faster the axis will move, up to the
+maximum positioning speed (parameter N2X no 130).
+With this setting, the maximum speed is reached by rotating the Quick Cursor approximately 120°.
+Keyboard, mouse on programming console
+• It is possible to connect a standard PS2 keyboard and a standard mouse equipped with a PS2
+connector at the ModEva console.
+The components function in parallel with those of the console.
+Important: Only one mouse with standard interface with PS2
+connector can function on the console.
+CTI42EN.doc 7/9 07.04.03
+Modification rights reserved / Sous réserve de modifications / Änderungen vorbehalten / Con riserva di modifica
+===== PAGE 8 =====
+• The ModEva 10-12 consoles allow the keyboard and mouse connectors to be moved inside the
+control unit for the purpose of a "permanent" installation of an external keyboard.
+This means that the external keyboard cable can be brought out through the bottom of the unit
+(after making a hole) or through the rear panel. The access door to the floppy drive can then be
+kept closed as it should.
+Standard arrangement Arrangement for a "permanent" external keyboard
+Screen ports, keyboard, mouse on the CPU
+• A standard screen, keyboard and mouse can be connected to the CPU card at the ModEva CNC.
+This can be done at the same time as or separately from the console. It is then possible to have 2
+control stations when commissioning the machine, for example, or in particular to be able to
+continue the work if the console has been accidentally damaged.
+Remark: manual movements using the + and – keys are only possible from the ModEva console.
+Protection code
+• The protection code is located on the parallel port of the CPU (connector D9).
+CPU card with PCMCIA option
+• The CPU card can be controlled with the "PCMCIA connector" option.
+If this option is available, it is possible to connect the majority of proprietary PCMCIA peripherals to
+it. This options offers an even bigger opening to the world of IT.
+USB ports
+• The CPU card is equipped with 2 USB 1.1 ports.
+These ports only function with Windows, since DOS does not drive this type of port. Therefore, it is
+possible to connect a CD drive, disk drive, USB flash disk, external disk, modem and other
+standard peripherals recognised by Windows.
+Ethernet port
+• The CPU card is equipped with an RJ 45 standard Ethernet 10/100 port.
+Under Windows, the installation will behave as on a PC station.
+Under DOS, it will be necessary to install the "MSDOS Client for Windows" drivers to activate the
+Ethernet network.
+These drivers and the installation procedure are available on the CD-ROM of the PC 1200 software
+in the "Tools" directory of Cybelec or on the Internet at Microsoft.
+Software
+• For CNCs intended for bending presses, the ModEva CNC requires a SSBFFB1 / SSBFDB1 or a
+more recent software version.
+CTI42EN.doc 8/9 07.04.03
+Modification rights reserved / Sous réserve de modifications / Änderungen vorbehalten / Con riserva di modifica
+===== PAGE 9 =====
+Software / DOS update
+• The CNC ModEva is equipped with a flash memory. Therefore, it is updated by software.
+• Procedure for updating the man-machine software (known as DNC software)
+o Switch off the power
+o Insert the system disk (S40M for bending presses, S50M for tilt table bending presses).
+o Switch on
+o Follow the instructions
+o After installation, the ENC software may no longer be compatible with the new software, so
+it has to be updated.
+• Procedure for updating the ENC software
+o Switch off the power
+o Insert the ENC/axis update disk
+o Switch on
+o When asked Confirm A:USERA.BAT (1=YES 0=NO) press 1
+o A page of the flash update software appears.
+o Press FLASH ENC and wait until the operation has been completed. In particular, do not
+switch off the power during this operation.
+o If you also want to update the software of the axis cards (NMX, NSX, NM2), press FLASH
+AXIS and wait until the operation has been completed. In particular, do not switch off the
+power during this operation.
+o NB : if the CNC is equipped with CAN digital (NCX) and analog (NMX/NSX) axes, please
+contact the after sales service to update the axis software.
+Software / Windows update
+• Procedure for updating the man-machine interface software (known as DNC software)
+o Go to level 3.
+o Exit the Cybelec software.
+o Insert the CD ROM PC 1200.
+o The installation software starts up automatically.
+Otherwise, using Windows explorer, click (double click) on the SETUP.EXE file of the CD
+ROM to start the installation program.
+o Follow the instructions (make sure you install the DNC software, not PC, when you are
+asked to select).
+o After installation, the ENC software may no longer be compatible with the new software and
+therefore has to be updated.
+• Procedure for updating the ENC software
+o Insert the ENC/axis update disk.
+o Using Windows explorer, click (double click) on the USERA.BAT 1 file of disk drive A to
+start the update program.
+o The flash update software appears.
+o Press FLASH ENC and wait until the operation has been completed. In particular, do not
+switch off the power during this operation.
+o If you also want to update the axis card software (NMX, NSX, NM2), press FLASH AXIS
+and wait until the operation has been completed. In particular, do not switch off the power
+during this operation.
+NB : If the CNC is equipped with CAN digital (NCX) and analog (NMX/NSX) axes, please
+contact the after sales service to update the axis software.
+o Exit the program to return to Windows.
+o Exit Windows and re-start the numerical control.
+NB : this procedure is only valid with Windows 98. If the control system is equipped with
+Windows NT, contact our after sales service for the flash program update procedure.
+CTI42EN.doc 9/9 07.04.03
+Modification rights reserved / Sous réserve de modifications / Änderungen vorbehalten / Con riserva di modifica

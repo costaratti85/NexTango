@@ -59,6 +59,7 @@ def _browse_dxf_file() -> str:
         return ""
 
 from sistema_industrial.presets.legacy_panel_adapter import (
+    _generate_cuadriculado_square_dxf_files,
     add_pattern_to_library,
     calculate_consumed_resources,
     calculate_cut_length_mm,
@@ -90,6 +91,7 @@ TOOLS_DIR = Path(__file__).resolve().parents[4] / "tools"
 PRESUPUESTOS_DIR = Path(__file__).resolve().parents[4] / "Programas_hechos" / "Panel Decorativo" / "presupuestos"
 PRESUPUESTO_COUNTER_FILE = Path(__file__).resolve().parents[4] / "Programas_hechos" / "Panel Decorativo" / "presupuesto_counter.json"
 LAST_GENERATE_FILE = Path(__file__).resolve().parents[4] / "Programas_hechos" / "Panel Decorativo" / "last_generate.json"
+PLEGADOS_DIR = Path(__file__).resolve().parents[4] / "Programas_hechos" / "Plegados"
 
 
 # ---------------------------------------------------------------------------
@@ -262,6 +264,95 @@ def convert_dxf_splines_clean(dxf_path: str, output_path: str, tolerance: float 
         "arc_count": arc_count,
         "line_count": line_count,
     }
+
+
+def _fit_circle_kasa(pts: list) -> tuple | None:
+    """Kasa least-squares circle fit. Returns (cx, cy, r, max_error) or None."""
+    n = len(pts)
+    sx = sy = sxx = syy = sxy = sx3 = sy3 = sxxy = sxyy = 0.0
+    for x, y in pts:
+        sx += x; sy += y
+        sxx += x * x; syy += y * y; sxy += x * y
+        sx3 += x ** 3; sy3 += y ** 3
+        sxxy += x * x * y; sxyy += x * y * y
+    A = 2.0 * (sx * sx - n * sxx)
+    B = 2.0 * (sx * sy - n * sxy)
+    C = 2.0 * (sy * sy - n * syy)
+    D = sx * sxx - n * sx3 + sx * syy - n * sxyy
+    E = sy * sxx - n * sxxy + sy * syy - n * sy3
+    det = A * C - B * B
+    if abs(det) < 1e-10:
+        return None
+    cx = (D * C - B * E) / det
+    cy = (A * E - B * D) / det
+    import math as _math
+    r = _math.sqrt(sum((x - cx) ** 2 + (y - cy) ** 2 for x, y in pts) / n)
+    max_err = max(abs(_math.sqrt((x - cx) ** 2 + (y - cy) ** 2) - r) for x, y in pts)
+    return cx, cy, r, max_err
+
+
+def _try_poly_as_circle(entity, tol_mm: float, r_min: float, r_max: float) -> tuple | None:
+    """Return (cx, cy, r) if LWPOLYLINE entity fits a circle within tolerance, else None."""
+    try:
+        if not entity.closed:
+            return None
+        pts = [(v[0], v[1]) for v in entity.vertices()]
+    except Exception:
+        return None
+    if len(pts) < 6:
+        return None
+    res = _fit_circle_kasa(pts)
+    if res is None:
+        return None
+    cx, cy, r, max_err = res
+    if max_err > tol_mm or r < r_min or r > r_max:
+        return None
+    xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
+    w = max(xs) - min(xs); h = max(ys) - min(ys)
+    if min(w, h) < 0.5 * max(w, h):
+        return None
+    return cx, cy, r
+
+
+def convert_dxf_poly_to_circles(
+    dxf_path: str, output_path: str,
+    tol_mm: float = 0.5, r_min: float = 1.0, r_max: float = 200.0,
+) -> int:
+    """Replace circular LWPOLYLINE entities with CIRCLE in a DXF file.
+
+    Overwrites output_path with the converted document.
+    Returns the number of entities converted.
+    """
+    try:
+        import ezdxf as _ezdxf
+    except ImportError as exc:
+        raise RuntimeError("ezdxf no está instalado — ejecutar: pip install ezdxf") from exc
+
+    try:
+        with open(dxf_path, "r", encoding="utf-8", errors="ignore") as f:
+            doc = _ezdxf.read(f)
+    except Exception:
+        with open(dxf_path, "r", encoding="latin-1") as f:
+            doc = _ezdxf.read(f)
+
+    msp = doc.modelspace()
+    candidates = [e for e in msp if e.dxftype() == "LWPOLYLINE"]
+    converted = 0
+    to_delete = []
+    for entity in candidates:
+        result = _try_poly_as_circle(entity, tol_mm, r_min, r_max)
+        if result is None:
+            continue
+        cx, cy, r = result
+        layer = entity.dxf.layer if entity.dxf.hasattr("layer") else "0"
+        circle = msp.add_circle(center=(cx, cy, 0), radius=r)
+        circle.dxf.layer = layer
+        to_delete.append(entity)
+        converted += 1
+    for entity in to_delete:
+        msp.delete_entity(entity)
+    doc.saveas(output_path)
+    return converted
 
 
 def _dxf_to_svg(dxf_path: str, mode: str = "original") -> str:
@@ -638,6 +729,7 @@ def _load_daily_prices() -> tuple[dict, bool]:
         "precio_kg_galvanizado",
         "precio_kg_inoxidable_430",
         "precio_kg_inoxidable_304",
+        "precio_doblez_plegadora",
     )
     all_zero = all(
         not prices.get(k) or float(prices.get(k) or 0) == 0
@@ -1234,6 +1326,8 @@ def _panel_mode_to_preset_code(panel_mode: str) -> str:
         return "PANEL_DECORATIVO_LEGACY_DXF_PATTERN"
     if panel_mode == "none":
         return "PANEL_DECORATIVO_LEGACY_SIN_PERFORAR"
+    if panel_mode == "cuadriculado":
+        return "PANEL_DECORATIVO_LEGACY_CUADRICULADO"
     return "PANEL_DECORATIVO_LEGACY_TRESBOLILLO"
 
 
@@ -1246,7 +1340,7 @@ def build_sales_input(form: dict[str, list[str]]) -> LegacyPanelServiceInput:
     customer = _first(form, "customer_reference", "CLIENTE-DEMO")
     job_name = _first(form, "job_name", "Panel decorativo")
     panel_mode = _first(form, "panel_mode", "tresbolillo")
-    if panel_mode not in ("tresbolillo", "dxf_pattern_grid", "none"):
+    if panel_mode not in ("tresbolillo", "dxf_pattern_grid", "none", "cuadriculado"):
         panel_mode = "tresbolillo"
 
     material = _first(form, "material", "chapa")
@@ -1269,6 +1363,9 @@ def build_sales_input(form: dict[str, list[str]]) -> LegacyPanelServiceInput:
         sheet_sizes = [(width_mm, height_mm, quantity)]
 
     first_w, first_h, first_qty = sheet_sizes[0]
+
+    offset_x_mm = None
+    offset_y_mm = None
 
     if panel_mode == "dxf_pattern_grid":
         path_value = (
@@ -1293,6 +1390,16 @@ def build_sales_input(form: dict[str, list[str]]) -> LegacyPanelServiceInput:
         pattern_type = "none"
         hole_diameter_mm = 0.0
         hole_distance_mm = 0.0
+    elif panel_mode == "cuadriculado":
+        pattern_path = None
+        hole_diameter_mm = 0.0
+        hole_distance_mm = 0.0
+        preset_name = _first(form, "preset_name", "Cuadriculado")
+        pattern_type = "cuadriculado"
+        offset_x_mm = _positive_float(_first(form, "offset_x_mm", _first(form, "step_x_mm", "30")), "Offset X")
+        offset_y_mm = _positive_float(_first(form, "offset_y_mm", _first(form, "step_y_mm", "30")), "Offset Y")
+        step_x_mm = None
+        step_y_mm = None
     else:
         pattern_path = None
         step_x_mm = None
@@ -1320,6 +1427,8 @@ def build_sales_input(form: dict[str, list[str]]) -> LegacyPanelServiceInput:
         margin_mm=margin_mm,
         hole_diameter_mm=hole_diameter_mm,
         hole_distance_mm=hole_distance_mm,
+        offset_x_mm=offset_x_mm,
+        offset_y_mm=offset_y_mm,
         pattern_dxf_path=pattern_path,
         step_x_mm=step_x_mm,
         step_y_mm=step_y_mm,
@@ -1376,10 +1485,15 @@ def _run_all_batches(
         exporter_module = import_module("dxf.mixed_exporter")
 
         all_result_items = []
+        # cuad+square batches are handled separately (LWPOLYLINE + zone groups).
+        # Each entry: {"batch": ..., "geo": {pierce_count, cut_length_mm, ...}}
+        cuad_sq_batches_geo: list[dict] = []
 
         for batch in all_batches:
             settings = settings_module.Settings()
             panel_mode = batch["panel_mode"]
+            hole_shape = batch.get("hole_shape", "circle")
+
             settings.pattern_name = batch["preset_name"]
             settings.material = batch["material"]
             settings.thickness = float(batch["thickness_mm"])
@@ -1389,6 +1503,11 @@ def _run_all_batches(
                 (float(w), float(h), int(q))
                 for w, h, q in batch["sheet_sizes"]
             ]
+
+            if panel_mode == "cuadriculado" and hole_shape == "square":
+                # Defer to post-legacy DXF step — record batch, skip legacy engine
+                cuad_sq_batches_geo.append({"batch": batch, "geo": None})
+                continue
 
             if panel_mode == "none":
                 max_dim = max(
@@ -1403,6 +1522,13 @@ def _run_all_batches(
                 settings.pattern_type = "tresbolillo"
                 settings.hole_diameter = float(batch["hole_diameter_mm"])
                 settings.hole_distance = float(batch["hole_distance_mm"])
+            elif panel_mode == "cuadriculado":
+                # cuadriculado + circle (square already handled above)
+                settings.pattern_type = "cuadriculado"
+                settings.hole_shape = hole_shape
+                settings.hole_size = float(batch.get("hole_size_mm", 20))
+                settings.step_x = float(batch["offset_x_mm"])
+                settings.step_y = float(batch["offset_y_mm"])
             else:  # dxf_pattern_grid
                 settings.pattern_type = "dxf"
                 settings.input_file = batch["pattern_dxf_path"]
@@ -1417,10 +1543,52 @@ def _run_all_batches(
         # Sort by thickness ASC, then quantity DESC before layout so the DXF
         # groups panels in a predictable order regardless of submission sequence.
         all_result_items.sort(key=lambda it: (it.thickness, -it.quantity))
-        arranged = layout_module.arrange_cad_result_items(all_result_items)
         output_dir.mkdir(parents=True, exist_ok=True)
         dxf_path = output_dir / f"{order_id}_legacy_panel.dxf"
-        exporter_module.MixedDXFExporter().save(arranged, str(dxf_path))
+
+        if all_result_items:
+            arranged = layout_module.arrange_cad_result_items(all_result_items)
+            exporter_module.MixedDXFExporter().save(arranged, str(dxf_path))
+
+        # Generate cuadriculado+square panels as zone-layered DXFs.
+        # Each hole goes to CypCut layer str(zona % 16) so flycut stays per-zone.
+        # When total_zones > 16 multiple files are produced and packed into a ZIP.
+        if cuad_sq_batches_geo:
+            import zipfile as _zipfile
+            all_cuad_paths: list = []
+            for i, entry in enumerate(cuad_sq_batches_geo):
+                b = entry["batch"]
+                sw, sh, _sq = [(float(w), float(h), int(q)) for w, h, q in b["sheet_sizes"]][0]
+                batch_stem = (
+                    f"{order_id}_cuad_sq" if len(cuad_sq_batches_geo) == 1
+                    else f"{order_id}_cuad_sq_b{i}"
+                )
+                geo = _generate_cuadriculado_square_dxf_files(
+                    hole_size_mm=float(b.get("hole_size_mm", 20)),
+                    step_x_mm=float(b["offset_x_mm"]),
+                    step_y_mm=float(b["offset_y_mm"]),
+                    sheet_width_mm=sw,
+                    sheet_height_mm=sh,
+                    margin_mm=float(b["margin_mm"]),
+                    output_dir=output_dir,
+                    stem=batch_stem,
+                )
+                entry["geo"] = geo
+                all_cuad_paths.extend(geo["paths"])
+
+            needs_zip = dxf_path.exists() or len(all_cuad_paths) > 1
+            if needs_zip:
+                zip_path = output_dir / f"{order_id}_legacy_panel.zip"
+                with _zipfile.ZipFile(str(zip_path), "w", _zipfile.ZIP_DEFLATED) as zf:
+                    if dxf_path.exists():
+                        zf.write(str(dxf_path), dxf_path.name)
+                    for p in all_cuad_paths:
+                        zf.write(str(p), p.name)
+                dxf_path = zip_path
+            else:
+                # Single cuad+square file, no legacy content → rename to standard path
+                import shutil as _shutil
+                _shutil.move(str(all_cuad_paths[0]), str(dxf_path))
 
     finally:
         os.chdir(prev_cwd)
@@ -1509,6 +1677,55 @@ def _run_all_batches(
                 "consumed_resources_warning": (
                     None if _item_mat_entry is not None else (
                         f"Material '{item.material}' {item.thickness} mm "
+                        f"no está en la tabla de materiales."
+                    )
+                ),
+                "cost": cost_entry,
+            }
+        )
+
+    # Add resource entries for cuadriculado+square batches (bypassed the legacy engine).
+    for entry in cuad_sq_batches_geo:
+        b = entry["batch"]
+        geo = entry["geo"] or {}
+        sw, sh, sq = [(float(w), float(h), int(q)) for w, h, q in b["sheet_sizes"]][0]
+        _item_mat_entry = _mat_lookup.get((b["material"], float(b["thickness_mm"])))
+        if _item_mat_entry is None:
+            _any_missing_material = True
+        c_len = geo.get("cut_length_mm", 0.0)
+        p_cnt = geo.get("pierce_count", 0)
+        sheet_area_m2 = calculate_sheet_area_m2(sw, sh)
+        if _item_mat_entry is not None:
+            consumed = calculate_consumed_resources(
+                cut_length_m=c_len / 1000.0,
+                pierce_count=p_cnt,
+                sheet_area_m2=sheet_area_m2,
+                material_entry=_item_mat_entry,
+            )
+        else:
+            consumed = None
+        if consumed is not None:
+            cost_entry = calculate_cost(consumed, b["material"], _daily_prices)
+        else:
+            cost_entry = {"costo_material": 0.0, "costo_maquina": 0.0, "costo_total": 0.0}
+        if _prices_missing:
+            cost_entry["prices_missing"] = True
+        all_resources.append(
+            {
+                "name": b["preset_name"],
+                "material": b["material"],
+                "thickness_mm": float(b["thickness_mm"]),
+                "quantity": sq,
+                "occupied_width_mm": sw,
+                "occupied_height_mm": sh,
+                "geometry_item_count": p_cnt,
+                "cut_length_mm": c_len,
+                "pierce_count": p_cnt,
+                "bend_count": 0,
+                "consumed_resources": consumed,
+                "consumed_resources_warning": (
+                    None if _item_mat_entry is not None else (
+                        f"Material '{b['material']}' {b['thickness_mm']} mm "
                         f"no está en la tabla de materiales."
                     )
                 ),
@@ -1725,7 +1942,8 @@ def _topbar_html(active: str = "") -> str:
     return (
         '\n<header class="topbar">'
         '\n  <div class="logo">SistemaIndustrial</div>'
-        f'\n  <nav><a href="/"{home_cls}>Paneles Decorativos</a></nav>'
+        f'\n  <nav><a href="/"{home_cls}>Paneles Decorativos</a>'
+        f'\n       {_alink("/plegados", "Plegados", "plegados")}</nav>'
         '\n  <div class="spacer"></div>'
         f'\n  {_alink("/presupuestos", "Presupuestos", "presupuestos")}'
         f'\n  <a href="/admin" class="{badge_cls}">ADMIN</a>'
@@ -1915,6 +2133,27 @@ def render_form(error: str = "", result: SalesRunResult | None = None, load: str
         _paste_ot_html = escape("\n".join(_paste_lines_ot))
         _paste_rows_count = max(2, min(len(_paste_lines_pres), 6))
 
+        _is_zip = data.dxf_path.suffix.lower() == ".zip"
+        _dxf_btn_label = "&#11015; Descargar ZIP (flycut)" if _is_zip else "&#11015; Descargar DXF"
+        # Flycut info: inspect ZIP to count DXF files
+        _flycut_info = ""
+        if _is_zip:
+            try:
+                import zipfile as _zf_info
+                with _zf_info.ZipFile(str(data.dxf_path)) as _z:
+                    _z_names = [n for n in _z.namelist() if n.lower().endswith(".dxf")]
+                _n_dxfs = len(_z_names)
+                if _n_dxfs > 1:
+                    _flycut_info = (
+                        f'<div style="margin:8px 0 12px;padding:8px 12px;background:#fff8e1;'
+                        f'border-left:4px solid #f0a500;border-radius:4px;font-size:12px;color:#7a5a00">'
+                        f'El panel fue dividido en zonas flycut distribuidas en <strong>{_n_dxfs} archivos DXF</strong> '
+                        f'dentro del ZIP. Cargar en CypCut en orden.'
+                        f'</div>'
+                    )
+            except Exception:
+                pass
+
         result_section = f"""
   <div class="card" id="result-card">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -1922,7 +2161,7 @@ def render_form(error: str = "", result: SalesRunResult | None = None, load: str
       <div style="display:flex;gap:10px;align-items:center">
         <a href="/outputs/{dxf_rel}" target="_blank"
            style="padding:6px 14px;background:var(--accent2);color:#fff;border-radius:6px;text-decoration:none;font-weight:700;font-size:13px">
-          Descargar DXF
+          {_dxf_btn_label}
         </a>
         <a href="{_pres_href}" target="_blank"
            style="padding:6px 14px;background:#eee;color:#333;border-radius:6px;text-decoration:none;font-size:13px">
@@ -1930,7 +2169,7 @@ def render_form(error: str = "", result: SalesRunResult | None = None, load: str
         </a>
       </div>
     </div>
-
+    {_flycut_info}
     <div style="font-size:13px;color:#555;margin-bottom:16px">
       {escape(_fecha_display)}&nbsp;&nbsp;|&nbsp;&nbsp;{escape(_customer_gen)}&nbsp;&nbsp;|&nbsp;&nbsp;{escape(_job_name_gen)}
     </div>
@@ -2027,6 +2266,31 @@ def render_form(error: str = "", result: SalesRunResult | None = None, load: str
             '            <circle cx="80" cy="68" r="7" fill="#7a9aaa"/>\n'
             '            <circle cx="35" cy="92" r="7" fill="#7a9aaa"/>\n'
             '            <circle cx="65" cy="92" r="7" fill="#7a9aaa"/>\n'
+            '          </svg>\n'
+            '        </div>'
+        )
+
+    _cuad_url = _thumbnail_url("Cuadriculado")
+    if _cuad_url:
+        cuad_thumb_html = (
+            f'        <div class="pattern-thumb thumb-cuad">\n'
+            f'          <img src="{_cuad_url}" alt="Cuadriculado"'
+            f' style="width:100%;height:100%;object-fit:contain">\n'
+            f'        </div>'
+        )
+    else:
+        cuad_thumb_html = (
+            '        <div class="pattern-thumb thumb-cuad">\n'
+            '          <svg width="100%" height="100%" viewBox="0 0 100 100" opacity=".5">\n'
+            '            <circle cx="20" cy="20" r="7" fill="#7a9aaa"/>\n'
+            '            <circle cx="50" cy="20" r="7" fill="#7a9aaa"/>\n'
+            '            <circle cx="80" cy="20" r="7" fill="#7a9aaa"/>\n'
+            '            <circle cx="20" cy="50" r="7" fill="#7a9aaa"/>\n'
+            '            <circle cx="50" cy="50" r="7" fill="#7a9aaa"/>\n'
+            '            <circle cx="80" cy="50" r="7" fill="#7a9aaa"/>\n'
+            '            <circle cx="20" cy="80" r="7" fill="#7a9aaa"/>\n'
+            '            <circle cx="50" cy="80" r="7" fill="#7a9aaa"/>\n'
+            '            <circle cx="80" cy="80" r="7" fill="#7a9aaa"/>\n'
             '          </svg>\n'
             '        </div>'
         )
@@ -2170,6 +2434,14 @@ def render_form(error: str = "", result: SalesRunResult | None = None, load: str
         <div class="pattern-badge">Motor nativo</div>
         <div class="selected-indicator">Seleccionado</div>
       </div>
+      <!-- Cuadriculado — built-in -->
+      <div class="pattern-card" id="pcard-cuadriculado"
+           onclick="selectPattern('cuadriculado','Cuadriculado','cuadriculado',null,null,null)">
+{cuad_thumb_html}
+        <div class="pattern-name">Cuadriculado</div>
+        <div class="pattern-badge">Motor nativo</div>
+        <div class="selected-indicator">Seleccionado</div>
+      </div>
       <!-- DXF patterns injected by JS -->
     </div>
     <p id="pattern-loading" class="dimmed" style="margin-top:12px">Cargando patrones de la libreria...</p>
@@ -2194,6 +2466,35 @@ def render_form(error: str = "", result: SalesRunResult | None = None, load: str
         </div>
       </div>
       <button class="btn-add" style="margin-top:4px" onclick="confirmTresbolillo()">Confirmar patron &rarr;</button>
+    </div>
+
+    <!-- Parametros de cuadriculado: aparecen aqui cuando se selecciona ese patron -->
+    <div id="cuad-inline" style="display:none;margin-top:20px;border-top:1px solid #e8f4f8;padding-top:18px">
+      <div class="conditional-label" style="margin-bottom:12px">Parametros del cuadriculado</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="cuad-shape">Forma</label>
+          <select id="cuad-shape" onchange="cuadShapeChanged()">
+            <option value="circle">Circulo</option>
+            <option value="square">Cuadrado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label id="cuad-size-label" for="cuad-size">Diametro mm</label>
+          <input type="number" id="cuad-size" placeholder="ej. 20" min="0.1" step="0.1" value="20">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="cuad-ox">Offset X mm</label>
+          <input type="number" id="cuad-ox" placeholder="ej. 30" min="0.1" step="0.1" value="30">
+        </div>
+        <div class="form-group">
+          <label for="cuad-oy">Offset Y mm</label>
+          <input type="number" id="cuad-oy" placeholder="ej. 30" min="0.1" step="0.1" value="30">
+        </div>
+      </div>
+      <button class="btn-add" style="margin-top:4px" onclick="confirmCuadriculado()">Confirmar patron &rarr;</button>
     </div>
   </div>
 
@@ -2506,8 +2807,16 @@ function selectPattern(mode, name, ptype, file_path, step_x, step_y, restricted)
   if (mode === 'tresbolillo') {{
     // Tresbolillo: show inline params — don't advance to step 2 yet
     document.getElementById('tres-inline').style.display = '';
+    document.getElementById('cuad-inline').style.display = 'none';
     setTimeout(function() {{
       document.getElementById('tres-inline').scrollIntoView({{behavior:'smooth', block:'nearest'}});
+    }}, 60);
+  }} else if (mode === 'cuadriculado') {{
+    // Cuadriculado: show inline params — don't advance to step 2 yet
+    document.getElementById('cuad-inline').style.display = '';
+    document.getElementById('tres-inline').style.display = 'none';
+    setTimeout(function() {{
+      document.getElementById('cuad-inline').scrollIntoView({{behavior:'smooth', block:'nearest'}});
     }}, 60);
   }} else {{
     // DXF pattern: save state and advance to step 2 directly
@@ -2515,6 +2824,7 @@ function selectPattern(mode, name, ptype, file_path, step_x, step_y, restricted)
     if (step_x) document.getElementById('p-offset-x').value = step_x;
     if (step_y) document.getElementById('p-offset-y').value = step_y;
     document.getElementById('tres-inline').style.display = 'none';
+    document.getElementById('cuad-inline').style.display = 'none';
     _advanceToStep2();
   }}
 }}
@@ -2526,6 +2836,28 @@ function confirmTresbolillo() {{
   if (isNaN(dist) || dist <= 0) {{ alert('Distancia entre centros invalida.'); return; }}
   selectedPattern = {{mode:'tresbolillo', name:'Tresbolillo d=' + diam + ' sep=' + dist,
                       ptype:'tresbolillo', file_path:null, step_x:null, step_y:null}};
+  _advanceToStep2();
+}}
+
+function cuadShapeChanged() {{
+  var shape = document.getElementById('cuad-shape').value;
+  document.getElementById('cuad-size-label').textContent = shape === 'circle' ? 'Diametro mm' : 'Lado mm';
+}}
+
+function confirmCuadriculado() {{
+  var shape = document.getElementById('cuad-shape').value;
+  var size  = parseFloat(document.getElementById('cuad-size').value);
+  var ox    = parseFloat(document.getElementById('cuad-ox').value);
+  var oy    = parseFloat(document.getElementById('cuad-oy').value);
+  if (isNaN(size) || size <= 0) {{ alert('Tamano invalido.'); return; }}
+  if (isNaN(ox)   || ox <= 0)   {{ alert('Offset X invalido.'); return; }}
+  if (isNaN(oy)   || oy <= 0)   {{ alert('Offset Y invalido.'); return; }}
+  var shapeName = shape === 'circle' ? 'Circ d=' + size : 'Cuad l=' + size;
+  selectedPattern = {{mode:'cuadriculado', name:'Cuadriculado ' + shapeName,
+                      ptype:'cuadriculado', file_path:null,
+                      hole_shape:shape, hole_size_mm:size,
+                      offset_x_mm:ox, offset_y_mm:oy,
+                      step_x:null, step_y:null}};
   _advanceToStep2();
 }}
 
@@ -2607,6 +2939,11 @@ function addBatch() {{
       if (isNaN(dist) || dist <= 0) throw new Error('Distancia invalida.');
       batch.hole_diameter_mm = diam;
       batch.hole_distance_mm = dist;
+    }} else if (selectedPattern.mode === 'cuadriculado') {{
+      batch.hole_shape = selectedPattern.hole_shape;
+      batch.hole_size_mm = selectedPattern.hole_size_mm;
+      batch.offset_x_mm = selectedPattern.offset_x_mm;
+      batch.offset_y_mm = selectedPattern.offset_y_mm;
     }} else {{
       var ox = parseFloat(document.getElementById('p-offset-x').value);
       var oy = parseFloat(document.getElementById('p-offset-y').value);
@@ -2640,9 +2977,14 @@ function renderBatchTable() {{
   batches.forEach(function(b, i) {{
     var sz = b.sheet_sizes[0];
     total += sz[2];
-    var patDesc = b.panel_mode === 'tresbolillo'
-      ? b.preset_name + ' <span style="color:#aaa;font-size:11px">d=' + b.hole_diameter_mm + ' sep=' + b.hole_distance_mm + '</span>'
-      : b.preset_name + ' <span style="color:#aaa;font-size:11px">DXF ' + b.step_x_mm + ',' + b.step_y_mm + '</span>';
+    var patDesc;
+    if (b.panel_mode === 'tresbolillo') {{
+      patDesc = b.preset_name + ' <span style="color:#aaa;font-size:11px">d=' + b.hole_diameter_mm + ' sep=' + b.hole_distance_mm + '</span>';
+    }} else if (b.panel_mode === 'cuadriculado') {{
+      patDesc = b.preset_name + ' <span style="color:#aaa;font-size:11px">' + b.hole_shape + ' ' + b.hole_size_mm + 'mm ox=' + b.offset_x_mm + ' oy=' + b.offset_y_mm + '</span>';
+    }} else {{
+      patDesc = b.preset_name + ' <span style="color:#aaa;font-size:11px">DXF ' + b.step_x_mm + ',' + b.step_y_mm + '</span>';
+    }}
     var tr = document.createElement('tr');
     tr.innerHTML =
       '<td>' + patDesc + '</td>' +
@@ -2887,11 +3229,11 @@ def render_admin() -> str:
     <div class="form-row">
       <div class="form-group">
         <label for="admin-offset-x">Offset X mm</label>
-        <input type="number" id="admin-offset-x" placeholder="84" step="0.1" value="84">
+        <input type="number" id="admin-offset-x" placeholder="ej: 84" step="0.1">
       </div>
       <div class="form-group">
         <label for="admin-offset-y">Offset Y mm</label>
-        <input type="number" id="admin-offset-y" placeholder="84" step="0.1" value="84">
+        <input type="number" id="admin-offset-y" placeholder="ej: 84" step="0.1">
       </div>
       <div class="form-group"></div>
     </div>
@@ -2900,6 +3242,25 @@ def render_admin() -> str:
     </div>
 
     <hr class="form-divider">
+
+    <div style="margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#444;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="admin-convert-circles" onchange="toggleCirclesParams()">
+        Convertir polígonos circulares a círculos
+      </label>
+      <div class="field-hint" style="margin-left:22px">
+        Detecta LWPOLYLINE cerradas que aproximan círculos (p.ej. de vectorizadores de imágenes) y las reemplaza por entidades CIRCLE.
+      </div>
+      <div id="circles-params" style="display:none;margin-top:10px;margin-left:22px;display:none">
+        <span style="font-size:12px;color:#555;font-weight:700">Tolerancia (mm):</span>
+        <input type="number" id="admin-circles-tol" value="0.5" step="0.05" min="0.01"
+               style="width:70px;padding:4px 6px;font-size:12px;border:1px solid #ccc;border-radius:4px;margin:0 12px 0 6px">
+        <span style="font-size:12px;color:#555;font-weight:700">Radio máx (mm):</span>
+        <input type="number" id="admin-circles-rmax" value="200" step="10" min="1"
+               style="width:80px;padding:4px 6px;font-size:12px;border:1px solid #ccc;border-radius:4px;margin:0 0 0 6px">
+      </div>
+    </div>
+
     <button class="btn-upload" onclick="uploadPattern()">CARGAR Y GENERAR PREVIEW</button>
 
     <div id="admin-feedback" class="hidden"></div>
@@ -3580,18 +3941,16 @@ function browseAdminDxf() {{
     .catch(function() {{}});
 }}
 
-function uploadPattern() {{
-  var nombre  = document.getElementById('admin-nombre').value.trim();
-  var dxfPath = document.getElementById('admin-dxf-path').value.trim();
-  var ox = document.getElementById('admin-offset-x').value;
-  var oy = document.getElementById('admin-offset-y').value;
-  if (!nombre)  {{ showFeedback('error','Campo requerido','El nombre del patron es obligatorio.'); return; }}
-  if (!dxfPath) {{ showFeedback('error','Campo requerido','Selecciona un archivo DXF.'); return; }}
-  showFeedback('loading','Generando preview...','Validando y procesando el archivo DXF. Puede tardar unos segundos.');
+function toggleCirclesParams() {{
+  var checked = document.getElementById('admin-convert-circles').checked;
+  document.getElementById('circles-params').style.display = checked ? 'block' : 'none';
+}}
+
+function _doAddPattern(nombre, dxfPath, ox, oy) {{
   var fd = new FormData();
   fd.append('name', nombre); fd.append('file_path', dxfPath);
   fd.append('step_x', ox);   fd.append('step_y', oy);
-  fetch('/api/patterns/add', {{method:'POST', body:fd}})
+  return fetch('/api/patterns/add', {{method:'POST', body:fd}})
     .then(function(r) {{ return r.json(); }})
     .then(function(d) {{
       if (d.ok) {{
@@ -3607,8 +3966,43 @@ function uploadPattern() {{
       }} else {{
         showFeedback('error','Error al procesar el archivo', d.error || 'Error desconocido.');
       }}
+    }});
+}}
+
+function uploadPattern() {{
+  var nombre  = document.getElementById('admin-nombre').value.trim();
+  var dxfPath = document.getElementById('admin-dxf-path').value.trim();
+  var ox = document.getElementById('admin-offset-x').value;
+  var oy = document.getElementById('admin-offset-y').value;
+  if (!nombre)  {{ showFeedback('error','Campo requerido','El nombre del patron es obligatorio.'); return; }}
+  if (!dxfPath) {{ showFeedback('error','Campo requerido','Selecciona un archivo DXF.'); return; }}
+  if (!ox || isNaN(parseFloat(ox)) || parseFloat(ox) <= 0) {{ showFeedback('error','Campo requerido','Ingresá el Offset X en mm.'); return; }}
+  if (!oy || isNaN(parseFloat(oy)) || parseFloat(oy) <= 0) {{ showFeedback('error','Campo requerido','Ingresá el Offset Y en mm.'); return; }}
+
+  var convertCircles = document.getElementById('admin-convert-circles').checked;
+  if (convertCircles) {{
+    var tol  = parseFloat(document.getElementById('admin-circles-tol').value)  || 0.5;
+    var rmax = parseFloat(document.getElementById('admin-circles-rmax').value) || 200.0;
+    showFeedback('loading','Convirtiendo polígonos...','Detectando LWPOLYLINE circulares y reemplazando por CIRCLE. Puede tardar unos segundos.');
+    fetch('/api/patterns/convert_circles', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{dxf_path: dxfPath, tol_mm: tol, r_min: 1.0, r_max: rmax}})
     }})
-    .catch(function(e) {{ showFeedback('error','Error de red', String(e)); }});
+      .then(function(r) {{ return r.json(); }})
+      .then(function(d) {{
+        if (!d.ok) {{ showFeedback('error','Error en conversión de círculos', d.error || '?'); return; }}
+        var newPath = d.output_path;
+        var cnt = d.converted_count;
+        showFeedback('loading','Cargando patrón...','Conversión completada: ' + cnt + ' polígono(s) → círculo(s). Registrando patrón...');
+        return _doAddPattern(nombre, newPath, ox, oy);
+      }})
+      .catch(function(e) {{ showFeedback('error','Error de red', String(e)); }});
+  }} else {{
+    showFeedback('loading','Generando preview...','Validando y procesando el archivo DXF. Puede tardar unos segundos.');
+    _doAddPattern(nombre, dxfPath, ox, oy)
+      .catch(function(e) {{ showFeedback('error','Error de red', String(e)); }});
+  }}
 }}
 
 function showFeedback(type, title, detail) {{
@@ -4181,6 +4575,352 @@ loadMaterials();
 
 
 # ---------------------------------------------------------------------------
+# render_plegados — Plegados Preseteados page
+# ---------------------------------------------------------------------------
+
+def render_plegados() -> str:
+    """Render the /plegados page: gallery + Bandeja form with AJAX calculation."""
+    return """<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nextango — Plegados Preseteados</title>
+  <style>
+""" + _COMMON_CSS + """
+    .page-title { font-size:22px; font-weight:700; color:var(--brand); margin-bottom:24px; }
+    .preset-grid { display:flex; flex-wrap:wrap; gap:16px; }
+    .preset-thumb { width:100%; height:110px; display:flex; align-items:center;
+                    justify-content:center; background:#e8f4f8; border-radius:6px 6px 0 0; }
+    .hidden { display:none !important; }
+    .result-table { width:100%; border-collapse:collapse; font-size:14px; margin-bottom:18px; }
+    .result-table td { padding:8px 12px; border-bottom:1px solid #eef1f4; }
+    .result-table tr:last-child td { border-bottom:none; }
+    .result-table .lbl { color:#666; width:50%; }
+    .result-table .val { font-family:monospace; font-weight:600; color:#176b87; }
+    .cost-table { width:100%; border-collapse:collapse; font-size:14px; margin-bottom:18px; }
+    .cost-table td { padding:7px 10px; border-bottom:1px solid #eef1f4; }
+    .cost-table tr:last-child td { border-bottom:none; }
+    .cost-table input[type=number] { width:120px; padding:5px 8px; border:1px solid #c5dde8;
+                                     border-radius:4px; font-size:13px; }
+    .cost-total-row { background:#e8f4f8; font-weight:700; }
+    .btn-dxf { display:inline-block; padding:10px 28px; background:var(--accent2); color:#fff;
+               font-size:13px; font-weight:700; letter-spacing:.7px; text-transform:uppercase;
+               border:none; border-radius:6px; cursor:pointer; text-decoration:none;
+               transition:background .15s; margin-top:8px; }
+    .btn-dxf:hover { background:#1a6b3c; }
+    .btn-calc { display:inline-block; padding:10px 28px; background:var(--brand); color:#fff;
+                font-size:13px; font-weight:700; letter-spacing:.7px; text-transform:uppercase;
+                border:none; border-radius:6px; cursor:pointer; transition:background .15s; margin-top:8px; }
+    .btn-calc:hover { background:var(--brand-dark); }
+    .sep-line { border:none; border-top:1px solid #c5dde8; margin:14px 0; }
+    .section-sub { font-size:12px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
+                   color:#176b87; margin:16px 0 8px; }
+    .form-row { display:flex; gap:16px; flex-wrap:wrap; }
+    .form-group { display:flex; flex-direction:column; gap:4px; min-width:120px; flex:1; }
+    .form-group label { font-size:12px; font-weight:600; color:#555; }
+    .form-group input, .form-group select { padding:8px 10px; border:1px solid #c5dde8;
+      border-radius:6px; font-size:14px; background:#fff; }
+    .calc-err { color:var(--red); font-size:13px; margin-top:6px; min-height:18px; }
+  </style>
+</head>
+<body>
+""" + _topbar_html("plegados") + """
+<div class="page-wrapper">
+  <h1 class="page-title">Plegados Preseteados</h1>
+
+  <!-- PASO 1: Galería de presets -->
+  <div class="card" id="step-galeria">
+    <div class="card-title">1 — Elegí un preset</div>
+    <div class="preset-grid">
+      <div class="pattern-card" id="pcard-bandeja" onclick="selectPreset('bandeja')"
+           style="cursor:pointer;max-width:200px">
+        <div class="preset-thumb">
+          <svg viewBox="0 0 100 75" width="100" height="75">
+            <polygon points="0,12 12,12 12,0 88,0 88,12 100,12 100,63 88,63 88,75 12,75 12,63 0,63"
+                     fill="#c5dde8" stroke="#176b87" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="pattern-name">Bandeja</div>
+        <div class="pattern-badge">Motor nativo</div>
+        <div class="selected-indicator">Seleccionado</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 2: Formulario -->
+  <div class="card hidden" id="step-form">
+    <div class="card-title">2 — Parámetros de la bandeja</div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="form-group">
+        <label for="f-material">Material</label>
+        <select id="f-material" onchange="onMaterialChange()">
+          <option value="">— cargando... —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="f-espesor">Espesor (mm)</label>
+        <select id="f-espesor">
+          <option value="">— elegí material —</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="form-group">
+        <label for="f-ancho">Ancho interior (mm)</label>
+        <input type="number" id="f-ancho" min="1" step="0.1" placeholder="ej. 300">
+      </div>
+      <div class="form-group">
+        <label for="f-largo">Largo interior (mm)</label>
+        <input type="number" id="f-largo" min="1" step="0.1" placeholder="ej. 200">
+      </div>
+      <div class="form-group">
+        <label for="f-alto">Alto de lados (mm)</label>
+        <input type="number" id="f-alto" min="1" step="0.1" placeholder="ej. 50">
+      </div>
+      <div class="form-group">
+        <label for="f-cant">Cantidad</label>
+        <input type="number" id="f-cant" min="1" step="1" value="1">
+      </div>
+    </div>
+    <div class="calc-err" id="calc-err"></div>
+    <button class="btn-calc" onclick="calcular()">Calcular recursos &rarr;</button>
+  </div>
+
+  <!-- PASO 3: Resultado -->
+  <div class="card hidden" id="step-result">
+    <div class="card-title">3 — Recursos y costos</div>
+
+    <div class="section-sub">Desarrollo plano</div>
+    <table class="result-table" id="result-blank">
+      <tr><td class="lbl">Blank</td><td class="val" id="r-blank">— × — mm</td></tr>
+      <tr><td class="lbl">Despunte</td><td class="val" id="r-desp">— mm</td></tr>
+    </table>
+
+    <hr class="sep-line">
+    <div class="section-sub">Recursos calculados</div>
+    <table class="result-table">
+      <tr><td class="lbl">Kg de chapa</td><td class="val" id="r-kg">—</td></tr>
+      <tr><td class="lbl">Tiempo de laser</td><td class="val" id="r-laser">—</td></tr>
+      <tr><td class="lbl">Perforaciones</td><td class="val">0</td></tr>
+      <tr><td class="lbl">Plegados</td><td class="val">4</td></tr>
+    </table>
+
+    <hr class="sep-line">
+    <div class="section-sub">Costos (editables)</div>
+    <table class="cost-table">
+      <tr>
+        <td>Costo chapa</td>
+        <td>$ <input type="number" id="c-kg-precio" min="0" step="0.01" oninput="recalcTotal()"> / kg</td>
+        <td>&times; <span id="c-kg-cant">—</span> kg</td>
+        <td style="font-family:monospace">= $ <span id="c-kg-sub">0.00</span></td>
+      </tr>
+      <tr>
+        <td>Costo laser</td>
+        <td>$ <input type="number" id="c-laser-precio" min="0" step="0.01" oninput="recalcTotal()"> / min</td>
+        <td>&times; <span id="c-laser-cant">—</span> min</td>
+        <td style="font-family:monospace">= $ <span id="c-laser-sub">0.00</span></td>
+      </tr>
+      <tr>
+        <td>Costo plegado</td>
+        <td>$ <input type="number" id="c-doblez-precio" min="0" step="0.01" oninput="recalcTotal()"> / doblez</td>
+        <td>&times; 4 dobleces</td>
+        <td style="font-family:monospace">= $ <span id="c-doblez-sub">0.00</span></td>
+      </tr>
+      <tr class="cost-total-row">
+        <td colspan="3">Subtotal &times; <span id="c-cant-display">1</span> unidades</td>
+        <td style="font-family:monospace;font-size:15px">$ <span id="c-total">0.00</span></td>
+      </tr>
+    </table>
+
+    <hr class="sep-line">
+    <form id="dxf-form" method="GET" action="/api/plegados/dxf">
+      <input type="hidden" id="dxf-ancho" name="ancho">
+      <input type="hidden" id="dxf-largo" name="largo">
+      <input type="hidden" id="dxf-alto" name="alto">
+      <input type="hidden" id="dxf-espesor" name="espesor">
+      <input type="hidden" id="dxf-material" name="material">
+      <input type="hidden" id="dxf-calibre" name="calibre">
+      <button type="submit" class="btn-dxf">&#11015; Generar DXF</button>
+    </form>
+  </div>
+
+</div>
+
+<script>
+var _matData = {};     // material -> [{espesor_mm, densidad_kg_m2, velocidad_corte_mm_s}]
+var _calcResult = {};  // last calcular() response
+
+// ---- Inicialización ----
+(function init() {
+  // Cargar materiales
+  fetch('/api/materials')
+    .then(function(r) { return r.json(); })
+    .then(function(rows) {
+      var byMat = {};
+      rows.forEach(function(row) {
+        var m = row.material;
+        if (!byMat[m]) byMat[m] = [];
+        byMat[m].push(row);
+      });
+      _matData = byMat;
+      var sel = document.getElementById('f-material');
+      sel.innerHTML = '<option value="">— elegí material —</option>';
+      Object.keys(byMat).sort().forEach(function(m) {
+        var opt = document.createElement('option');
+        opt.value = m; opt.textContent = m;
+        sel.appendChild(opt);
+      });
+    })
+    .catch(function() {
+      document.getElementById('f-material').innerHTML =
+        '<option value="">— carga materiales en /materiales —</option>';
+    });
+})();
+
+function selectPreset(name) {
+  document.querySelectorAll('.pattern-card').forEach(function(c) {
+    c.classList.remove('selected');
+  });
+  document.getElementById('pcard-' + name).classList.add('selected');
+  var sf = document.getElementById('step-form');
+  sf.classList.remove('hidden');
+  setTimeout(function() { sf.scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
+}
+
+function onMaterialChange() {
+  var mat = document.getElementById('f-material').value;
+  var sel = document.getElementById('f-espesor');
+  sel.innerHTML = '<option value="">— elegí espesor —</option>';
+  if (!mat || !_matData[mat]) return;
+  var rows = _matData[mat].slice().sort(function(a,b) {
+    return parseFloat(a.espesor_mm) - parseFloat(b.espesor_mm);
+  });
+  rows.forEach(function(r) {
+    var opt = document.createElement('option');
+    opt.value = r.espesor_mm;
+    opt.textContent = r.espesor_mm + ' mm';
+    opt.dataset.densidad = r.densidad_kg_m2;
+    opt.dataset.velocidad = r.velocidad_corte_mm_s;
+    sel.appendChild(opt);
+  });
+}
+
+function calcular() {
+  var errEl = document.getElementById('calc-err');
+  errEl.textContent = '';
+
+  var mat = document.getElementById('f-material').value;
+  var espSel = document.getElementById('f-espesor');
+  var esp = parseFloat(espSel.value);
+  var ancho = parseFloat(document.getElementById('f-ancho').value);
+  var largo = parseFloat(document.getElementById('f-largo').value);
+  var alto  = parseFloat(document.getElementById('f-alto').value);
+  var cant  = parseInt(document.getElementById('f-cant').value, 10) || 1;
+
+  if (!mat) { errEl.textContent = 'Elegí un material.'; return; }
+  if (isNaN(esp) || esp <= 0) { errEl.textContent = 'Elegí un espesor.'; return; }
+  if (isNaN(ancho) || ancho <= 0) { errEl.textContent = 'Ancho inválido.'; return; }
+  if (isNaN(largo) || largo <= 0) { errEl.textContent = 'Largo inválido.'; return; }
+  if (isNaN(alto)  || alto  <= 0) { errEl.textContent = 'Alto inválido.'; return; }
+  if (alto <= esp) { errEl.textContent = 'El alto debe ser mayor al espesor.'; return; }
+
+  var payload = {ancho_int: ancho, largo_int: largo, alto: alto, espesor: esp,
+                 material: mat, cantidad: cant};
+
+  fetch('/api/plegados/calcular', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (!d.ok) { errEl.textContent = 'Error: ' + (d.error || '?'); return; }
+    _calcResult = d;
+    mostrarResultado(d, mat, esp, cant);
+  })
+  .catch(function(e) { errEl.textContent = 'Error de red: ' + e; });
+}
+
+function mostrarResultado(d, mat, esp, cant) {
+  document.getElementById('r-blank').textContent =
+    d.blank_ancho.toFixed(1) + ' × ' + d.blank_largo.toFixed(1) + ' mm';
+  document.getElementById('r-desp').textContent = d.despunte.toFixed(2) + ' mm';
+  document.getElementById('r-kg').textContent = d.kg_chapa.toFixed(3) + ' kg';
+  var min = (d.tiempo_laser_s / 60).toFixed(2);
+  document.getElementById('r-laser').textContent =
+    d.tiempo_laser_s.toFixed(1) + ' s (' + min + ' min)';
+
+  // Precargar costos desde precios
+  document.getElementById('c-kg-cant').textContent = d.kg_chapa.toFixed(3);
+  document.getElementById('c-laser-cant').textContent = (d.tiempo_laser_s / 60).toFixed(2);
+  document.getElementById('c-cant-display').textContent = cant;
+
+  // Cargar precios desde /api/prices
+  fetch('/api/prices')
+    .then(function(r) { return r.json(); })
+    .then(function(prices) {
+      // Precio kg según material
+      var matLow = (mat || '').toLowerCase();
+      var precioKg = 0;
+      if (matLow.indexOf('galvanizado') !== -1)
+        precioKg = parseFloat(prices.precio_kg_galvanizado || 0);
+      else if (matLow.indexOf('430') !== -1)
+        precioKg = parseFloat(prices.precio_kg_inoxidable_430 || 0);
+      else if (matLow.indexOf('304') !== -1 || matLow.indexOf('inoxidable') !== -1)
+        precioKg = parseFloat(prices.precio_kg_inoxidable_304 || 0);
+      else
+        precioKg = parseFloat(prices.precio_kg_doble_decapada || 0);
+
+      var precioMin = parseFloat(prices.precio_segundo_maquina || 0) * 60;
+      var precioDoblez = parseFloat(prices.precio_doblez_plegadora || 0);
+
+      document.getElementById('c-kg-precio').value = precioKg || '';
+      document.getElementById('c-laser-precio').value = precioMin ? precioMin.toFixed(4) : '';
+      document.getElementById('c-doblez-precio').value = precioDoblez || '';
+      recalcTotal();
+    })
+    .catch(function() { recalcTotal(); });
+
+  // Rellenar campos ocultos del form DXF
+  document.getElementById('dxf-ancho').value = document.getElementById('f-ancho').value;
+  document.getElementById('dxf-largo').value = document.getElementById('f-largo').value;
+  document.getElementById('dxf-alto').value  = document.getElementById('f-alto').value;
+  document.getElementById('dxf-espesor').value = esp;
+  document.getElementById('dxf-material').value = mat;
+  document.getElementById('dxf-calibre').value = esp;
+
+  var sr = document.getElementById('step-result');
+  sr.classList.remove('hidden');
+  setTimeout(function() { sr.scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
+}
+
+function recalcTotal() {
+  var cant = parseInt(document.getElementById('f-cant').value, 10) || 1;
+  var kg   = parseFloat(document.getElementById('c-kg-cant').textContent) || 0;
+  var min  = parseFloat(document.getElementById('c-laser-cant').textContent) || 0;
+
+  var pKg  = parseFloat(document.getElementById('c-kg-precio').value)     || 0;
+  var pMin = parseFloat(document.getElementById('c-laser-precio').value)   || 0;
+  var pDob = parseFloat(document.getElementById('c-doblez-precio').value)  || 0;
+
+  var subKg  = kg  * pKg;
+  var subMin = min * pMin;
+  var subDob = 4   * pDob;
+  var total  = (subKg + subMin + subDob) * cant;
+
+  document.getElementById('c-kg-sub').textContent    = subKg.toFixed(2);
+  document.getElementById('c-laser-sub').textContent = subMin.toFixed(2);
+  document.getElementById('c-doblez-sub').textContent = subDob.toFixed(2);
+  document.getElementById('c-total').textContent     = total.toFixed(2);
+  document.getElementById('c-cant-display').textContent = cant;
+}
+</script>
+</body>
+</html>"""
+
+
+# ---------------------------------------------------------------------------
 # render_precios — daily prices page
 # ---------------------------------------------------------------------------
 
@@ -4272,6 +5012,11 @@ def render_precios() -> str:
           <td><input type="number" id="precio_kg_inoxidable_304" value=\"""" + _val("precio_kg_inoxidable_304") + """\" min="0" step="0.01" placeholder="ej. 5.00"></td>
           <td><span class="unit-badge">$/kg</span></td>
         </tr>
+        <tr>
+          <td><label for="precio_doblez_plegadora">Precio por doblez de plegadora</label></td>
+          <td><input type="number" id="precio_doblez_plegadora" value=\"""" + _val("precio_doblez_plegadora") + """\" min="0" step="0.01" placeholder="ej. 500.00"></td>
+          <td><span class="unit-badge">$/doblez</span></td>
+        </tr>
       </tbody>
     </table>
     <button class="btn-save" onclick="savePrices()">GUARDAR PRECIOS</button>
@@ -4286,7 +5031,8 @@ function savePrices() {
     'precio_kg_doble_decapada',
     'precio_kg_galvanizado',
     'precio_kg_inoxidable_430',
-    'precio_kg_inoxidable_304'
+    'precio_kg_inoxidable_304',
+    'precio_doblez_plegadora'
   ];
   var payload = {};
   for (var i = 0; i < fields.length; i++) {
@@ -4875,6 +5621,14 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
             self._send_html(render_presupuestos())
             return
 
+        if parsed.path == "/plegados":
+            self._send_html(render_plegados())
+            return
+
+        if parsed.path == "/api/plegados/dxf":
+            self._handle_plegados_dxf()
+            return
+
         if parsed.path == "/download_dxf":
             self._handle_download_dxf()
             return
@@ -4957,9 +5711,18 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
                 self.send_error(404)
                 return
             payload = path.read_bytes()
-            content_type = "application/json" if path.suffix == ".json" else "application/octet-stream"
+            sfx = path.suffix.lower()
+            if sfx == ".json":
+                content_type = "application/json"
+            elif sfx == ".zip":
+                content_type = "application/zip"
+            elif sfx == ".dxf":
+                content_type = "application/dxf"
+            else:
+                content_type = "application/octet-stream"
             self.send_response(200)
             self.send_header("Content-Type", content_type)
+            self.send_header("Content-Disposition", f'attachment; filename="{path.name}"')
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
@@ -5000,12 +5763,20 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
             self._handle_convert_splines()
             return
 
+        if parsed.path == "/api/patterns/convert_circles":
+            self._handle_convert_circles()
+            return
+
         if parsed.path == "/api/materials/load_defaults":
             self._handle_material_load_defaults()
             return
 
         if parsed.path == "/api/prices":
             self._handle_prices_save()
+            return
+
+        if parsed.path == "/api/plegados/calcular":
+            self._handle_plegados_calcular()
             return
 
         if parsed.path == "/api/patterns/finalize_edit":
@@ -5237,6 +6008,34 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             _send_json(self, {"ok": False, "error": str(exc)}, 500)
 
+    def _handle_convert_circles(self) -> None:
+        """POST /api/patterns/convert_circles
+
+        Body JSON: {"dxf_path": "...", "tol_mm": 0.5, "r_min": 1.0, "r_max": 200.0}
+        Converts circular LWPOLYLINE entities to CIRCLE and saves to _circles.dxf.
+        Returns: {"ok": true, "output_path": "...", "converted_count": N}
+        """
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length)
+            payload = json.loads(body)
+            dxf_path = str(payload.get("dxf_path", "")).strip()
+            tol_mm = float(payload.get("tol_mm", 0.5))
+            r_min = float(payload.get("r_min", 1.0))
+            r_max = float(payload.get("r_max", 200.0))
+            if not dxf_path:
+                _send_json(self, {"ok": False, "error": "dxf_path requerido"}, 400)
+                return
+            if not Path(dxf_path).exists():
+                _send_json(self, {"ok": False, "error": f"Archivo no encontrado: {dxf_path}"}, 400)
+                return
+            p = Path(dxf_path)
+            output_path = str(p.parent / (p.stem + "_circles.dxf"))
+            count = convert_dxf_poly_to_circles(dxf_path, output_path, tol_mm, r_min, r_max)
+            _send_json(self, {"ok": True, "output_path": output_path, "converted_count": count})
+        except Exception as exc:
+            _send_json(self, {"ok": False, "error": str(exc)}, 500)
+
     def _handle_material_load_defaults(self) -> None:
         """POST /api/materials/load_defaults  — replace table with MATERIAL_DEFAULTS."""
         try:
@@ -5284,6 +6083,7 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
                 "precio_kg_galvanizado",
                 "precio_kg_inoxidable_430",
                 "precio_kg_inoxidable_304",
+                "precio_doblez_plegadora",
             }
             prices: dict = {}
             for key in allowed:
@@ -5413,7 +6213,8 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
                 return
             payload = target.read_bytes()
             self.send_response(200)
-            self.send_header("Content-Type", "application/dxf")
+            ctype = "application/zip" if target.suffix.lower() == ".zip" else "application/dxf"
+            self.send_header("Content-Type", ctype)
             self.send_header("Content-Disposition",
                              f'attachment; filename="{target.name}"')
             self.send_header("Content-Length", str(len(payload)))
@@ -5475,6 +6276,122 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
             _send_json(self, {"ok": True})
         except Exception as exc:
             _send_json(self, {"ok": False, "error": str(exc)}, 500)
+
+    def _handle_plegados_calcular(self) -> None:
+        """POST /api/plegados/calcular — calculates bandeja resources, returns JSON."""
+        import sys as _sys
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length)
+            data = json.loads(body)
+        except Exception as exc:
+            _send_json(self, {"ok": False, "error": f"JSON inválido: {exc}"}, 400)
+            return
+        try:
+            ancho_int = float(data["ancho_int"])
+            largo_int = float(data["largo_int"])
+            alto = float(data["alto"])
+            espesor = float(data["espesor"])
+            material = str(data.get("material", "")).strip()
+        except (KeyError, ValueError) as exc:
+            _send_json(self, {"ok": False, "error": f"Parámetros inválidos: {exc}"}, 400)
+            return
+
+        if alto <= espesor:
+            _send_json(self, {"ok": False, "error": "El alto debe ser mayor al espesor"}, 400)
+            return
+
+        # Resolve material_row from MaterialTable
+        try:
+            table = MaterialTable()
+            rows = [r for r in table.list() if r.get("material") == material]
+            row = next((r for r in rows if abs(float(r["espesor_mm"]) - espesor) < 1e-6), None)
+            if row is None:
+                _send_json(self, {"ok": False, "error": f"Material/espesor no encontrado: {material} {espesor}mm"}, 404)
+                return
+        except Exception as exc:
+            _send_json(self, {"ok": False, "error": f"Error al leer materiales: {exc}"}, 500)
+            return
+
+        # Import bandeja engine
+        plegados_path = str(PLEGADOS_DIR)
+        inserted = plegados_path not in _sys.path
+        if inserted:
+            _sys.path.insert(0, plegados_path)
+        try:
+            from bandeja import calcular_bandeja, calcular_recursos_bandeja  # type: ignore
+            geom = calcular_bandeja(ancho_int, largo_int, alto, espesor)
+            recursos = calcular_recursos_bandeja(ancho_int, largo_int, alto, espesor, row)
+        except Exception as exc:
+            _send_json(self, {"ok": False, "error": str(exc)}, 500)
+            return
+        finally:
+            if inserted and plegados_path in _sys.path:
+                _sys.path.remove(plegados_path)
+
+        _send_json(self, {
+            "ok": True,
+            "blank_ancho": geom["blank_ancho"],
+            "blank_largo": geom["blank_largo"],
+            "despunte": geom["despunte"],
+            "kg_chapa": recursos["kg_chapa"],
+            "tiempo_laser_s": recursos["tiempo_laser_s"],
+            "perforaciones": 0,
+            "plegados": 4,
+        })
+
+    def _handle_plegados_dxf(self) -> None:
+        """GET /api/plegados/dxf?ancho=&largo=&alto=&espesor=&material=&calibre="""
+        import sys as _sys
+        import tempfile as _tempfile
+        from urllib.parse import parse_qs, urlparse as _up
+        qs = parse_qs(_up(self.path).query)
+
+        def _qf(key):
+            v = (qs.get(key) or [""])[0].strip()
+            return float(v) if v else None
+
+        ancho_int = _qf("ancho")
+        largo_int = _qf("largo")
+        alto = _qf("alto")
+        espesor = _qf("espesor")
+        material = (qs.get("material") or [""])[0].strip()
+
+        if any(v is None for v in [ancho_int, largo_int, alto, espesor]):
+            self.send_error(400)
+            return
+        if alto <= espesor:
+            self.send_error(400)
+            return
+
+        plegados_path = str(PLEGADOS_DIR)
+        inserted = plegados_path not in _sys.path
+        if inserted:
+            _sys.path.insert(0, plegados_path)
+        try:
+            from bandeja import calcular_bandeja, exportar_dxf_bandeja  # type: ignore
+            geom = calcular_bandeja(ancho_int, largo_int, alto, espesor)
+            with _tempfile.NamedTemporaryFile(suffix=".dxf", delete=False) as tmp:
+                tmp_path = tmp.name
+            exportar_dxf_bandeja(geom, tmp_path)
+            payload = Path(tmp_path).read_bytes()
+            Path(tmp_path).unlink(missing_ok=True)
+        except Exception as exc:
+            logger.error("plegados_dxf error: %s", exc)
+            self.send_error(500)
+            return
+        finally:
+            if inserted and plegados_path in _sys.path:
+                _sys.path.remove(plegados_path)
+
+        mat_safe = re.sub(r"[^A-Za-z0-9]", "_", material) if material else "mat"
+        filename = f"Bandeja_{int(ancho_int)}x{int(largo_int)}x{int(alto)}_{mat_safe}_{espesor}mm.dxf"
+        self.send_response(200)
+        self.send_header("Content-Type", "application/dxf")
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
 
     def log_message(self, format: str, *args) -> None:
         return

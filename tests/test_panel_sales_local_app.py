@@ -1,3 +1,4 @@
+import pytest
 from threading import Thread
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -16,6 +17,9 @@ from sistema_industrial.presets.panel_sales_local_app import (
     generate_pattern_thumbnail,
     _thumbnail_url,
     _topbar_html,
+    _fit_circle_kasa,
+    _try_poly_as_circle,
+    convert_dxf_poly_to_circles,
 )
 from sistema_industrial.presets.panel_service import LegacyPanelService, LegacyPanelServiceInput
 from sistema_industrial.presets.legacy_panel_adapter import add_pattern_to_library
@@ -293,7 +297,7 @@ def test_sales_app_http_form_generates_files(tmp_path):
             html = response.read().decode("utf-8")
 
         assert response.status == 200
-        assert "Resultado generado" in html
+        assert "result-card" in html
         assert (tmp_path / "panel_result.json").exists()
         assert (tmp_path / "quotation_payload.json").exists()
         assert (tmp_path / "cut_piece_payload.json").exists()
@@ -882,3 +886,192 @@ def test_centered_full_mode_grid_centering_subte_params():
     top_gap    = (sheet_h - margin) - tr_y_last
     assert abs(bottom_gap - top_gap) < 0.1, \
         f"Y not symmetric: bottom_gap={bottom_gap:.3f} top_gap={top_gap:.3f}"
+
+
+def test_convert_dxf_poly_to_circles_basic(tmp_path):
+    """Una LWPOLYLINE de 12 vértices que aproxima un círculo de r=9mm debe convertirse a CIRCLE."""
+    pytest.importorskip("ezdxf")
+    import ezdxf
+    import math
+    from sistema_industrial.presets.panel_sales_local_app import (
+        _fit_circle_kasa,
+        _try_poly_as_circle,
+        convert_dxf_poly_to_circles,
+    )
+
+    # Crear DXF con una LWPOLYLINE de 12 vértices (dodecágono) centrada en (50, 30) r=9mm
+    # y una LWPOLYLINE rectangular de 4 vértices (borde, no debe convertirse).
+    doc = ezdxf.new("R2010")
+    msp = doc.modelspace()
+
+    cx_ref, cy_ref, r_ref = 50.0, 30.0, 9.0
+    n = 12
+    pts_circle = [(cx_ref + r_ref * math.cos(2 * math.pi * i / n),
+                   cy_ref + r_ref * math.sin(2 * math.pi * i / n)) for i in range(n)]
+    poly = msp.add_lwpolyline(pts_circle, close=True)
+    poly.dxf.layer = "CORTE"
+
+    # Polilínea rectangular — no debe convertirse
+    rect_pts = [(0, 0), (500, 0), (500, 400), (0, 400)]
+    msp.add_lwpolyline(rect_pts, close=True)
+
+    src = tmp_path / "src.dxf"
+    out = tmp_path / "out.dxf"
+    doc.saveas(str(src))
+
+    count = convert_dxf_poly_to_circles(str(src), str(out), tol_mm=0.5, r_min=1.0, r_max=200.0)
+
+    assert count == 1, f"Se esperaba 1 conversión, se obtuvo {count}"
+
+    doc2 = ezdxf.readfile(str(out))
+    msp2 = doc2.modelspace()
+    circles = [e for e in msp2 if e.dxftype() == "CIRCLE"]
+    lwpoly  = [e for e in msp2 if e.dxftype() == "LWPOLYLINE"]
+
+    assert len(circles) == 1, f"Se esperaba 1 CIRCLE, se encontraron {len(circles)}"
+    assert len(lwpoly)  == 1, f"El rectángulo borde debe permanecer como LWPOLYLINE, hay {len(lwpoly)}"
+
+    c = circles[0]
+    assert abs(c.dxf.center[0] - cx_ref) < 0.01, f"cx incorrecto: {c.dxf.center[0]}"
+    assert abs(c.dxf.center[1] - cy_ref) < 0.01, f"cy incorrecto: {c.dxf.center[1]}"
+    assert abs(c.dxf.radius    - r_ref)  < 0.01, f"radio incorrecto: {c.dxf.radius}"
+    assert c.dxf.layer == "CORTE", f"Capa incorrecta: {c.dxf.layer}"
+
+
+def test_fit_circle_kasa_exact():
+    """Verificar que fit_circle_kasa recupera el círculo exacto para puntos perfectos."""
+    import math
+    from sistema_industrial.presets.panel_sales_local_app import _fit_circle_kasa
+
+    cx, cy, r = 10.0, -5.0, 7.0
+    pts = [(cx + r * math.cos(2 * math.pi * i / 16),
+            cy + r * math.sin(2 * math.pi * i / 16)) for i in range(16)]
+    result = _fit_circle_kasa(pts)
+    assert result is not None
+    rx_cx, rx_cy, rx_r, max_err = result
+    assert abs(rx_cx - cx) < 1e-6
+    assert abs(rx_cy - cy) < 1e-6
+    assert abs(rx_r  - r)  < 1e-6
+    assert max_err < 1e-6
+
+
+def test_convert_circles_endpoint(tmp_path):
+    """POST /api/patterns/convert_circles convierte correctamente y devuelve output_path + count."""
+    pytest.importorskip("ezdxf")
+    import ezdxf, math, json
+
+    # Crear DXF de prueba con una LWPOLYLINE circular
+    doc = ezdxf.new("R2010")
+    msp = doc.modelspace()
+    n = 12; cx, cy, r = 25.0, 25.0, 4.0
+    pts = [(cx + r * math.cos(2 * math.pi * i / n),
+            cy + r * math.sin(2 * math.pi * i / n)) for i in range(n)]
+    msp.add_lwpolyline(pts, close=True)
+    src = tmp_path / "pat.dxf"
+    doc.saveas(str(src))
+
+    previous_output_dir = PanelSalesHandler.output_dir
+    PanelSalesHandler.output_dir = tmp_path
+    server = create_server("127.0.0.1", 0)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        port = server.server_address[1]
+        body = json.dumps({"dxf_path": str(src), "tol_mm": 0.5, "r_min": 1.0, "r_max": 200.0}).encode()
+        req = Request(
+            f"http://127.0.0.1:{port}/api/patterns/convert_circles",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read())
+    finally:
+        server.shutdown()
+        server.server_close()
+        PanelSalesHandler.output_dir = previous_output_dir
+
+    assert data["ok"] is True
+    assert data["converted_count"] == 1
+    assert data["output_path"].endswith("_circles.dxf")
+
+
+# ---------------------------------------------------------------------------
+# TASK_041 — Patron Cuadriculado
+# ---------------------------------------------------------------------------
+
+def test_cuadriculado_circle_generates_dxf(tmp_path):
+    """Cuadriculado con circulo debe generar un DXF valido."""
+    data = LegacyPanelServiceInput(
+        panel_mode="cuadriculado",
+        preset_code="PANEL_DECORATIVO_LEGACY_CUADRICULADO",
+        preset_name="Cuadriculado circulo",
+        hole_shape="circle",
+        hole_size_mm=20.0,
+        offset_x_mm=30.0,
+        offset_y_mm=30.0,
+        width_mm=300.0,
+        height_mm=200.0,
+    )
+    from sistema_industrial.presets.panel_service import LegacyPanelService
+    service = LegacyPanelService()
+    result = service.run(data, tmp_path)
+    assert result.dxf_path.exists()
+    assert result.pierce_count > 0
+
+
+def test_cuadriculado_square_generates_dxf(tmp_path):
+    """Cuadriculado con cuadrado debe generar un DXF valido."""
+    data = LegacyPanelServiceInput(
+        panel_mode="cuadriculado",
+        preset_code="PANEL_DECORATIVO_LEGACY_CUADRICULADO",
+        preset_name="Cuadriculado cuadrado",
+        hole_shape="square",
+        hole_size_mm=20.0,
+        offset_x_mm=30.0,
+        offset_y_mm=30.0,
+        width_mm=300.0,
+        height_mm=200.0,
+    )
+    from sistema_industrial.presets.panel_service import LegacyPanelService
+    service = LegacyPanelService()
+    result = service.run(data, tmp_path)
+    assert result.dxf_path.exists()
+    assert result.pierce_count > 0
+
+
+def test_render_form_includes_cuadriculado_card():
+    """La galeria de patrones debe incluir la card de cuadriculado."""
+    html = render_form()
+    assert 'id="pcard-cuadriculado"' in html
+    assert "Cuadriculado" in html
+    assert 'id="cuad-inline"' in html
+    assert "cuad-shape" in html
+    assert "cuad-size" in html
+    assert "cuad-ox" in html
+    assert "cuad-oy" in html
+    assert "confirmCuadriculado" in html
+
+
+def test_build_sales_input_cuadriculado():
+    """build_sales_input parsea correctamente un formulario cuadriculado."""
+    data = build_sales_input(
+        {
+            "panel_mode": ["cuadriculado"],
+            "customer_reference": ["ACME"],
+            "job_name": ["Panel cuad"],
+            "preset_name": ["Cuadriculado circulo"],
+            "material": ["chapa"],
+            "thickness_mm": ["3"],
+            "width_mm": ["300"],
+            "height_mm": ["200"],
+            "quantity": ["1"],
+            "margin_mm": ["20"],
+            "offset_x_mm": ["30"],
+            "offset_y_mm": ["30"],
+        }
+    )
+    assert data.panel_mode == "cuadriculado"
+    assert data.pattern_type == "cuadriculado"
+    assert data.offset_x_mm == 30.0
+    assert data.offset_y_mm == 30.0

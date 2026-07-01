@@ -1,0 +1,2838 @@
+===== PAGE 1 =====
+ModEva/DNC880S
+Manual de referencia 2D
+CYBELEC SA Tel. ++ 41 24 447 02 00
+RUE DES UTTINS 27 Fax ++ 41 24 447 02 01
+CH - 1400 YVERDON-LES-BAINS E-Mail: info@cybelec.ch
+SWITZERLAND
+V-DOC-MODEVA-ES
+===== PAGE 2 =====
+
+===== PAGE 3 =====
+3 de agosto de 2006 V. 1.3
+ÍNDICE
+INTRODUCCIÓN.............................................................................................................................5
+Acerca de este manual 5
+Acuerdo de licencia CYBELEC y copyright 5
+CONVENCIONES............................................................................................................................7
+DEFINICIONES................................................................................................................................11
+ABS......................................................................................................................................11
+REL 11
+Ala demasiado corta autorizada..........................................................................................12
+Apoyo...................................................................................................................................13
+BA o Tope............................................................................................................................14
+Bombeado...........................................................................................................................15
+Borrado de las memorias....................................................................................................15
+Borrar / suprimir...................................................................................................................16
+Búsqueda de piezas segun criterios....................................................................................16
+Fecha Mémorización 17
+C.Req. ___ Efec.___...........................................................................................................18
+Captura de pantalla.............................................................................................................18
+Negro / blanco, color 19
+Impresión de las pantallas 19
+Colision profundidad autorizada..........................................................................................21
+Contador de pliegues...........................................................................................................22
+Correcciones (tabla de ...)...................................................................................................22
+Correcciones de angulo.......................................................................................................24
+Généralidades 24
+Correcciones directas 24
+Correcciones angulares 25
+Correcciones por medida de éspesor 25
+Medida en el PMA 26
+Medida en el PCC 28
+Corrección de espesor independiente Y1-Y2 30
+Correcciones: sensibilidad PMB 30
+Critèrios de simulación........................................................................................................31
+Curva ideal (CR)..................................................................................................................34
+Página PIEZA NUM 34
+Dejar el software..................................................................................................................39
+Déscentramiento herramientas...........................................................................................40
+Desempeño del Tope..........................................................................................................41
+Distancia PV(cid:207).....................................................................................................................42
+Embutición...........................................................................................................................42
+Fecha y Hora.......................................................................................................................43
+Fuerza admisible sobre las matrices...................................................................................44
+Fuerza Plegado...................................................................................................................45
+Funciones auxiliares............................................................................................................45
+MODEVAREF2D_ES.DOC ÍNDICE PÁGINA 1
+===== PAGE 4 =====
+Gama de plegado...............................................................................................................45
+Gama de plegado automatico 45
+Modificar la gama de plegado 46
+Modo DESPLEGADO 48
+Gestion de las pièzas..........................................................................................................49
+Grupos de pièzas................................................................................................................51
+Definiciones 51
+Ejemplo de trabajo en la página GRUPO DE PIEZAS 52
+Indexar ejes........................................................................................................................53
+Informaciones pièza............................................................................................................53
+Ver las informaciones pieza 54
+Redactar una información (texto únicamente) 54
+Redactar una información (texto e imagenes) 55
+Insértar una secuencia.......................................................................................................58
+L. plegado...........................................................................................................................59
+Lengua................................................................................................................................59
+Longitud..............................................................................................................................60
+Longitud desarrollada.........................................................................................................61
+DIN 62
+REAL 62
+Coeficiente de corrección de cálculo DIN 6935 62
+Mantenimiento....................................................................................................................63
+Mémoria Libre.....................................................................................................................63
+Modificar el origen de los ejes............................................................................................64
+Paramètros maquina..........................................................................................................65
+PCV.....................................................................................................................................66
+Périfericos activos...............................................................................................................67
+PERIFERICOS ACTIVOS MAQUINA 67
+PERIFERICOS ACTIVOS PIEZAS 68
+PERIFERICOS ACTIVOS PUNZONES / MATRICES 68
+Pieza paramétrica...............................................................................................................69
+Activación de la función 69
+Crear una pieza paramétrica 69
+Trabajo con una pieza paramétrica 73
+Plano...................................................................................................................................73
+Plegado...............................................................................................................................74
+En fondo de matriz 74
+Final 74
+Intermédio 74
+Secuencia sin plegado 74
+Pliegues especiales............................................................................................................75
+Pliegue preliminar / final 76
+PMA....................................................................................................................................81
+Programación de un perfil...................................................................................................81
+Programación durante el trabajo........................................................................................81
+Programar en plegado num................................................................................................82
+Radio interno.......................................................................................................................83
+Référencia YR cor...............................................................................................................83
+Reglaje manual del tope.....................................................................................................84
+Retroceso Tope Tras..........................................................................................................84
+Salvar los datos..................................................................................................................84
+Sección...............................................................................................................................85
+Sigma..................................................................................................................................85
+PÁGINA 2 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 5 =====
+Start Ejes-FA.......................................................................................................................86
+Teclado................................................................................................................................87
+Tiempo Presión...................................................................................................................88
+Tolerancia............................................................................................................................88
+Transferencia de los datos..................................................................................................89
+Utiles....................................................................................................................................90
+Programacion de los punzones 91
+Programación de las matrices 93
+Modificar un util 95
+Posición de los utiles 95
+Lista punzones / Lista matrices 95
+Velocidad plegado...............................................................................................................96
+Zonas alfanumericas...........................................................................................................96
+ÍNDICE.............................................................................................................................................97
+ÍNDICE PÁGINA 3
+===== PAGE 6 =====
+Esta página fue intencionalmente dejada blanca.
+PÁGINA 4 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 7 =====
+I
+NTRODUCCIÓN
+ACERCA DE ESTE MANUAL
+Fue concebido este documento para tratar de contestar a cuestiones
+particulares después de la adquisición de las bases para la utilización del
+software ModEva / DNC 880S.
+Es el complemento del Manual de Utilización dando informes sobre los
+procedimientos de base que hay que respetar para utilizar el software.
+Un complemento llamado Manual de referencia 3D se suministra con el
+software ModEva en versión 3D.
+Este manual se organiza como un diccionario, es decir que se clasifican los
+elementos por orden alfabético.
+Si se trata de un asunto en otro capítulo que en el capítulo donde buscan la
+información, hallarán una referencia al nuevo asunto.
+Un índice colocado al fin de este documento completa y facilita la búsqueda
+de informaciones. No duden en utilizarlo.
+Algunas funcionalidades tratadas en este manual no están disponibles en
+el control numérico DNC 880S.
+ACUERDO DE LICENCIA CYBELEC Y COPYRIGHT
+Este manual está sometido al acuerdo de licencia y copyright mencionados en
+el documento Manual de utilización.
+INTRODUCCIÓN PÁGINA 5
+===== PAGE 8 =====
+Esta página fue intencionalmente dejada blanca.
+PÁGINA 6 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 9 =====
+C
+ONVENCIONES
+De manera general, en este manual, no se repetirá cómo validar una zona,
+seleccionar un útil, llamar a una página u otras manipulaciones de base.
+Están descritas por ejemplo en el documento Manual de utilización del
+control numérico o del software de referencia.
+Para garantizar una mejor visibilidad de las pantallas reproducidas, éstas han
+sido pasadas a blanco y negro.
+Puede que algunas pantallas de las que aparecen en este manual no
+correspondan exactamente con la que aparecen en su programa, bien por la
+configuración propia de que disponga (número de opciones, ejes, etc.), bien
+por la versión del programa empleada (para DOS o Windows).
+Convenciones tipográficas
+Arial negrillo Citas de textos tales como son visibles en la
+pantalla.
+Arial negrillo itálico Sirve para indicar el nombre de una entrada o
+salida del DNC.
+Itálico Remisión a un elemento escrito, un párrafo o un
+manual.
+Por ejemplo: Ver Convenciones tipográficas.
+Indica una doble presión sobre la tecla .
+Convenciones generales para este manual
+Admitiremos que :
+Ratón entender ratón para un PC o trackball /
+tracksensor para un DNC.
+Clic pulsar el botón izquierdo del ratón.
+Clic derecho pulsar el botón derecho del ratón.
+Clic izquierdo/derecho pulsar simultáneamente el botón izquierdo y el
+botón derecho del ratón.
+Listas rotativas o campos de selección múltiple:
+de color violeta, estas listas muestran las
+distintas opciones de que se dispone.
+La selección del contenido se realiza pulsando la
+tecla .
+Aparece una ventana con la lista de opciones
+disponibles en ese campo.
+Para validar la selección:
+- pulse el número que figura junto a la selección;
+o
+- coloque el cursor sobre la selección y pulse la
+tecla .
+CONVENCIONES PÁGINA 7
+===== PAGE 10 =====
+Si pulsa la tecla puede hacer aparecer las
+diferentes opciones una tras otra si que aparezca
+la ventana de selección.
+Para aceptar la opción, salga del campo.
+Tecla de función Cada vez que se le pida que pulse una tecla de
+función de a , aparece el menú
+apropiado.
+Generalmente, se empleará el nombre de la tecla
+de función. Por ejemplo: si pulsa PIEZA
+designa la tecla .
+Alcanzar la página
+PLEGADO 2D
+Ejemplo, si se le pide que acuda a la página
+PLEGADO 2D, pulse la tecla de función
+PLEGADO , y, después, seleccionar
+PLEGADO 2D o, simplemente, escribir 02 (o
+el número inscrito junto a la opción).
+Validación rápida Para facilitar el trabajo del operario, el DNC
+memoriza la última selección realizada en un
+menú.
+Para validar más rápidamente una poción de un
+menú, bastará con pulsar dos veces sobre una
+tecla, una tecla de función (por ejemplo ),
+para validar directamente la última página
+seleccionada.
+PÁGINA 8 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 11 =====
+Convenciones del software versión Windows
+En la configuración básica, la versión Windows utiliza los siguientes colores:
+Negro Indica la información fija, los campos, etc.
+o
+los campos accesibles con el cursor y
+modificables por el usuario.
+Azul Se emplea en los títulos y los encabezamientos.
+Azul-gris Información variable.
+no es accesible con el cursor.
+Verde Campos de las listas rotativas. El usuario puede
+acceder a ellas para seleccionar entre varias
+opciones definidas (véase más arriba Listas
+rotativas).
+CONVENCIONES PÁGINA 9
+===== PAGE 12 =====
+Esta página fue intencionalmente dejada blanca.
+PÁGINA 10 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 13 =====
+D
+EFINICIONES
+ABS
+Página: PLEGADO NUMERICO
+Esta lista rotativa está colocada al lado del nombre del eje del tope X.
+Dos elecciones: ABS y REL.
+ABS indica que el eje X funciona en modo absoluto.
+Esto significa que el destino del eje X es una distancia absoluta medida desde
+el centro del V de la matriz.
+El modo absoluto está seleccionado por defecto.
+Ver REL a continuación.
+Ejemplo : MEM POS
+X ABS 190.00 120.00
+(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)
+REL
+REL indica que el eje X funciona en modo relativo.
+Esto significa que el desplazamiento programado tiene lugar a partir de la
+posición actual del tope.
+Generalmente se programa un valor negativo.
+Frecuentemente, se utiliza el modo relativo con la repetición de ciclo (CY 2 a
+99). Por ejemplo con una herramienta de punzonado, deseamos realizar 5
+agujeros equidistantes de 30.00 mm. La primera secuencia debe estar en
+modo absoluto (emplazamiento del primer agujero). La segunda secuencia se
+programará en modo relativo (X REL 30.00) con una repetición de ciclo
+igual a 4 (CY 4).
+DEFINICIONES PÁGINA 11
+===== PAGE 14 =====
+Ejemplo:
+MEM POS
+X REL 70.00 120.00
+(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)
+Observación: No es posible utilizar el modo relativo para 1a primera
+secuencia.
+Si es el caso, se genera un error al cambiar de modo (AUTO,
+SEMI-AUTO) y se visualiza el mensaje MOV. X REL.
+IMPOSIBLE en la zona interactiva.
+ALA DEMASIADO CORTA AUTORIZADA
+Página: UTIL PLEGADO
+Es un elemento de seguridad y su test se efectúa al pasar a modo AUTO o
+SEMI-AUTO. Si llega el caso, se genera un mensaje de error que hace
+aparecer la página UTIL PLEGADO y dirige el cursor a esta zona.
+Este mensaje avisa al operario que el ala programada es demasiado corta y no
+apoya correctamente sobre los dos bordes de la matriz durante todo el
+plegado.
+Ala demasiado corta
+(cid:0)(cid:0)
+(cid:0)(cid:0)
+(cid:0)(cid:0)
+(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)
+El operario puede elegir de no tomar esta inspección en cuenta.
+Dispone de tres opciones:
+SOBRE ESTE Situación por defecto.
+PLIEGUE / NO Una inspección de la longitud del ala se realiza
+sobre el pliegue en curso.
+SOBRE ESTE No inspección sobre el pliegue en curso.
+PLIEGUE / SI
+GLOBALMENTE No inspección para toda la pieza en curso.
+PÁGINA 12 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 15 =====
+APOYO
+Página: PLEGADO 2D
+Permite seleccionar otro apoyo que el apoyo visualizado en la secuencia en
+curso. Ver también Gama de plegado y BA o Tope.
+Pg Dn
+(cid:121) Seleccionar el plegado deseado con las teclas y .
+Apoyo sobre la cara 0
+(cid:121) Colocar el cursor en la zona APOYO.
+(cid:121) Introducir el N° de la cara que se debe apoyar sobre el tope trasero
+(3 en este ejemplo).
+(cid:121) Pulsar la tecla para validar la modificación.
+Apoyo modificado
+DEFINICIONES PÁGINA 13
+===== PAGE 16 =====
+BA O TOPE
+Páginas: PLEGADO NUM, PLEGADO 2D
+Visualiza o permite seleccionar el tope para la secuencia en curso.
+El DNC calcula de nuevo la cota de los ejes X y R que se quiere alcanzar
+según la selección.
+Hacer aparecer la lista rotativa y elegir el tope apropiado a la secuencia.
+No aparece esta zona si hay un sólo tope definido en los parámetros máquina.
+Cambiar tope en página PLEGADO 2D
+Es posible elegir otro tope predefinido en el DNC. Ver también Gama de
+plegado.
+(cid:121) Introducir la denominación del tope deseado o seleccionarlo en la lista
+rotativa.
+Apoyo
+Soporte
+PÁGINA 14 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 17 =====
+BOMBEADO
+Página: PLEGADO NUM
+Válido sólo si su máquina está equipada con una opción de bombeado.
+Se calcula automáticamente el bombeado durante las simulaciones. El
+resultado es función de la fuerza aplicada y de la curva de calibración
+programada en los parámetros máquina.
+El operario puede modificar estos valores secuencia por secuencia ; sin
+embargo, al empezar una próxima simulación, se calcularán de nuevo.
+La unidad de trabajo puede variar según el constructor, para conocer el uso
+de esta función, sirvanse consultar con el fabricante de su máquina.
+Sin embargo, normalmente se emplea el "tanto por ciento" como unidad, es
+decir, que la programación del valor 50 en este campo proporcionará un 50%
+del máximo de bombeado.
+BORRADO DE LAS MEMORIAS
+Página: INICIALIZACION MAQUINA-DNC/ENC
+Generalidades:
+Esta página permite vaciar (borrar) diferentes memorias. Según el tipo de
+borrado, es necesario poner la llave en posición 1, 2 o 3.
+Para suprimir el contenido de una o de todas las memorias:
+(cid:121) Seleccionar el periférico en el cual se debe hacer la operación.
+(cid:121) Poner el cursor en la zona deseada.
+(cid:121) Clic derecho o tecla o menú Acción SUPRIMIR.
+(cid:121) Confirmar.
+DEFINICIONES PÁGINA 15
+===== PAGE 18 =====
+BORRAR / SUPRIMIR
+Estas operaciones son disponibles en el menú ACCION, y están disponibles
+según el contexto. A continuación se indica el significado de estas acciones.
+BORRAR PLIEGUE Borra el contenido de todas las zonas, pero la
+secuencia permanece.
+BORRAR SECCION Borra los datos (ordenes de los pliegues) de la
+sección seleccionada.
+BORRAR PIEZA Borra el contenido de la memoria de trabajo.
+SUPRIMIR PLEG. Suprime la secuencia seleccionada (con
+recompresión automática).
+SUPRIMIR SECCION Suprime la sección seleccionada.
+SUPRIMIR PIEZA Suprime la pieza seleccionada.
+En la página LISTA DE PIEZA, es posible
+suprimir una pieza colocando el cursor directa-
+mente sobre el número deseado en la lista.
+SUPRIMIR Según la zona en la cual se halla el cursor,
+suprime el punzón, la matriz o la pieza
+seleccionada.
+BÚSQUEDA DE PIEZAS SEGUN CRITERIOS
+Página: BÚSQUEDA PIEZA/CRITERIOS
+Esta página permite buscar piezas registradas en el periférico seleccionado en
+la zona LISTA PIEZAS Y GRUPOS EN.
+Los criterios de selección se pueden combinar. Cuando 2 o varios criterios
+listados abajo están rellenados, la pieza buscada debe satisfacer cada uno de
+los criterios programados. Se trata de una condición Y (una y otra de las
+zonas.....).
+Criterios de búsqueda Se utilizan como criterios de búsqueda: la fecha de memorización, el número
+de pieza, el espesor de la materia, el número de plano (dibujo), la longitud de
+plegado, los útiles, la longitud de desarrollo.
+Las letras minúsculas se distinguen de las letras mayúsculas.
+PÁGINA 16 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 19 =====
+Cuidado: la búsqueda según el criterio PUNZON o MATRIZ, se hace
+únicamente con el útil "principal" que es programado en la página
+PIEZA NUM. Esto quiere decir que si se programa una pieza por medio de la
+página PLEGADO NUM, y si se desea ulteriormente hacer una búsqueda de
+esta pieza por medio de los útiles, se deberá de nuevo programar el útil
+"principal" en la página PIEZA NUM, si no la búsqueda no hallará esta pieza.
+Si no se conoce el contenido completo del número de plano es posible utilizar
+caracteres especiales (wildcards) para reemplazar estos caracteres
+desconocidos (para las otras zonas si están rellenadas, se debe conocer el
+contenido).
+? cualquier carácter (1 solo).
+* Ningún o varios caracteres.
+En los ejemplos abajo, se supone que el criterio de búsqueda es únicamene el
+número de plano. Ni que decir tiene que los "wildcards" se pueden utilizar en
+las otras zonas.
+Ejemplo Explicación
+A?C* Se busca una pieza cuyo plano empieza por A, un carácter
+desconocido, una C y una continuación de caracteres
+desconocidos.
+(p.ej. ABC, ACC22, AmCh22, A6CPiece33).
+*22 Se busca una pieza cuyo plano se termina por 22.
+(p.ej. ACC22, AmCh22, 22, Piece22)
+A?C*22 Se busca una pieza cuyo plano empieza por una A, un
+carácter desconocido, una C y que se termina por 22
+(p.ej. ACC22, AmCh22, AVCPieza22).
+*A?C*22 Como arriba, pero A?C no se halla necesariamente al
+principio
+(p.ej. ACC22, AmCh22, PARC22).
+*A?C*22* Como arriba, pero 22 no se halla necesariamente al fin.
+(p.ej. ACC22, AmCh22, PARC22bis).
+FECHA MÉMORIZACIÓN
+La fecha de memorización de una pieza se puede utilizar como criterio de
+búsqueda de piezas. A este efecto, se especifican límites de tiempo para la
+búsqueda de las informaciones
+Si está errónea la sintaxis de introducción un mensaje aparece en la zona
+interactiva "SINTAXIS FECHA!".
+El formato de introducción es DD/MM/AA (D=día, M=mes, A=año).
+Con el control numérico, se puede utilizar como separador de los días, meses y
+años la tecla o .
+La selección del tipo de separador es configurable en la página BIENVENIDA.
+DEFINICIONES PÁGINA 17
+===== PAGE 20 =====
+C.REQ. ___ EFEC.___
+Página: PLEGADO NUM
+Esta zona es un contador de piezas. Cuando el software funciona con un
+control numérico, este contador indica el número de piezas realizadas.
+Para accionar este contador :
+(cid:121) Introducir el número de piezas deseado en la zona C.REQ.
+y
+(cid:121) La cantidad ya realizada en la zona EFEC.
+Al volverse iguales los valores, el control numérico envia una señal. Según el
+constructor, esta señal está procesada o no para parar el ciclo de la máquina.
+Los valores de este contador no se memorizan con la pieza. Así se deberá
+cambiar o borrar estos valores al llamar a nueva pieza.
+Para anular el acto de contar, borrar la zona EFEC.
+CAPTURA DE PANTALLA
+El software ModEva/DNC 880S permite capturar pantallas fácilmente para
+crear documentaciones u otras informaciones (ofertas, etc .)
+Para capturar pantallas, proceder como sigue:
+(cid:121) Lanzar el tratamiento de texto u otro software en el cual desean
+importar la captura de pantalla.
+(cid:121) Lanzar el software ModEva/DNC 880S.
+Print
+(cid:121) Capture la ventana activa pulsando la tecla + Screen .
+La imagen se copia en el portapapeles de Windows.
+(cid:121) Seleccione el programa en el que desee pegar la captura pulsando
+simultáneamente las teclas y una o varias veces según la
+aplicación en curso.
+(cid:121) Inserte la imagen empleando la función Pegar del menú Edición de su
+procesador de texto. Reduzca o corte la imagen en función de sus
+necesidades.
+También puede utilizar las herramientas de captura de pantalla
+destinadas especialmente a este tipo de aplicaciones y que pueden
+convertir inmediatamente las capturas en color en niveles de gris.
+Estos programas son, entre otros, Corel Capture (incluido en Corel
+Draw) o Hardcopy, un programa freeware disponible en Internet en la
+siguiente dirección: www.hardcopy.de.
+PÁGINA 18 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 21 =====
+NEGRO / BLANCO, COLOR
+Con el propósito de facilitar la creación de documentos ilustrados con copias
+de pantalla, es posible conmutar el software ModEva/DNC 880S en negro y
+blanco.
+Proceder como sigue:
+(cid:121) Llamar a los parámetros máquinas, página MIRA Y ESCALAS
+(cid:121) Seleccionar NEGRO/BLANCO en la zona TEXTOS Y DIBUJOS.
+IMPRESIÓN DE LAS PANTALLAS
+Se recomienda conmutar el software en NEGRO/BLANCO antes de lanzar
+una impresión.
+Seleccionar una impresora
+(cid:121) Llamar a los parámetros máquinas, página MIRA Y ESCALAS.
+DEFINICIONES PÁGINA 19
+===== PAGE 22 =====
+(cid:121) Versión Windows:
+La selección de la impresora en el entorno Windows no es efectiva. Es
+la impresora definida por defecto en el menú “parámetros -
+Impresoras” de Windows la que finalmente imprimirá.
+Atención, si cambia de impresora (desde el menú “parámetros -
+Impresoras” de Windows) mientras ModEva/DNC 880S está en
+abierto, deberá salir y volver a arrancar ModEva/DNC 880S para que
+se tenga en cuenta la nueva impresora.
+(cid:121) Seleccionar el destino. Si la línea está vacía, por defecto se trata de
+PRN. Es posible introducir LPT1, LPT2 o un nombre de fichero.
+Introduciendo NULO en la zona destino, se prohibe toda impresión, y
+se hace desaparecer la línea referida en el menú ACCIÓN.
+Imprimir
+Para imprimir una página:
+(cid:121) Seleccionar la página deseada.
+(cid:121) Llamar al menú ACCIÓN y seleccionar IMPRIMIR PANTALLA.
+Para imprimir todas las páginas parámetros:
+(cid:121) Colocarse en la página parámetro que se desea ver empezar (por
+ejemplo la primera página de los parámetros N2X).
+(cid:121) Llamar al menú ACCIÓN y elegir IMPRIMIR PARAMETROS.
+El software imprimirá una después de otra todas las páginas
+parámetros (incluso las subpáginas).
+Es posible parar la impresión pulsando cualquier tecla (por ejemplo al
+fin de los parámetros N2X). No se para inmediatamente la impresión,
+se termina la página en curso.
+PÁGINA 20 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 23 =====
+COLISION PROFUNDIDAD AUTORIZADA
+Páginas: UTILES PLEGADO, PROGRAMACION PUNZON / MATRIZ
+El software crea un mensaje de error cuando detecta que se produce un
+recalcado de la materia en el fondo de la matriz y/o entre las paredes laterales
+del punzón y de la matriz. Este mensaje se visualiza en la zona interactiva. El
+software conmuta a la página UTILES PLEGADO con el cursor orientado
+hacia esta zona.
+Por defecto si no se especifica nada, el test de colisión se realiza para cada
+plegado.
+En la página UTILES PLEGADO la zona COLISION PROFUNDIDAD
+AUTORIZADA es igual a SOBRE ESTE PLIEGUE NO.
+Sin embargo es posible inhibir esta seguridad en la página UTIL PLEGADO
+para la pieza en curso (ver abajo) o por defecto en la página
+PROGRAMACION PUNZON o MATRIZ.
+Página UTIL PLEGADO
+Dos selecciones son disponibles:
+SOBRE ESTE El test de colisión se realiza (o no según la
+PLIEGUE/ SI / NO selección SI / NO) únicamente en la secuencia
+(plegado) en curso.
+GLOBALMENTE Se ignora el test de colisión para el conjunto de
+las secuencias que constituyen la pieza.
+(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+Colisión lado Colisión fondo de matriz
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+Página PROGRAMACION PUNZON / MATRIZ
+De una manera general, si no se desea el test de colisión, es posible ignorarlo
+por defecto al momento de la creación de una pieza.
+Para crear esta situación durante la creación del útil, hay que programar
+COLISION PROFUNDIDAD AUTORIZADA SI.
+Para que esta autorización sea válida (en la página UTILES PLEGADO), es
+necesario que el punzón y la matriz posean esta autorización.
+Si uno u otro de los utiles no da la autorización, NO es de nuevo válido.
+DEFINICIONES PÁGINA 21
+===== PAGE 24 =====
+CONTADOR DE PLIEGUES
+La página BIENVENIDA indica le nombre de pliegues realizados desde una
+fecha definida.
+El contador se pone a 0 en nuestros talleres. Cuando el primero pliegue en
+modo automático o medió-automático es efectuado, en pieza a contar y la
+fecha se inscribe automáticamente. Es imposible de modificar estos datos en
+otro sitio.
+CORRECCIONES (TABLA DE ...)
+La practica puede hacernos descubrir ciertos ángulos o / y distancias de lados
+son frecuentemente o siempre a corregir del mismo valor.
+Para evitar al operario de hacer continuamente correcciones, existe una
+tablero de correcciones jamada MATERIAL que se obtiene por el medio de
+los parámetros máquina
+5 materias están programadas:
+ACERO
+ALUMINIO
+INOX
+ESPECIAL 1
+ESPECIAL 2
+Para cada una de las materia, el tablero de la página MATERIAL son
+distintas.
+PÁGINA 22 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 25 =====
+En esta página hay principalmente 3 tableros:
+LONGITUD Permite de escoger con 10 coludas (0-9) y de
+DESARROLLADA hacer 10 correcciones diferentes del calculo
+DIN (DIN 6935)de la longitud desarrollada.
+En el ejemplo que sigue, si la materia escogida
+es ACERO 3, la corrección será de:
+DIN * 0.850
+El escoge de la corrección se hace en la página
+PIEZA NUM, PLEGADO NUM etc., en el
+sitio que sigue inmediatamente la materia.
+COMPENSACIÓN Permite de determinar una corrección de ángulo
+ELASTICIDAD para cada tipo de materia según el ángulo
+programado. En el ejemplo siguiente los
+ángulos entre 76° y 90° y que utilizan la
+materia ACERO serán automáticamente
+corregidas de -2.5°.
+PRESIÓN Esos dos parámetros reemplazan el calculo de la
+fuerza de pliegue realizada normalmente por la
+DNC. No programados esos dos valores son:
+PLEGADO EN EL AIRE = 1.75
+FONDO MATRIZ = 42.0
+Si necesario modificar esos valores a su
+conveniencia. Esos valores son propios a cada
+una de las 5 materias.
+TOLERANCIA PCC Este sitio es una seguridad para las
+EN % DEL ESPESOR herramientas. Si durante la medida del espesor,
+el espesor del material es superior a nnn%, se
+generará una alarma.
+Consulten el capitulo Correcciones por medida
+de éspesor / Medida en el PCC.
+FACTOR Este tablero es utilizado por la función de
+CORRECCIÓN corrección de espesor al PCT.
+ESPESOR Consulten el capitulo Correcciones por medida
+de éspesor / Medida en el PCC.
+DEFINICIONES PÁGINA 23
+===== PAGE 26 =====
+CORRECCIONES DE ANGULO
+Páginas: CORRECCIONES
+GÉNÉRALIDADES
+Las chapas utilizadas en el taller casi nunca tienen su espesor nominal. El
+espesor real varía corrientemente de ±10% con relación al valor nominal.
+Además la variación no es constante en toda la anchura de la chapa. El
+espesor por el lado izquierdo puede ser diferente del espesor por el lado
+derecho (chapas de sección trapezoidal). El software permite corregir este tipo
+de error disociando la corrección de una extremidad a la otra del plegado.
+Los cálculos de profundidad de plegado (así como de alargamiento, de
+presión y bombeado) se basan sobre el espesor nominal. (el espesor
+programado en la zona ESPESOR).
+Tratamos en este capítulo Correcciones de ángulo 3 tipos de correcciones:
+(cid:121) Las correcciones directas.
+(cid:121) Las correcciones angulares.
+(cid:121) Las correcciones por medida del espesor de la chapa.
+Según la zona en la cual se introduce, una corrección puede actuar sobre:
+(cid:121) El pliegue referido (únicamente).
+(cid:121) Todos los pliegues (del mismo ángulo) situados en la misma sección
+(mismo perfil).
+(cid:121) Todos los pliegues (del mismo ángulo) de la pieza (también sobre
+secciones distintas).
+CORRECCIONES DIRECTAS
+Para utilizar las correcciones directas, el DNC debe hallarse en modo
+programación o semi-automático y basta con introducir un valor en la zona
+deseada de la primera tabla de la página. El número de pliegue en curso se
+halla en la parte alta de la pantalla.
+Si la corrección se refiere a los dos lados de la trancha, hay que introducir el
+mismo valor para Y1 y Y2.
+Es también posible corregir los otros ejes, el PCC, la fuerza de plegado y el
+bombeado según los mismos principios.
+Las correcciones directas se adicionan. Esto significa que si hay una corrección
+global para la pieza y si se programa una corrección para un pliegue dado, la
+corrección final para este pliegue será la adición de las dos correcciones.
+PÁGINA 24 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 27 =====
+CORRECCIONES ANGULARES
+Después de haber realizado un plegado, el operario mide el ángulo obtenido.
+Introduce el valor angular medido en la zona ANGULO. El DNC calcula
+automáticamente la corrección para obtener el ángulo inicialmente
+programado. Si después de haber realizado el plegado corregido, el ángulo
+todavía no es correcto, basta con introducir el nuevo ángulo programado.
+Según los casos, esta operación se puede repetir 2 o 3 veces.
+Cuidado, no hay que intervenir en la tabla de las correcciones directas
+simultáneamente con las correcciones angulares.
+Como para las correcciones directas, se puede atribuir la correción a:
+PLEGADO Corrige únicamente el pliegue en curso.
+SECCIÓN _ Corrige todos los ángulos de la sección
+especificada que tienen el mismo valor
+programado y los mismos útiles.
+PIEZA Corrige todos los ángulos de la pieza que tienen
+el mismo valor programado y los mismos útiles.
+El DNC debe hallarse en modo programación o semi-automático.
+(cid:121) Programar la zona MEDIDA ESPESOR de la manera siguiente
+MEDIDA ESPESOR CENTRAL NINGÚN MODO ANTIGUA MEDIDA
+(cid:121) Medir el ángulo obtenido.
+(cid:121) Introducir el valor medido en la zona ANGULO bajo una de las
+columnas PLEGADO, SECCIÓN o PIEZA.
+(cid:121) Testear el resultado y empezar de nuevo si es necesario.
+Ver también el parámetro máquina COMPENSACION RETORNO
+ELASTICO en la página MATERIA. Este parámetro permite corregir
+permanentemente un ángulo dentro de una zona dada.
+CORRECCIONES POR MEDIDA DE ÉSPESOR
+La corrección por medida de espesor se puede realizar de varias maneras,
+pero el principio es idéntico. Un sistema (o el operario) suministra al DNC la
+medida real de la materia. Con estos parámetros, el DNC calcula la
+corrección necesaria.
+Los dos principales métodos son:
+Medida en el PMA y medida en el PCC.
+DEFINICIONES PÁGINA 25
+===== PAGE 28 =====
+Medida en el PMA El principio consta en que la medida sea realizada e
+introducida en el DNC cuando la máquina se halla
+en el PMA.
+La introducción de la medida se hace sea
+convencionalemente por el teclado, sea por medio
+de una conexión RS232 utilizando un aparato de
+medición adecuado, o también por un sistema
+integrado al tope.
+Medida en el PCC En este caso se realiza la medida en el PCC.
+Tres posibilidades se ofrecen:
+- Medida por la trancha
+- Medida por la trancha con desplazamiento de
+matriz.
+- Medida en el PCC real por un sistema externo.
+Como para las correcciones angulares y directas, es posible afectar la
+corrección al pliegue en curso, a la sección o a la pieza completa.
+Además, con la corrección en función de la medida de espesor, es posible
+diferenciar la corrección para cada extremidad del pliegue. La selección se
+hace por medio de la lista rotativa CENTRAL o A LAS EXTREMIDADES.
+(ver más adelante en este capítulo para la utilización de esta posibilidad).
+Observaciones: Por motivos técnicos, es posible pasar a modo
+programación durante el trabajo (DNC en modo automático
+y programación) sólo si se ha seleccionado MEDIDA
+ESPESOR NINGUNA.
+Por motivos técnicos, no se puede modificar las zonas
+POS. CHAPA y MEDIDA ESPESOR en modo semi-
+automático.
+Medida en el PMA
+Como se ha descrito en la introducción de este capítulo, la medida se hace
+cuando la trancha se halla en el PMA.
+En este párrafo se describe únicamente la introducción de la medida por el
+operario, como lo permite el software "standard" del DNC.
+El DNC debe hallarse en modo programación o semi-automático.
+Proceder de la manera siguiente:
+(cid:121) Programar la zona MEDIDA ESPESOR de la manera siguiente
+MEDIDA ESPESOR CENTRAL PMA MANUAL MODO POR PLIEGUE
+(cid:121) Medir el espesor muy exactamente (con un micrómetro).
+(cid:121) Introducir el valor medido en la zona ESPESOR IZQUIERDA de la
+columna PIEZA, SECCION o PLEGADO según su necesidad.
+Programando únicamente la zona ESPESOR IZQUIERDA, el
+software asume que la medida es central.
+(cid:121) Dejar la zona.
+(cid:121) Plegar.
+PÁGINA 26 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 29 =====
+Si se hace la introducción en la columna:
+PIEZA
+- La medida realizada por el operario sobre cualquier pliegue es válida
+hasta la próxima medida.
+- El espesor real obtenido es memorizado en asociación con la pieza.
+- Se considera que el espesor real es el mismo para todos los pliegues.
+- A cada nueva medida, se corrigen todos los pliegues.
+- Si no se realiza ninguna medida, se corrige según la antigua medida
+memorizada.
+SECCIÓN
+- La medida realizada por el operario sobre cualquier pliegue de la
+sección es válida hasta la próxima medida.
+- El espesor real obtenido es memorizado en asociación con la sección a
+la cual pertenece el pliegue sobre el cual fue realizada la medida. Es
+válida para todos los pliegues sucesivos perteneciendo a la misma
+sección.
+- Si se realiza una nueva medida, se corrigen de nuevo todos los
+pliegues de la sección en cuestión.
+- Si no se realiza ninguna medida, se corrige según una eventual antigua
+medida memorizada en asociación con esta sección.
+Observación: Es decir que si valores son presentes en la columna
+SECCIÓN, se tomarán en cuenta cuando los valores de la
+columna PIEZA quedarán ignorados. Si no hay ningún
+valor en la columna SECCIÓN, los valores de la columna
+PIEZA, si existen se tomarán en cuenta.
+PLEGADO
+- La medida realizada por el operario sobre cualquier pliegue es
+únicamente válida para este pliegue. Es también memorizada.
+- Si no se realiza ninguna medida, se corrige según una eventual antigua
+medida en asociación con este pliegue.
+Observación: Si hay valores en la columna PLEGADO, se tomarán en
+cuenta cuando los valores de las columnas SECCIÓN y
+PIEZA quedarán ignorados. Si no hay ningún valor en la
+columna PLEGADO, los valores de la columna
+SECCIÓN, si existen se tomarán en cuenta. Si sólo la
+columna PIEZA tiene valores, estos se tomarán en cuenta.
+DEFINICIONES PÁGINA 27
+===== PAGE 30 =====
+Medida en el PCC
+Describimos en este capítulo únicamente la medida en el PCC con la trancha.
+Principio:
+La trancha realiza su aproximación habitual (en semi-auto o automático).
+Llegando justo antes del PCC teórico, el DNC disminuye la presión del
+sistema y la trancha se "coloca" libremente sobre la chapa. El DNC detecta la
+parada de la trancha y de esta manera permite la medida del espesor de la
+chapa.
+Es inútil decir que, en esta fase, la chapa no debe curvarse bajo la influencia
+de la trancha, si no la medida está falseada. El modo de funcionamiento de
+esta opción dependerá directamente de la hidráulica de la máquina, de la
+velocidad de acercamiento de la chapa, de la fuerza mínima de la trancha en
+esta fase de medida.
+Naturalmente es inimaginable que, en esta fase, la trancha se ponga de través,
+resultando entonces totalmente errónea la medida.
+Así idealmente la pieza se hallará en el centro de la máquina, tendrá una
+longitud de plegado de más de los 2/3 de la longitud total de la máquina y
+estará en posición de soportar la trancha sin curvarse.
+Como para las otras correcciones, la medida puede realizarse por pieza,
+sección o plegado, central o a las extremidades según la selección realizada.
+Antes de cada utilización, hay que proceder a la calibración, para calibrar el
+conjunto.
+Calibración
+Un ciclo de calibración es muy semejante a un ciclo de medida.
+Simplemente, el espesor real obtenido se sustrae del espesor nominal. Esta
+diferencia está memorizada para utilizarse más tarde como corrección de los
+cálculos de espesores reales.
+Procedimiento:
+(cid:121) Medir la chapa con un micrómetro.
+(cid:121) Seleccionar MODO CALIBRACIÓN.
+(cid:121) Inscribir los valores en las zonas apropiadas ESPESOR DERECHO
+y ESPESOR IZQUIERDO de la página CORRECCIONES.
+(cid:121) Poner el DNC en modo semi-auto.
+(cid:121) Colocar la chapa en el centro de la máquina y realizar un plegado.
+(cid:121) Si el ciclo de calibración tuvo lugar correctamente, las diferencias
+entre los espesores reales medidos y los valores de referencia se
+visualizan en las líneas ESPESOR IZQUIERDO y ESPESOR
+DERECHO, bajo la columna --APU--. Quedarán aquí hasta la
+próxima calibración.
+(cid:121) Seleccionar el modo de medida deseado MODO POR PIEZA,
+POR SECCIÓN o POR PLIEGUE. Desde este momento, durante el
+trabajo, se realizará la medida según la opción elegida. Ver también la
+descripción del modo ANTIGUA MEDIDA a continuación.
+Observaciones: Si la zona POS. CHAPA no está definida, se supone que la
+chapa está centrada entre las dos reglas.
+Si la anchura de la chapa no está definida, se supone que es
+igual a la distancia entre las reglas Y1 e Y2 (parámetros
+máquina).
+PÁGINA 28 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 31 =====
+Trabajo con la corrección MEDIDA EN EL PCC
+Después de haber realizado la calibración, hay que seleccionar MODO POR
+PIEZA, POR SECCION o POR PLIEGUE según que se desea realizar una
+medida respectivamente por pieza, sección o pliegue.
+ANTIGUA MEDIDA En este modo, no se ejecutan nuevas medidas.
+Las antiguas medidas memorizadas en
+asociación con la pieza, la sección o el pliegue,
+son conservadas y utilizadas.
+Este modo es particularmene conveniente en
+caso de trabajo con un juego de chapas
+suficiente homogéneo. En efecto, en este caso
+basta con proceder a una sola medida de espesor
+durante el primer plegado de la primera pieza y
+corregir sobre la misma base a continuación.
+Esto permite evitar la pérdida de tiempo
+inevitablemente asociada a la medida.
+Este modo de trabajo se aplica también en caso
+de trabajo con grupos de piezas, puesto que las
+antiguas medidas asociadas a la última pieza
+realizada son copiadas para la pieza siguiente.
+TOLERANCIA PCC Página: PARÁMETROS MÁQUINA /
+EN % DEL ESPESOR MATERIAL.
+Este sitio permite de imponer una limite máxima
+en la "dispersión" de la materia cuando se
+utiliza la corrección de espesor al PCT.
+En el caso que el espesor de la chapa medida
+sea superior o menor a nn%, el pliegue no será
+ejecutado y un mensaje informa el operario.
+Consulten Correcciones (tabla de ...).
+FACTOR Página: PARÁMETROS MÁQUINA /
+CORRECCIÓN MATERIAL.
+ESPESOR Este tablero permite de determinar un conjunto
+de correcciones en función de la variación del
+espesor cuando utilicen la corrección del
+espesor al PCT. No programado este parámetro
+tiene por valor 1.00.
+Si el operario ve que:
+para una cierta materia, el logicial suele
+compresión muy grande (ósea que baja mucho
+cuando el espesor efectivo es mas fino que el
+espesor nominal, o no baja bastante, si el
+espesor efectivo es mas grande que el nominal )
+el operario pondrá un valor entre 0.99 y 0.0 en
+el sitio del ángulo correspondiente ángulo
+correspondiente.
+Si al contrario, el logicial no compresa bastante,
+el operario pondrá un valor entre 1.01 y 99.99.
+Ver Correcciones (tabla de ...).
+DEFINICIONES PÁGINA 29
+===== PAGE 32 =====
+CORRECCIÓN DE ESPESOR INDEPENDIENTE Y1-Y2
+El principio consta en suministrar o medir (según uno de los métodos
+descritos arriba) el espesor a cada extremidad del pliegue. Con estos datos y
+conociendo la posición de la chapa, el DNC calculará de nuevo una
+corrección diferente para Y1 Y2. Este tipo de corrección es particularmente
+apreciado para el plegado de chapa con una gran longitud de plegado y una
+variación importante de espesor.
+Para funcionar, los parámetros máquinas describiendo la posición de las
+reglas, la anchura de la máquina, etc .se deben programar, si no un mensaje
+de error aparece.
+La corrección de espesor independiente Y1 Y2 se puede utilizar
+conjuntamente tanto con la medida de espesor en el PMA como con la
+medida de espesor en el PCC. Funciona también con la selección de las
+correcciones por pieza, sección o pliegue.
+Medida de espesor en el PMA
+El funcionamiento es idéntico al descrito en el párrafo Medida en el PMA
+arriba, excepto que hay que programar la posición de la chapa y el espesor a
+cada extremidad.
+(cid:121) Seleccionar MEDIDA DE ESPESOR A LAS EXTREMIDADES
+(cid:121) Programar la posición de la chapa en la zona POSICION CHAPA y
+en la columna elegida.
+(cid:121) Introducir en la misma columna el espesor de la chapa medida a cada
+extremidad del futuro pliegue.
+(cid:121) Dejar la zona.
+(cid:121) Plegar.
+Medida de espesor en el PCC
+El funcionamiento es idéntico al descrito en el párrafo Medida en el PCC
+arriba, excepto que en este caso hay que programar la posición de la chapa.
+(cid:121) Seleccionar MEDIDA DE ESPESOR A LAS EXTREMIDADES
+(cid:121) Programar la posición de la chapa en la zona POSICION CHAPA y
+en la columna elegida.
+(cid:121) Proceder como descrito en el párrafo Medida en el PCC arriba.
+(cid:121) Seguir plegando.
+CORRECCIONES: SENSIBILIDAD PMB
+Página: CORRECCIONES, sitio SENSIBILIDAD PMB.
+Este sitio indica cual es la variación de profundidad necesaria para obtener
+una variación de ángulo de 1 (uno) grado en la secuencia en curso.
+Si ese valor es muy pequeño (por ejemplo < o = 0.05 mm), es deseable de
+utilizar una matriz con un V mas ancho.
+PÁGINA 30 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 33 =====
+CRITÈRIOS DE SIMULACIÓN
+Páginas: PLEGADO 2D
+(via menú ACCIÓN)
+Antes de lanzar una búsqueda automática de la gama de pliegues, tienen la
+posibilidad de definir un cierto número de criterios tomados en cuenta por el
+sistema cuando calculará la continuación de los pliegues.
+Los criterios de simulación son siempre válidos como fueron definidos por la
+última vez.
+Se distinguen dos grupos de criterios de simulación:
+NO-PRIORITARIOS Son criterios de preferencia. Se aplican en la
+medida de lo posible. El no respeto de estos
+criterios no impide el software de hallar una
+solución.
+PRIORITARIOS Estos criterios son obligatorios. El software
+buscará una solución respetando
+imperativamente estos criterios. Estos últimos
+pueden conducir el software a no hallar
+solución.
+N° MAX. PLEGADO Permite limitar el número de pliegues (ya
+CONTRA TOPE realizados) hallandose entre el pliegue a realizar
+y el tope trasero.
+L. MIN. CONTRA El sistema buscará una solución permitiendo de
+OPERARIO/L TOTAL siempre dejar una longitud mínima (expresada
+en % de la longitud desarrollada total) por el
+lado del operario.
+DEFINICIONES PÁGINA 31
+===== PAGE 34 =====
+Eje de
+basculado
+Eje de = volteado
+volteado + pivotado 180°
+Eje de
+pivotado
+MINIMO DE El software elegirá la solución pidiendo el
+PIVOTADO mínimo de pivotado posible.
+MINIMO DE El software elegirá la solución pidiendo el
+VOLTEADO mínimo de volteado posible.
+MINIMO DE El software elegirá la solución pidiendo el
+BASCULADO mínimo de basculado posible.
+MANIPULACION El software elegirá las manipulaciones de la
+OPTIMAL chapa que son más favorables para el operario;
+en función del espesor de la chapa y de su
+relación longitud/longitud de plegado. La
+selección de esta opción es prioritaria sobre los
+criterios precedentes.
+ERROR DE CORTE El software procurará que el error de corte se
+SOBRE CARA halle sobre la cara especificada.
+PRECISION ENTRE El software buscará una solución permitiendo
+CARAS -- Y -- alcanzar la precisión máxima entre las caras
+especificadas.
+FLEXIBILIDAD Normalmente el software no acepta que la pieza
+tope contra una parte de la máquina durante el
+plegado.
+Cuando está validado este criterio, el software
+acepta que una parte de la pieza tope en un
+punto de la máquina con una flexibilidad en %
+de la longitud de la chapa entre el pliegue y el
+fin de la pieza por el lado del perfil que entra en
+colisión.
+PÁGINA 32 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 35 =====
+40
+60
+40mm=20% of100+60+40
+100
+En este ejemplo, una flexibilidad de 20%
+autoriza la chapa a "penetrar" teóricamente de
+40 mm en el punzón.
+Astucia Si una pieza es muy compleja, puede ser
+interesante programar 100% de flexibilidad para
+anular el criterio de colisión, con el propósito de
+visualizar la continuación de los pliegues
+propuestos por el software. Entonces se reducirá
+este criterio hasta un valor aceptable.
+APOYO SOBRE Por defecto (NO), el sistema prohibirá la
+SEGMENTO situación illustrada a continuación.
+INCLINADO
+y sólo autorizará los apoyos
+o
+o
+Programando esta opción SI, el software
+autorizará también el apoyo sobre ángulos más
+abiertos que 90° (1° caso arriba).
+Para validar los criterios elegidos para una simulación, clic en la zona
+DEJAR o pulsar una de las teclas de función para tener acceso a una nueva
+página.
+DEFINICIONES PÁGINA 33
+===== PAGE 36 =====
+CURVA IDEAL (CR)
+Páginas: PIEZA NUMÉRICA y PLEGADO NUM.
+La curva ideal permite hacer un pliegue con un gran radio interno.
+Se puede programar una curva ideal en una o otra página.
+Se determina una curva ideal con una programación desde 4 hasta 98 (una
+programación a 0, 2 o 3 dará un error).
+Observación: Para un resultado coherente, el número de pliegues para
+realizar el ángulo debe ser tal que la longitud de cada
+segmento sea superior a la mitad de la longitud de la apertura
+de la V de la matriz.
+En caso contrario, un mensaje informará al operador y esto
+resultará en un ángulo demasiado abierto.
+Astucia Si se programa 99 en el sitio, CR el logicial determina el mismo el número
+máximo de pliegues para la curva ideal. Claro por cierto el operador puede
+después diminuir el número de pliegues si lo desea.
+En modo curva ideal, el software calcula pliegues diferentes para el primer, el
+segundo, el penúltimo y el último pliegues según la curva a continuación.
+Procedimiento para realizar una curva ideal:
+Página PIEZA NUM
+(cid:121) Llamar a la página PIEZA NUM.
+(cid:121) Introducir el valor del ala deseada en la columna L.
+(cid:121) Introducir el ángulo final deseado.
+(cid:121) Introducir el radio interno final en la zona Ri.
+(cid:121) Introducir el número de plegados para la curva ideal en la zona CR.
+Ver también Tolerancia.
+PÁGINA 34 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 37 =====
+Ejemplo de programación
+(cid:121) Llamar a la página PIEZA NUM.
+(cid:121) Introducir los útiles y la materia como de costumbre.
+(cid:121) Introducir las dimensiones de la pieza con el radio interno de curva
+ideal en la columna Ri.
+(cid:121) Introducir 99 en el sitio CR, el programa calculará el número de
+pliegues máximo para este croquis (ver fig. arriba).
+(cid:121) Lanzar el cálculo (via menú Acción) para obtener la longitud
+desarrollada, la tolerancia (ver Tolerancia) y el número de plegado por
+curva ideal.
+(cid:121) Llamar a la página PLEGADO 2D.
+(cid:121) Compruebe que el campo SIMULACIÓN contenga SIN PLIEGUE
+IMPUESTO.
+(cid:121) Seleccione BUSCAR ORDEN DE PLEGADO (desde el menú
+Acción).
+(cid:121) A continuación, pase al modo semiautomático (teclas F8 y F10
+del PC para volver al modo programación).
+(cid:121) Simule el plegado con la tecla .
+DEFINICIONES PÁGINA 35
+===== PAGE 38 =====
+Ejemplo de programación para un canalón
+Para realizar un tipo de pieza como arriba:
+(cid:121) Llamar a la página PIEZA NUM.
+(cid:121) Introducir los útiles y la materia como de costumbre.
+(cid:121) Introducir las dimensiones de la pieza con el radio interno de curva
+ideal.
+(cid:121) Introducir 99 en el sitio CR, y el programa calculará el número de
+pliegues máximo para este croquis (ver fig. arriba).
+(cid:121) Lanzar el cálculo para obtener la longitud desarrollada, la tolerancia y
+el número de plegado por curva ideal.
+(cid:121) Llamar a la página PLEGADO 2D.
+En el momento de la edición de este manual, la simulación automática para
+esta pieza ejemplo no da resultado.
+Así hay que utilizar el modo DESPLEGADO para imponer semi-
+automáticamente la gama de los pliegues.
+En el ejemplo abajo, la continuación de los pliegues no fue modificada.
+Depende del operario de hacerlo en el curso de este procedimiento.
+PÁGINA 36 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 39 =====
+(cid:121) Seleccionar modo DESPLEGADO.
+La pieza aparece en los útiles con el último plegado programado.
+(cid:121) Introducir la cara a plegar en último lugar (3 en este ejemplo)
+Al dejar la zona CARA, el software visualiza el plegado elegido.
+(cid:121) Colocar el cursor en la zona APOYO y modificar el apoyo si es
+necesario. Para esta pieza, el apoyo 4 propuesto automáticamente fue
+conservado.
+A pesar de la "colisión" visible en esta situación, la colisión no tendrá
+lugar gracias a la curva ideal (ver más adelante en la simulación en
+modo semi-automático).
+(cid:121) Pulsar la tecla .
+El software visualiza el plegado precedente (se puede seleccionar otro
+plegado programando en la zona cara la cara deseada). El apoyo
+propuesto (5) es conservado, pero puede también modificarse.
+DEFINICIONES PÁGINA 37
+===== PAGE 40 =====
+(cid:121) Repetir la operación hasta el pliegue No 1.
+(cid:121) Pasar a modo semi-automático (con PC pulsar F8).
+(cid:121) Visualizar el resultado paso a paso pulsando la tecla para cada
+pliegue realizado (con PC, para volver en modo programación pulsar
+F10).
+Observación: En este ejemplo, el tope está equipado con un eje R. El
+software así calcula automáticamente su posición en función
+de la curva ideal. Si su máquina no está equipada con un eje
+R motorizado, un tope vertical puede fijarse verticalmente
+con relación al tope original.
+PÁGINA 38 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 41 =====
+DEJAR EL SOFTWARE
+Para parar la máquina, proceder como sigue:
+(cid:121) Como medida de seguridad:
+apoyar la trancha en los útiles o sobre cuñas (tacos) de madera o
+metal.
+(cid:121) Parar el motor principal.
+(cid:121) Pulsar sobre MENÚ y seleccionar DEJAR.
+(cid:121) Validar con la tecla .
+(cid:121) En la nueva ventanilla seleccionar TERMINAR.
+(cid:121) Validar con la tecla .
+(cid:121) Esperar que la pantalla de el DNC vuelve a ser negra y da el mensaje
+EXECUTION TERMINATED (EJECUCION TERMINADA).
+En Windows, el DNC saldrá de Windows automáticamente y mostrará
+un mensaje cuando el sistema esté listo para ser apagado.
+(cid:121) Cortar la corriente de el DNC o de la máquina.
+Con PC proceder de la misma manera o :
+(cid:121) Pulsar simultáneamente las teclas y (F1 un poco tras Alt).
+(cid:121) Clic en TERMINAR.
+DEFINICIONES PÁGINA 39
+===== PAGE 42 =====
+DÉSCENTRAMIENTO HERRAMIENTAS
+Página: PROGRAMACIÓN PUNZONES
+El sitio CORRECCIÓN X permite de corregir el descentraje eventual de un
+punzón.
+Esta corrección da al tope "una modificación de origen" según el
+descentramiento de la herramienta. La corrección tiene cuenta del sentido del
+montaje de la herramienta.
+La corrección es efectiva al pasar en modo semiautomático / o automático.
+PÁGINA 40 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 43 =====
+DESEMPEÑO DEL TOPE
+Página: ÚTILES PLEGA
+Recuerden: son considerados como peligrosos y necesitando un desempeño,
+los desplazamientos de los ejes Y, M1, M2, y la función auxiliar tipo
+MATRIZ.
+A fín de ofrecer una gestión adecuada a ciertos casos particulares, ahora es
+posible al operario de especificar el tipo de desempeño del tope.
+El operario efectuara la selección para cada secuencia en la página ÚTILES
+PLEGA por medio del sitio DESBLOQUEO X.
+Atención:
+Las distancias de desempeño (parámetro 233) son programadas en los
+parámetros máquina y no deben ser modificados.
+3 tipos de desempeño a escoger:
+MÁXIMO Valor por si.
+En ese caso, el desempeño tiene que ser echo a
+la valor mas grande de los parámetros Cota X
+para velocidad de seguridad y Cota X
+para desbloqueo matriz.
+Generalmente la cota X velocidad de seguridad
+es la mas grande de los dos valores.
+Después los ejes se desplazan a su velocidad
+máxima.
+FUERA ZONA Desempeño a la Cota X para desbloqueo
+DESBLOQUEO matriz.
+Después los ejes se desplazan a la velocidad
+autorizada en la zona Cota X para velocidad
+de seguridad.
+Utilizaremos este tipo de desempeño si los
+desplazamientos son cortos.
+NINGUNO No se desempeña todo. El desplazamiento de los
+ejes se ara en velocidad de seguridad si están en
+la zona Cota X para velocidad de
+seguridad.
+PM 50 PM 50 PM 50
+PM 233 PM 233 PM 233
+La distancia de destalonado depende de la longitud de la matriz. Cuando se montan
+varios puestos, la distancia también tiene en cuenta la herramienta más larga.
+PM 50 y PM 233 son los números de los parámetros relacionados de las máquinas.
+DEFINICIONES PÁGINA 41
+===== PAGE 44 =====
+DISTANCIA PV(cid:207)
+Página: PLEGADO NUM
+Permite de determinar que solo una parte de la subida (en %) entre el punto
+muerto bajo y el punto de contacto chapa será ejecutado en velocidad lenta, el
+resto de la subida se hace en velocidad rápida.
+Si VELOCIDAD PLEG. (cid:207) es programada y que DISTANCIA PV (cid:207) no
+esta programada la subida se hace en velocidad lenta asta el punto de
+contacto chapa (=100%).
+EMBUTICIÓN
+Página: PLEGADO NUM
+El plegado por embutición es un modo de plegado en el cual el DNC no
+busca una posición a alcanzar predefinida o calculada, pero en el cual la
+trancha desciende hasta encontrar una posición que lo impide mecánicamente
+ir más allá. El DNC detecta esta parada ; lo que determinará el fin del ciclo
+de descenso.
+El plegado por embutición permite obtener pliegues especiales que no es
+posible hacer de otra manera, como el pliegue aplastado en una matriz
+especial, pero esta técnica implica algunos riesgos.
+En modo embutición, la trancha aplica el tonelaje programado
+más elevado
+en la secuencia o el si las presiones
+mínimas de los parámetros de las máquinas son más
+elevadas que la de la secuencia en curso.
+El DNC para el ciclo de descenso de la trancha cuando observa
+que esta última es mecánicamente inmovilizada sobre el objeto
+a trabajar. El resultado es que toda la fuerza programada se
+aplicará al objeto y en consecuencia a los útiles.
+Así hay que tener en cuenta que la chapa y los útiles solicitados
+en esta operación deben ser capaces de soportar esta fuerza sin
+daño.
+Por otra parte, si el trabajo no necesita toda la longitud de
+plegado de la máquina, es imprescindible posicionar el
+conjunto en el medio de la máquina.
+Para ejecutar un plegado en modo embutición:
+(cid:121) borrar el ángulo programado (zona vacia),
+(cid:121) luego borrar los valores MEM de Y1 y Y2 (zonas vacias).
+El ciclo se realizará normalmente, pero pasado el punto de contacto con la
+chapa, el DNC supervisa el desplazamiento de la trancha. Tan pronto como la
+trancha se para y no envia más información de desplazamiento al DNC, éste
+considera la operación terminada, el tiempo de mantenimiento en presión se
+ejecuta y el ciclo de subida se activa según el modo elegido.
+PÁGINA 42 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 45 =====
+FECHA Y HORA
+Cambiar la fecha y la hora
+Página: BIENVENIDA
+(cid:121) Llamar la página BIENVENIDA.
+(cid:121) Poner el cursor arriba de la pantalla encima de la fecha o la hora y
+introducir le nuevo valor respetando el formato.
+Con la DNC, para autorizar el cambio, tienen que poner la llave sobre
+2, y utilizar la tecla como carácter de separación.
+Año 2000 Cuando el formato año esta en 2 números, el logicial asume que:
+00 à 68 = 2000 à 2068
+y que
+82 à 99 = 1982 à 1999.
+Modificar el formato de fijación de la fecha y de la hora
+Subpágina de página BIENVENIDA.
+Para modificar la fecha y la hora del control numérico.
+(cid:121) Llamar la página BIENVENIDA y seleccionar FECHA/TIEMPO en
+el menú ACCIÓN.
+Una nueva pantalla aparece en la cual se puede parámetrar el contexto de el
+DNC (parámetrado internacional).
+Es posible cargar valores de parámetros por defecto accionando la función
+FALTA en el menú ACCIÓN.
+Clasificación, Para facilitar la clasificación o búsqueda de piezas programadas (por fecha /
+búsqueda hora), es fuertemente recomendado poner el DNC o el PC regularmente a la
+hora (aprox. cada 3 meses o después de una intervención).
+DEFINICIONES PÁGINA 43
+===== PAGE 46 =====
+FUERZA ADMISIBLE SOBRE LAS MATRICES
+Página: PROGRAMACIÓN MATRICES
+La fuerza admisible máxima es fijada a la programación de las herramientas.
+Sin embargo en realidad, la fuerza admisible máxima varia en función del
+ángulo de pliegue (y por claro de otros parámetros habituales).
+La página de programación matriz comporta 2 pares de sitios que permiten de
+adaptar la seguridad. El quinto sitio permite de comprobar el resultado.
+Cuando solo el primero sitio Ton/m es programado, la limite de presión es
+constante y invariable en función del ángulo.
+__._° -> max 200.0 Ton/m
+__. _° -> max ___._ Ton/m
+Prueba 90.0° = 200.0 Ton/m
+El sitio Prueba, indica la fuerza ,máxima admisible al ángulo programado.
+Cuando el sitio "ángulo abierto" y Ton/m de la misma línea son
+programados, el calculo de la fuerza admisible es limitado según el diagrama
+más adelante.
+Sin indicaciones especificas del constructor, introduciremos la fuerza máxima
+admisible ya conocida y un "ángulo abierto" de 90° (como abajo).
+90.0° -> max 200.0 Ton/m
+__._° -> max ___._ Ton/m
+Prueba 60.0° = 115.5 Ton/m
+Cuando los 4 sitios estén programados, el calculo de la fuerza admisible es
+limitado según el diagrama más adelante. La elección entre el método mas
+adelante y el método descripto en este párrafo dependen de los datos
+conocidos y de la decisión del operario que introduce los datos de la matriz.
+90.0° -> max 200.0 Ton/m
+30.0° -> max 45.0 Ton/m
+Prueba 60.0° = 122.5 Ton/m
+PÁGINA 44 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 47 =====
+FUERZA PLEGADO
+Página: PLEGADO NUM
+Si los datos referentes a la anchura, al espesor, al sigma y a los útiles son
+conocidos, esta zona se calcula automáticamente. Indica la fuerza de plegado
+(tonelaje) necesaria para el plegado.
+Se puede programar de nuevo esta zona a su conveniencia. Sin embargo si el
+valor introducido es superior a la seguridad de los útiles, un mensaje de error
+aparece en la zona interactiva. Estos controles de seguridad se realizan al
+cambiar de modo en el DNC (ver Utiles).
+FUNCIONES AUXILIARES
+Las funciones auxiliares son programables y utilizables con diversos fines por
+los constructores.
+Así no conviene tratar esto aquí, sirvanse consultar con el fabricante de la
+máquina para conocer los detalles de funcionamiento.
+GAMA DE PLEGADO
+GAMA DE PLEGADO AUTOMATICO
+El software puede hacer a petición una búsqueda automática de la gama de
+pliegues. El resultado es condicionado por "criterios de simulación" que el
+operario puede introducir a su conveniencia según la pieza a producir (ver
+Critèrios de simulación).
+Introducir los datos de la pieza (ver el documento Manual de utilización).
+Página PLEGADO 2D, página PLEGADO 3D.
+(cid:121) Elegir los criterios de simulación.
+(cid:121) Posicionar el cursor en la zona SIMULA y seleccionar SIN PLIEGUE
+IMPUESTO.
+(cid:121) Elegir BUSCAR ORDEN PLEGADO en el menú Acción.
+Según la complejidad de la pieza, el software dará una solución completa,
+parcial o no solución. Ver a continuación Modo DESPLEGADO.
+DEFINICIONES PÁGINA 45
+===== PAGE 48 =====
+MODIFICAR LA GAMA DE PLEGADO
+Esta operación se hace preferentemente en la página PLEGADO 2D (con
+una versión 3D, es posible realizar esta operación en la página PLEGADO
+3D. Ver también el Manual de referencia 3D).
+Susodicho: Situación inicial.
+Situación deseada.
+(cid:121) Seleccionar la secuencia a modificar (teclas o ).
+(cid:121) Colocar el cursor en la zona CARA e introducir el número de la cara
+que se debe plegar (3).
+PÁGINA 46 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 49 =====
+(cid:121) Colocar el cursor en la zona APOYO e introducir el número del apoyo
+(4). El programa propone los posibles puntos de apoyo en el campo
+AP. PR.
+(cid:121) Seleccionar SIMULAR PLIEGUE en el menú Acción.
+Se observa que la secuencia que plegaba la cara elegida fue suprimida.
+La siguiente secuencia pliega el mismo lado (PLI2).
+Sin cambios. Si fuera necesario, modifique el apoyo.
+(cid:121) "Colocarse" en la secuencia a modificar PLEGADO 3 con las teclas
+o .
+(cid:121) Colocar sucesivamente el cursor en la zona CARA e introducir el
+número de la cara, después sobre APOYO e introducir el número del
+apoyo para esta secuencia (en este ejemplo CARA 1 y APOYO 0).
+(cid:121) Seleccionar SIMULAR PLIEGUE en el menú Acción.
+Proceder de la misma manera para otros pliegues o para imponer una
+simulación.
+Si dominan bien la numeración de las caras y apoyos, no es necesario simular
+cada pliegue. Después de haber terminado la introducción para cada
+secuencia, basta con posicionar el cursor en la zona SIMULA, seleccionar
+CON PLIEGUE IMPUESTO y pulsar BUSCAR ORDEN PLEGADO
+en el menú Acción.
+DEFINICIONES PÁGINA 47
+===== PAGE 50 =====
+MODO DESPLEGADO
+El modo desplegado es útil cuando el software no halla solución para la gama
+de plegado. El modo desplegado presenta la pieza terminada, el operario
+determinará manualmente la gama de plegado de la misma manera que es
+descrito arriba, pero empezando por el último pliegue hasta el primero.
+A continuación se muestra un ejemplo sencillo que hace que la pieza toque el
+bastidor de la mesa antes que el pliegue, sea cual sea el modo de introducción
+de la chapa. La solución para esta pieza es crear un pliegue intermedio,
+solución que se describe en el capítulo Pliegues especiales. Este capítulo
+muestra simplemente cómo utilizar la función desplegado.
+En la primera figura, la pieza toca tras el último pliegue. En la segunda figura,
+la pieza ya toca en el segundo pliegue.
+A continuación se muestran los datos de la pieza (la altura de la matriz es de
+50 mm).
+En la página PLIEGUE EN 2D, si se solicita una búsqueda del orden de
+plegado, se muestra el mensaje Solución no encontrada.
+(cid:121) Seleccione el Modo desplegado.
+Aparece el último pliegue, se marca la colisión inmediatamente.
+Si aparece una solución sin colisión, pulse la tecla y compruebe
+si el programa proporciona una solución.
+PÁGINA 48 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 51 =====
+Si no se propone ninguna solución, ello indica que hay una colisión.
+Programe o cambie en el campo CARA las distintas caras y vea qué se
+puede hacer.
+(cid:121) Pulse la tecla para situarse en la secuencia anterior.
+Si el programa encuentra una solución, ésta aparecerá inmediatamente,
+así como el resto de caras posible (campo CARA PR = cara
+propuesta).
+En el modo desplegado, las caras propuestas aparecen en el campo
+CARA PR. De este modo, el operario puede introducir las caras propuestas
+en el campo CARA para ver el resultado.
+GESTION DE LAS PIÈZAS
+Páginas: la mayoría de las páginas.
+En todas las páginas en las que se menciona el número de pieza (campo
+PIEZA en la parte superior derecha), es posible realizar la búsqueda, la
+memorización o la supresión de una pieza.
+Esta operación se realiza en la memoria por defecto (generalmente
+INTERNA).
+Sin embargo, puede que se haya seleccionado otra memoria como memoria
+por defecto. En este caso, estas operaciones se realizarán en la memoria
+designada por el periférico activo (ver Périfericos activos).
+Estas operaciones pueden realizarse en una memoria distinta a la memoria
+por defecto. Sin embargo, esta posibilidad únicamente existe en la página
+LISTA PIEZAS o página TRANSFERENCIA.
+Memorizar, buscar, suprimir una pieza en floppy o red
+Página: LISTA PIEZA
+(cid:121) Colocar el cursor en la zona PIEZAS Y GRUPOS EN INTERNO.
+(cid:121) Elegir el periférico deseado.
+DEFINICIONES PÁGINA 49
+===== PAGE 52 =====
+Número piezas en el
+periférico en curso
+Luego llamar, memorizar o suprimir la pieza.
+Periférico en curso
+La zona autorizada para la memori0zación de las piezas va de 1 a 89'999.
+Los números 90'000 a 99'999 están reservados para los grupos de piezas
+(ver Grupos de pièzas).
+Para facilitar la búsqueda, se aconseja añadir un código de plano antes de la
+memorización (ver también Búsqueda de piezas segun criterios y Périfericos
+activos).
+Copiar una pieza
+(cid:121) Llamar a la pieza a copiar.
+(cid:121) En caso de necesidad, cambiar el periférico.
+(cid:121) Programar otro número de pieza y memorizar.
+Marcar piezas
+Para facilitar la transferencia de las piezas, es posible seleccionar en el
+periférico en curso las piezas que se desean transferir.
+Una pieza "marcada" se designa por una pequeña marca triangular (cid:189) enfrente
+del número.
+Las piezas marcadas están automáticamente referidas en la página
+TRANSFERENCIA donde aparecen en la lista de transferencia (ver
+Transferencia de los datos).
+Para marcar o "desmarcar" piezas:
+Cursor en el número deseado.
+Tecla o clic para marcar o desmarcar.
+Utilizar la orden BORRAR MARCAS del menú Acción para borrar todas
+las marcas.
+Observación: El marcado de las piezas se limita a 48 piezas.
+PÁGINA 50 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 53 =====
+GRUPOS DE PIÈZAS
+Página: GRUPO DE PIEZAS via menú PIEZA
+Esta página permite crear grupos de piezas para ejecutar estos conjuntos.
+Definiciones
+Un grupo se representa por una lista de números de piezas y corresponde
+típicamente a un producto ensamblado con varias piezas.
+Una misma pieza puede hacer parte de varios grupos.
+En algún grupo puede ser, que una pieza sea presente varias veces.
+Durante la ejecución de un grupo, las piezas prosiguen de una a otra
+automáticamente, o según la orden del operario (empalme manual).
+También es posible de determinar varios grupos. Los cuales tienen
+absolutamente que ser marcados con números >90000.
+Cada grupo de terminado, se le puede asociar "cantidad pedida" y una
+cantidad echa.
+Los empalmes:
+1. En automático:
+Las piezas se producen en la cantidad y en el mismo orden que aparecen
+en el grupo. Los grupos se producen uno después del otro asta llegar al
+cantidad pedida.
+2. En manual:
+Después de cada pieza producta, el operario indica claramente la próxima
+pieza a producir.
+En la página ejemplo arriba, el DNC ejecuta dos veces la pieza 1 (24031),
+luego una vez la pieza 2 (24033) y finalmente cinco veces la pieza 3 (24034),
+luego empieza de nuevo 56 veces.
+56 x
+2 x 1 x 5 x
+24031 24033 24034
+DEFINICIONES PÁGINA 51
+===== PAGE 54 =====
+Para crear un grupo de piezas:
+(cid:121) Columna PIEZA, introducir el n° de la pieza (la pieza debe existir).
+(cid:121) Zona CANTIDAD REQ. introducir la cantidad de conjuntos
+deseados.
+(cid:121) Zona CANTIDAD EFEC introducir la cantidad de conjuntos
+eventualmente ya producidos.
+(cid:121) Memorizar el grupo con un número comprendido entre 90'000 y
+99'999.
+La tecla de función DIBUJO GR. (únicamente versión 3D) visualiza
+gráficamente el contorno de las piezas (con tal que estas piezas hayan sido
+creadas en 3D) que forman el grupo.
+La zona ENCADENAMIENTO PIEZA AUTOMATICO indica al DNC que
+puede encadenar automáticamente las piezas en el orden descrito en la tabla
+(ver ejemplo arriba).
+La zona ENCADENAMIENTO PIEZA MANUAL resulta en que el DNC
+realiza el número de piezas especificado en la tabla, luego al fin de esta serie
+visualiza la página GRUPO DE PIEZAS con un cursor en la columna
+PIEZA (incluso en modo automático). Entonces el operario debe seleccionar
+otra pieza y pulsar la tecla para cargar y ejecutar dicha pieza.
+112 x 56 x 280 x
+24031 24033 24034
+La zona PROXIMO GRUPO es únicamente una zona de información que
+permite especificar al operario el próximo grupo de piezas a realizar.
+Ejemplo de trabajo en la página GRUPO DE PIEZAS
+(cid:121) Editar un grupo que se compone de un conjunto de piezas (asegurarse
+que todas las piezas hayan sido anteriormente definidas).
+(cid:121) Pasando en modo automático .
+Si el grupo tiene una falta (error), el mensaje "GRUPO
+INCOMPLETO" se inscribe.
+Es posible de escoger la primera pieza a ejecutar poniendo el cursor
+sobre la pieza antes de pulsar la tecla auto .
+(cid:121) Las teclas semi-auto y manual interrumpen la ejecución.
+Para permitir la interrupción del trabajo en cualquier momento, y para
+volver a continuar la ejecución según la prosecución dada
+anteriormente, hace falta memorizar el grupo cuando sele interrumpe
+(lo que tiene como consecuencia de conservar las cantidades pedidas y
+las echas).
+PÁGINA 52 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 55 =====
+INDEXAR EJES
+Página: INICIALIZACIÓN MÁQUINA ENC-DNC, menú Acción.
+La función ÍNDICE EJE permite de indexar o de volver a indexar (si ya lo
+estaba) los ejes.
+Cuando la DNC no esta indexada, eso tiene el mismo efecto que de apretar
+sobre el botón Start para indexar la DNC.
+Si la DNC esta ya indexada, eso permite de volver indexar los ejes sin cortar
+la corriente. En este caso la DNC pedirá de confirmar la operación.
+Asegúrense que la corredera este debajo del índice !
+INFORMACIONES PIÈZA
+? !
+Casi todas las páginas: Zona o (colocada en el rincón izquierdo de la
+pantalla).
+Para cada pieza memorizada, comentarios y/o imagenes pueden anejarse con
+el propósito de dar al operario informaciones propias a esta pieza.
+De esta manera, la información es siempre disponible en permanencia.
+Dos principales posibilidades se ofrecen:
+Texto (cid:121) Unicamente texto
+En este caso, sólo aparece la pequeña ventanilla.
+DEFINICIONES PÁGINA 53
+===== PAGE 56 =====
+Texto e imagenes (cid:121) Texto e imagenes
+En este caso, la página completa aparece.
+Por este medio, es posible visualizar fotos, dibujos u otras informaciones
+gráficas. El Software reconoce automáticamente los formatos de los
+ficheros DXF, IGES y PCX (ver Ficheros PCX o Ficheros DXF o IGES
+a continuación en el mismo capítulo).
+Ver las informaciones pieza
+(cid:121) Desplazar el cursor hacia el ? o ! y pulsar la tecla o clic.
+Cuando una información es disponible, la zona ? se transforma en !
+Es posible hacer aparecer automáticamente la ventanilla INFORMACIONES
+PIEZA (únicamente si hay un comentario inscrito) cada vez que el operario
+llama a una pieza. A este efecto, hay que programar en los parámetros
+máquina, en la página PREFERENCIAS, el parámetro Mostrado
+automático de informaciones pieza a SI.
+Redactar una información (texto únicamente)
+(cid:121) Hacer aparecer la ventanilla INFORMACIONES PIEZA
+(clic sobre ?).
+(cid:121) Clic sobre VISUALIZAR y seleccionar EDITAR (con DNC: llave
+sobre 2).
+(cid:121) Seleccionar SIMPLE en la zona de lista rotativa.
+(cid:121) Redactar el texto. Al fin de cada línea, pasar a la línea siguiente con la
+tecla .
+(cid:121) Clic sobre EDITAR para poner en modo VISUALIZAR luego dejar.
+PÁGINA 54 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 57 =====
+Redactar una información (texto e imagenes)
+Este procedimiento describe cómo acompañar una información con imágenes.
+Programar info. y/o En el procedimiento descrito abajo, se admite que las fotos (dibujos o imagenes) ya
+imagenes fueron creadas y que se sabe donde fueron registradas (ver también Périfericos
+activos).
+Para la creación de las fotos numéricas o imagenes, etc., hay que referirse a la
+documentación del aparato así como al software asociado a este aparato (máquina
+fotográfica numérica, scanner etc.) o al software de dibujo para la creación de
+informaciones gráficas.
+Se recomienda registrar imagenes en un server (conectado al DNC por una
+red) y no en la memoria interna del control numérico, porque los ficheros
+imagenes ocupan mucho espacio.
+Para introducir imagenes:
+(cid:121) Hacer aparecer la ventanilla INFORMACIONES PIEZA.
+(cid:121) Clic sobre VISUALIZAR y seleccionar EDITAR
+(con DNC: llave sobre 2).
+(cid:121) Seleccionar CON COMPLEMENTOS en la zona de lista rotativa.
+(cid:121) Redactar el texto de explicación.
+(cid:121) Posicionar la llave sobre 1 o 0 o clic sobre EDITAR y seleccionar
+VISUALIZAR para poner el mensaje en seguridad.
+DEFINICIONES PÁGINA 55
+===== PAGE 58 =====
+(cid:121) Introducir en una línea el nombre del fichero gráfico (1 por línea)
+Con o sin caracteres genéricos (* o ?) véase más abajo la explicación
+relacionada con los caracteres genéricos y el lugar en el que el
+programa debe ir a buscar los archivos de imágenes.
+En el ejemplo arriba, >P256.PCX indica al software que debe
+visualizar la imagen del fichero P256.PCX a la primera llamada de la
+página INFORMACIONES PIEZA.
+Para visualizar las imagenes PLI3.PCX y PLI4.PCX, posicionar el
+cursor en la línea referida y seleccionar VISUALIZAR via el menú
+Acción.
+(cid:121) Clic sobre EDITAR para poner en modo VISUALIZAR luego dejar.
+La señal > indica que la imagen siguiente se visualizará automáticamente.
+Si sólo se indica el nombre del fichero, el software lo buscará en el camino
+descrito por el periférico designado en la zona COMPLEMENTOS EN.
+(Ver Périfericos activos).
+Si se indica el camino completo, el software ignora el periférico.
+Los caracteres genéricos * y ? permiten seleccionar varios ficheros.
+Para visualizarlos posicionar el cursor en la línea y pulsar las teclas o
+.
+Por ejemplo *.PCX visualizará todos los ficheros PCX que se hallan en el
+directorio designado por el camino del periférico imagenes.
+1 = Línea que designa el fichero a
+visualizar.
+2 = Nombre del periférico donde
+se hallan los ficheros.
+3 = Nombre del fichero
+actualmente visible en la
+pantalla.
+4 = Número y cantidad de
+ficheros si se utilizan los
+caracteres * o ?.
+PÁGINA 56 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 59 =====
+Ficheros PCX
+El software permite visualizar imagenes en formato PCX 16 o 256 colores.
+Pueden utilizar por ejemplo una máquina fotográfica electrónica y visualizar
+directamente estas fotos u otros dibujos en modo bitmap suministrado por un
+scanner, o software gráfico (formato PCX).
+Ficheros DXF o IGES
+El software reconoce automáticamente los ficheros al formato DXF o IGES.
+Sólo se reconocen los ficheros en 2D. Según los software que crean estos
+ficheros, es posible que partes de los dibujos sean ignoradas o suprimidas por
+nuestra interface.
+Para obtener más informes acerca de las posibilidades de lecturas de los
+ficheros DXF o IGES, pedir el manual CYCAD que describe las
+posibilidades, compatibilidades y los límites de interpretación.
+Ejemplo de lectura de
+un fichero DXF
+DEFINICIONES PÁGINA 57
+===== PAGE 60 =====
+INSÉRTAR UNA SECUENCIA
+Página PLEGADO NUM
+Para insertar una secuencia:
+(cid:121) Posicionar el cursor en la zona PLEGADO, luego posicionarse en la
+secuencia que se desea insertar (por ejemplo 2) por medio de las teclas
+o .
+(cid:121) Seleccionar INSERTAR PLEGADO (menú Acción).
+La secuencia insertada tomará la posición 2 en nuestro ejemplo y desplazará
+la secuencia 2 a la posición 3. Una secuencia vacía es insertada.
+Si se desea insertar una secuencia copiando su contenido, hay que proceder
+de la misma manera, pero hay que elegir COPIAR UN PLIEGUE (menú
+Acción).
+Página PLEGADO 2D
+Se utilizará esta posibilidad por ejemplo para realizar un trabajo especial
+(Punzonado, conformación, etc.) que no se puede representar gráficamente.
+En página PLEGADO 2D, si se inserta una secuencia, siempre se visualiza el
+grafismo de la secuencia precedente. NO se representará gráficamente la
+secuencia insertada.
+Una secuencia insertada de esta manera está vacía. Hay que ir a la página
+PLEGADO NUM para modificar la secuencia insertada.
+Para insertar una secuencia:
+(cid:121) Posicionar el cursor en la zona PLEGADO, luego posicionarse en la
+secuencia que se desea insertar (por ejemplo 2) por medio de las teclas
+o .
+(cid:121) Seleccionar INSERTAR PLIEGUE (menú Acción).
+La secuencia insertada tomará la posición 2 en nuestro ejemplo y desplazará
+la secuencia 2 a la posición 3.
+PÁGINA 58 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 61 =====
+L. PLEGADO
+Páginas: PIEZA NUM, PLEGADO NUM
+Longitud de plegado, a veces llamada "anchura de plegado", expresa la
+distancia entre las dos extremidades de un pliegue.
+Si la programación de la pieza se hace en la página PIEZA NUM o
+PLEGADO NUM, la longitud de plegado se debe introducir por el operario.
+Este valor es imprescindible para que el software pueda calcular
+automáticamente la presión, el bombeado, y, o la distancia entre los ejes (Z1
+y Z2) de la máquina.
+Con la versión 3D, y si la programación se realiza en 3D, este valor es
+automáticamente procesado por el software.
+LENGUA
+Páginas: BIENVENIDA o PARAMETROS MAQUINA
+El software posee generalmente varias lenguas a elegir.
+La composición de estas lenguas varía según la demanda del constructor.
+Para conmutar lenguas:
+(cid:121) Llamar a la página BIENVENIDA.
+(cid:121) Llave sobre posición 2.
+(cid:121) Colocar el cursor en la zona LENGUA.
+(cid:121) Pulsar la tecla o clic derecho para hacer aparecer la lista
+rotativa con las lenguas disponibles.
+(cid:121) Colocar el cursor en la lengua elegida.
+(cid:121) Validar la selección con la tecla .
+DEFINICIONES PÁGINA 59
+===== PAGE 62 =====
+LONGITUD
+Página: PIEZA NUMERICA
+Esta zona expresa la longitud de un ala (ver los ejemplos del manual de
+utilización) e indica que nos hallamos en modo L-alpha. Es decir que se
+introduce una longitud, luego el ángulo correspondiente, la longitud siguiente,
+el ángulo etc. A veces el dibujo que sirve de base para la realización de la
+pieza no permite programar fácilmente según el método L-alpha. Se puede
+conmutar el método de acotación en LU / LW por medio de la lista rotativa
+LONGITUD y así programar en coordenadas.
+LW
+LU
+LU
+LW
+Se trata de una facilidad que desgraciadamente no está normalizada. Así el
+resultado puede ligeramente variar según los casos.
+PÁGINA 60 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 63 =====
+LONGITUD DESARROLLADA
+Páginas: PIEZA NUMERICA
+El cálculo de la longitud desarrollada se realiza por medio de la acción
+CALCULO. Sin embargo, si se deja la página PIEZA NUMERICA, se
+calcula automáticamente esta zona.
+La longitud desarrollada se calcula según la norma DIN 6935.
+Para obtener estas normas, sirvanse dirigirse a las autoridades competentes.
+Abajo hay un extracto de esta norma, que describe el método de acotación
+utilizado para los cálculos de alargamiento.
+Coeficientes de corrección del cálculo de la longitud desarrollada (Según
+DIN 6935), se pueden programar en la página Materia de los parámetros
+máquina (ver a continuación).
+La lista rotativa DIN, REAL indica si el valor visualizado es un valor DIN o
+un valor introducido por el operario.
+DEFINICIONES PÁGINA 61
+===== PAGE 64 =====
+DIN
+Si se selecciona la opción DIN, la longitud desarrollada de la chapa se calcula
+según la norma DIN 6935 o corregida por el factor de corrección de la
+materia (ver más adelante en este párrafo).
+REAL
+Cuando se selecciona REAL, la zona L.DESARR. autoriza la introducción
+de la longitud realmente medida sobre las piezas.
+La diferencia entre el cálculo DIN y el valor impuesto manualmente se
+distribuye proporcionalmente en las varias caras.
+Coeficiente de corrección de cálculo DIN 6935
+Cuando la norma DIN no permite obtener cálculos adaptados a las situaciones
+reales, el software permite programar coeficientes de corrección.
+La programación de los coeficientes de corrección se hace en los parámetros
+máquina en la página Materia.
+Diez coeficientes numerados de 0 a 9 son disponibles para cada tipo de
+materia (Acero, Alu, Inox, Especial 1, Especial 2).
+Se introduce en la zona K el coeficiente de corrección que se desea aplicar a
+la norma DIN 6935. Sin programación, el valor por defecto corresponde a
+1.000.
+El factor K corrige esencialmente el cálculo DIN en la zona de deformación
+de los pliegues. (El factor K aquí descrito no es el que se halla en la fórmula
+DIN).
+Una utilización juiciosa permite hallar una solución para cada materia.
+La utilización de este tipo de correción se hace seleccionando la materia
+(ACERO en el ejemplo abajo) y programando la zona siguiente con el
+número de la corrección a aplicar (2 en el ejemplo abajo). Si se utiliza el
+factor de corrección, la zona DIN visualizará el valor corregido con el factor
+elegido.
+PÁGINA 62 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 65 =====
+MANTENIMIENTO
+El mantenimiento del control numérico se limita a cambiar regularmente los
+filtros y al limpiado de la envoltura.
+Cambio de los filtros
+Es importante cambiar regularmente (1 vez/ mes) los filtros de los
+ventiladores del control numérico. Si se descuida este mantenimiento, el
+control numérico puede calentarse de manera exagerada y ocasionar defectos
+de funcionamiento, a veces no reversibles.
+(cid:121) Cortar la alimentación principal.
+(cid:121) Desatornillar los 4 tornillos de la rejilla de protección.
+(cid:121) Cambiar el filtro.
+(cid:121) Instalar de nuevo la rejilla de protección.
+Limpiado del DNC
+(cid:121) Cortar la corriente.
+(cid:121) Limpiar el teclado, el casco, el panel trasero con un paño húmedo y
+jabón líquido. (es lo mejor !).
+Secar con un paño limpio y seco.
+Nunca utilizar productos a base de alcohol, ni disolventes
+(tricloroetileno, thinner, acetona, benceno, etc.).
+MÉMORIA LIBRE
+Páginas: LISTA PIEZAS, BIENVENIDA
+Indica al operario la cantidad de memoria libre disponible, en % para el
+periférico seleccionado.
+DEFINICIONES PÁGINA 63
+===== PAGE 66 =====
+MODIFICAR EL ORIGEN DE LOS EJES
+Página: INICIALIZACION MAQUINA-DNC/ENC
+Generalidades:
+Esta página permite modificar el origen de los ejes de la máquina, consultar la
+posición de los ejes (zona POSICION), de los índices (zona INDICE) y de
+los finales de carrera (zonas FDC+ y FDC-).
+La segunda parte referente al borrado de las memorias es objeto del capitulo
+Borrado de las memorias.
+"Modificación de origen" (también llamada "set de un eje") quiere decir
+imponer un valor (al momento de la operación) en el contador electrónico de
+posición del control numérico. Esta operación se utiliza para hacer
+corresponder la posición mecánica del eje con la posición del contador
+electrónico.
+Este procedimiento se realiza generalmente para los ejes de los topes o ejes
+auxiliares. Para la trancha, este último se ejecuta automáticamente al indexar
+la trancha.
+El set de un eje se utiliza muy frecuentemente para corregir un
+desplazamiento del tope trasero. Es decir intentar que cuando el eje X indica
+0.00 en el contador de posición, el tope se halla exactamente en la línea de
+plegado (esta definición es válida para el tope de tipo APOYO).
+Si este cambio es temporal (ocasionado por un útil desplazado por ejemplo),
+se recomienda utilizar las correcciones antes del set del eje.
+Cuidado: algunos constructores equipan el tope trasero con un índice.
+En este caso, la modificación de origen del eje sólo tendrá un efecto limitado
+hasta la próxima indexación.
+Si deben modificar duraderamente el origen de un eje indexado, sirvanse
+consultar el constructor de la máquina.
+Si la modificación de origen no es correcta, esta operación puede
+dañar la máquina y/o los útiles. Por ejemplo, el eje puede entrar en colisión
+mecánica con otro elemento.
+Como mal menor, las piezas producidas no serían precisas.
+Así el set de un eje se debe ejecutar con cuidado. El que realiza esta
+operación debe conocer precisamente las consecuencias.
+PÁGINA 64 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 67 =====
+Para modificar el origen de los ejes, proceder como sigue:
+(cid:121) Comprobar que el eje referido no está en movimiento.
+(cid:121) Pasar el control numérico a modo PROGRAMACION.
+(cid:121) Llegar a la página INICIALIZACION MAQUINA.
+(cid:121) Llave en posición 3.
+(cid:121) Colocar el cursor en el eje deseado en la columna PEDIDA.
+(cid:121) Introducir la nueva posición.
+(cid:121) Menú Acción: seleccionar VALIDAR.
+La nueva posición es visible en la columna POSICION.
+Para comprobar el nuevo origen del eje, es posible proceder como sigue:
+(cid:121) Quedar en la página INICIALIZACION MAQUINA.
+(cid:121) Pasar el control numérico en modo manual.
+(cid:121) Colocar el cursor en el eje deseado, en la columna PEDIDA.
+(cid:121) Introducir un valor a alcanzar.
+(cid:121) Pulsar la tecla del panel delantero.
+El eje debe desplazarse hasta la posición pedida.
+(cid:121) Comprobar el resultado y corregir si es preciso.
+PARAMÈTROS MAQUINA
+Páginas: PARAMETROS MAQUINA
+Estas páginas contienen los parámetros necesarios para el funcionamiento de
+su máquina. Es muy importante tener una copia memorizada en disquette (ver
+Transferencia de los datos). En caso de problemas, ahorrarían mucho tiempo
+si debían reintroducirlos.
+En ningún caso se deben modificar los parámetros máquina sin el
+acuerdo y el sostén del fabricante de la máquina.
+Una programación errónea puede ocasionar daños importantes para
+el material o hacer la máquina peligrosa.
+DEFINICIONES PÁGINA 65
+===== PAGE 68 =====
+PCV
+Página: PLEGADO NUM.
+El punto de cambio de velocidad (PCV) es una distancia expresada en
+milímetros a partir del punto de contacto con la chapa.
+Define el lugar donde la trancha pasará de la velocidad de aproximación a la
+velocidad de plegado.
+Se utiliza esta posibilidad cuando se desea una aproximación larga y lenta de
+la chapa para un trabajo específico.
+Si nada es programado, se calcula automáticamente este punto de modo que
+la trancha haya conmutado a velocidad de plegado antes de llegar al punto de
+seguridad.
+PCV
+(cid:0)(cid:0) (cid:0)(cid:0)
+(cid:0)(cid:0) (cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0) (cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+Si se aproxima la chapa como en la figuración arriba, el punzón alcanzará la
+superficie de la chapa a gran velocidad. Modificando el PCV, la conmutación
+se puede ajustar de manera a acceder a la chapa a la velocidad de plegado.
+PÁGINA 66 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 69 =====
+PÉRIFERICOS ACTIVOS
+Página: BIENVENIDA
+Propósito:
+Esta función permite elegir el periférico que contiene la información deseada
+y esto separadamente para los parámetros máquina, las piezas, los útiles, los
+ficheros CAD y los ficheros complementos de la página información pieza.
+Presenta una multitud de combinaciones especialmente apreciadas con un
+puesto de trabajo PC. En efecto por medio de estas selecciones, el operario
+PC podrá fácilmente dirigir varias máquinas.
+La comprensión de esta noción es importante, porque su flexibilidad permite
+una gran diversidad de selecciones.
+Definición:
+El periférico activo es el periférico en el cual el software va a leer, buscar,
+salvar o suprimir datos. Se indican los periféricos activos en la página
+BIENVENIDA.
+En algunas páginas, es posible seleccionar temporalmente otro periférico para
+una operación (por ej. LISTA DE PIEZA, PROGRAMACION PUNZON /
+MATRIZ, TRANSFERENCIA)
+PERIFERICOS ACTIVOS MAQUINA
+Al cambiar el periférico en la zona MAQUINA, automáticamente PIEZAS,
+PUNZONES y MATRICES son reorientados hacia el mismo periférico.
+Para cambiarlos independientemente uno del otro, basta con modificarlos
+después.
+Los periféricos FICHEROS CAD y COMPLEMENTO no se modifican
+automáticamente, porque generalmente se hallan en una red y son
+frecuentemente objeto de una "clasificación específica" en uno o varios
+directorios.
+Modificando de esta manera el periférico MAQUINA, las condiciones de
+utilización del software "vuelven a ser" las de otra máquina. Así es fácil
+simular piezas para diferentes configuraciones de prensas plegadoras.
+Por otra parte, cada vez más hallarán disquettes conteniendo ejemplos de
+piezas especiales (suministradas por CYBELEC o por el constructor de la
+máquina) y cuya realización necesitó condiciones de utilización especiales
+(Utiles por ejemplo). Así con esta posibilidad, pueden fácilmente visualizar
+estas demostraciones con todo el contexto máquina en el cual fueron creadas.
+Con un control numérico, es naturalmente posible trabajar con la máquina
+únicamente cuando la zona MAQUINA está conmutada en INTERNA.
+Si se utiliza otro periférico para visualizar una pieza de demostración por
+ejemplo, será sin embargo posible conmutar el DNC en modo semi-auto u
+auto. Sin embargo el mensaje ENC NO CONECTADO aparecerá y no será
+posible trabajar con la máquina.
+Para relanzar el periférico máquina INTERNA, se deberá:
+(cid:121) Seleccionar MAQUINA INTERNA
+(cid:121) Inicializar el ENC pulsando INIC ENC, menú Acción.
+DEFINICIONES PÁGINA 67
+===== PAGE 70 =====
+PERIFERICOS ACTIVOS PIEZAS
+Selecciona el periférico por defecto en el cual las operaciones de búsqueda,
+memorización y supresión de las piezas se realizarán.
+PERIFERICOS ACTIVOS PUNZONES / MATRICES
+Selecciona el periférico por defecto en el cual las operaciones de búsqueda,
+memorización y supresión de los punzones y matrices se realizarán.
+Naturalmente es necesario que los útiles especifícados en la pieza en curso
+estén disponibles en el periférico dirigido, si no el software enviará un
+mensaje de error.
+PÁGINA 68 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 71 =====
+PIEZA PARAMÉTRICA
+Función:
+Únicamente es posible en modo 2D.
+Permite realizar la modificación simple y rápida de un perfil dado y repetido
+programando únicamente parámetros predefinidos.
+Sobre la base de una pieza creada en PIEZA NUMÉRICA, el operario tendrá
+acceso a las modificaciones de la pieza, pero únicamente sobre parámetros
+que habrán sido definidos con valores mínimo y máximo en la pieza
+paramétrica. La activación o desactivación de esta función requiere que la
+llave esté en la posición 3.
+Activación de la función
+Pieza paramétrica
+(cid:121) Vaya a PARÁMETROS MÁQUINA.
+(cid:121) Con las teclas y , visualice la ventana de la imagen
+superior y seleccione la opción SÍ que se encuentra junto al campo
+Pieza paramétrica.
+Crear una pieza paramétrica
+Para crear una pieza paramétrica, proceda del siguiente modo:
+1. Cree una pieza de manera normal.
+2. Defina los parámetros.
+3. Active los parámetros.
+4. Memorice la pieza.
+5. Trabaje con la pieza paramétrica.
+DEFINICIONES PÁGINA 69
+===== PAGE 72 =====
+Paso a paso:
+(cid:121) Pulse la tecla de función PIEZA ( ) y seleccione PIEZA
+NUMÉRICA.
+A continuación se muestra un perfil tipo de una pieza que se fabricará a
+menudo, pero en la que algunos parámetros deben modificarse en función
+de la demanda.
+Ejemplo de un perfil
+(cid:121) Pulse la tecla de función PIEZA y seleccione PARÁMETROS
+PIEZA NUM, como se muestra a continuación.
+PÁGINA 70 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 73 =====
+Se abre la siguiente ventana:
+Los parámetros A a
+H son los 8
+parámetros que
+podrán modificarse
+a continuación.
+Columnas:
+Leyenda: permite
+describir
+brevemente el
+parámetro
+modificable.
+Mín, Máx y Típico
+permiten fijar los
+límites y un valor por
+defecto.
+(cid:121) Decida y rellene los campos de los parámetros que desea que sean
+modificables.
+(cid:121) Asocie los parámetros definidos en las distintas caras, ángulos que
+desea cambiar. Abra la lista de opciones del campo en cuestión, y
+seleccione el parámetro variable asociado a ese campo.
+Haga clic con el
+botón derecho o
+para
+seleccionar el
+parámetro que desea
+asociar con la cara.
+DEFINICIONES PÁGINA 71
+===== PAGE 74 =====
+Por ejemplo:
+(cid:121) Cara 1 asociada al parámetro A.
+(cid:121) Caras 3, 5 y 6 asociadas al parámetro B.
+(cid:121) Cara 4 asociada al parámetro C.
+(cid:121) Ángulo de la cara 2 asociada al parámetro D.
+Una vez finalizada la definición de parámetros, conviene activarlos, de modo
+que se puedan modificar los parámetros de la pieza.
+(cid:121) Activar los parámetros. PARÁMETROS: ACTIVOS.
+(cid:121) Pulse la tecla PIEZA y seleccione PIEZA NUMÉRICA.
+Ahora cambia la página pieza numérica; únicamente los parámetros definidos
+anteriormente aparecen en pantalla y son modificables.
+PÁGINA 72 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 75 =====
+Trabajo con una pieza paramétrica
+(cid:121) Como en el caso de una pieza normal, coloque el cursor en el campo
+VALOR del parámetro que desea modificar.
+Sobre el dibujo del perfil, un círculo indica la cara asociada a este
+parámetro. Introduzca el nuevo valor y salga del campo.
+(cid:121) El sistema recalcula automáticamente el nuevo perfil, así como la
+nueva longitud desarrollada.
+Si desea modificar otros valores, o modificar el perfil de la pieza, deberá
+desactivar la función PARÁMETROS en la página PARÁMETROS
+PIEZA NUM.
+PLANO
+Páginas: En la mayoría de las páginas.
+Esta zona permite introducir una referencia alfanumérica de 24 caracteres
+(Ver Zonas alfanumericas).
+Se recomienda utilizar esta posibilidad para definir de manera única una pieza
+cuando se trata un gran número de piezas. Esto facilitará la búsqueda por
+medio de criterios de búsqueda de piezas.
+DEFINICIONES PÁGINA 73
+===== PAGE 76 =====
+PLEGADO
+EN FONDO DE MATRIZ
+Ver Embutición.
+FINAL
+Ver Pliegues especiales.
+INTERMÉDIO
+Ver Pliegues especiales.
+SECUENCIA SIN PLEGADO
+Página: PLEGADO NUM
+Puede ser útil para el operario crear una secuencia que no realiza plegado,
+pero ejecuta un desplazamiento del eje o de función auxiliar.
+(cid:121) Insertar una secuencia adicional para esta operación (ver Insértar una
+secuencia).
+(cid:121) Página PLEGADO NUM, en la secuencia deseada, suprimir el ángulo
+y programar un valor Y1/Y2 superior al valor del punto de contacto
+con la chapa.
+Tras la ejecución de la pieza, los ejes y funciones auxiliares se colocarán
+como de costumbre, si bien cuando el operario realice una orden de descenso,
+el carro no descenderá. Si el DNC está en modo automático, aparecerá la
+siguiente secuencia, los ejes se colocarán en los nuevos valores y el carro
+permanecerá a la espera de una orden de descenso, como de costumbre.
+En el caso de que el carro no descienda y el operario haya programado
+directamente los valores Y1-Y2, deberá comprobar que estos valores no son
+superiores al punto de contacto de la chapa.
+PÁGINA 74 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 77 =====
+PLIEGUES ESPECIALES
+Para realizar ciertas piezas, puede ser necesario de utilizar algunos pliegues
+especiales.
+Ciertos tipos de pliegues son tratados por el logicial.
+Página PLEGADO 2D
+Tienen a disposición las selecciones siguientes:
+NORMAL Pliegue convencional, sin especialidad.
+PRELIM. Escoja el pliegue corriente como pliegue
+preliminar.
+FINAL Escoja el pliegue corriente como pliegue final,
+significa que termina un pliegue designado antes
+como preliminar.
+ENDEREZADO A utilizar únicamente en la página
+PLEGADO NUM. Esta opción es a carácter
+únicamente indicativo, es decir que informa el
+operario que se trata de un pliegue enderezado.
+El logicial no reacciona de una manera particular
+a esta elección.
+APLASTADO Misma observación para el pliegue enderezado.
+FICTICIO Misma observación para el pliegue enderezado.
+DEFINICIONES PÁGINA 75
+===== PAGE 78 =====
+PLIEGUE PRELIMINAR / FINAL
+Afín de ilustrar la utilización del pliegue preliminar y del pliegue final,
+utilizaremos un ejemplo simple de una pieza en S.
+Típicamente esta pieza no es realizable sin un pliegue preliminar.
+(cid:121) Programar los datos siguientes:
+Página
+PLEGADO NUM
+Página PLEGADO 2D
+En la página PLEGADO 2D, hace falta imponer manualmente la orden de
+plegadura, puesto que sin el pliegue preliminar, esta pieza no es realizable.
+PÁGINA 76 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 79 =====
+Procedan de manera siguiente:
+(cid:121) Cursor sobre CARA, introducir 1.
+El logicial indica los apoyos posibles (APOYO. PR. 0 5 sobre la
+primera línea).
+(cid:121) Cursor sobre APOYO, introducir uno de los apodos propuestos (0).
+(cid:121) Presionar .
+(cid:121) Poner el cursor sobre el número (2) del sitio PLEGADO.
+(cid:121) Seleccionar la función INSERTAR PLIEGUE (vía el menú
+ACCIÓN), para insertar la secuencia de pliegue preliminar.
+Y entonces constataremos que la secuencia de pliegues comporta
+ahora 5 pliegues (vean igualmente Insértar una secuencia en este
+manual).
+DEFINICIONES PÁGINA 77
+===== PAGE 80 =====
+(cid:121) Cambiar la lista rotativa NORMAL en PRELIM.
+En el nuevo sitio ___._°, introducir el ángulo preliminar deseado
+(135.0° en el ejemplo).
+(cid:121) Cursor en el sitio CARA, introducir la cara (2) del pliegue preliminar.
+(cid:121) Cursor en el sitio APOYO, introducir una de las caras propuestas
+(1 en el ejemplo).
+(cid:121) Seleccionar la función SIMULAR PLIEGUE (via el menú ACCIÓN)
+para ver el pliegue.
+(cid:121) Presionar para pasar al 3 zº pliegue.
+(cid:121) Cursor en el sitio CARA, introducir la cara (4) del pliegue corriente.
+(cid:121) Cursor en el sitio APOYO, introducir una de las caras propuestas (5
+en el ejemplo).
+(cid:121) Seleccionar la función SIMULAR PLIEGUE (via el menú ACCIÓN)
+para ver el pliegue.
+(cid:121) Presionar .
+PÁGINA 78 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 81 =====
+(cid:121) Cursor en sitio CARA, introducir la cara (3) del pliegue corriente.
+(cid:121) Cursor en sitio APOYO, introducir una de las caras propuestas (4 en
+el ejemplo).
+(cid:121) Seleccionar la función SIMULAR PLIEGUE (via el menú ACCIÓN)
+para ver el pliegue.
+(cid:121) Presionar para el ultimo pliegue.
+En este pliegue, se termina el pliegue preliminar. Entonces hace falta indicar
+al logicial que se trata de un pliegue final, y darle el pliegue (la cara)
+correspondiente.
+(cid:121) Cambiar la lista rotativa NORMAL en FINAL
+(cid:121) Cursor en el sitio BUSCA, introducir la cara (2) del pliegue
+preliminar.
+(cid:121) Cursor en el sitio APOYO, introducir una de las caras propuestas
+(1 en el ejemplo).
+(cid:121) Seleccionar la función SIMULAR PLIEGUE (via el menú ACCIÓN)
+para ver el pliegue.Y ya la pieza esta terminada.
+Algunas advertencias concerniendo este ejemplo.
+(cid:121) También es posible de cambiar el tipo de tope.
+(cid:121) Barios pliegues "preliminares" / "final" pueden encontrarse en el
+mismo corte o pieza.
+DEFINICIONES PÁGINA 79
+===== PAGE 82 =====
+Astucia Si usted a olvidado de introducir la secuencia de pliegue "preliminar", y que
+le falta para terminar la secuencia el pliegue final, no es necesario de volver a
+hacerlo. Puede introducir una secuencia al fin de la pieza procediendo así:
+(cid:121) Póngase sobre la ultima secuencia (si no lo esta ya) por medio de la
+tecla .
+(cid:121) Place el cursor sobre el sitio PLEGADO (en este ejemplo 4) y
+introducir 5.
+(cid:121) Seleccionar la función INSERTAR PLIEGUE (via el menú
+ACCIÓN).
+Astucia Cuando se debe ejecutar un perfil en U en el cual los lados son muy altos,
+hace generalmente falta hacer un pliegue preliminar el cual será después
+"enderezado".
+Procedan así:
+(cid:121) Página PIEZA NUM, programen 2 larguras que correspondan a la
+mitad del segmento sobre el cual se hará el pliegue preliminar.
+(cid:121) Programen un ángulo de -180.0° para el pliegue enderezado.
+(cid:121) En la página PLEGADO 2D insertar un pliegue preliminar a 135º y
+sobre la ultima secuencia un pliegue FINAL(como se lo hemos
+descrito precedentemente).
+Advertencia: en la página PLEGADO 2D el dibujo esta invertido, es
+un problema ya conocido y aun no corregido.
+(cid:121) En la página PLEGADO NUM corregir el ángulo 180° por un valor
+< a 180° para compensar el retorno elástico.
+Si no realiza esta operación, el valor calculado de Y es igual al PCC, y
+en este casa la DNC ve esta secuencia como una secuencia sin pliegue
+(ver Secuencia sin plegado).
+PÁGINA 80 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 83 =====
+PMA
+Página: PLEGADO NUM.
+El punto muerto alto (PMA) es una distancia expresada en milímetros a partir
+del punto de contacto con la chapa. Define el lugar donde se parará la trancha
+durante su ciclo de subida.
+Se calcula automáticamente el punto muerto alto cuando se realiza una
+búsqueda automática de la gama de plegado. Sin embargo el operario es libre
+de modificar este valor en la página PLEGADO NUM.
+Si no se programa un valor, la trancha subirá a la distancia máxima de su
+carrera definida en los parámetros máquina.
+La trancha no subirá más allá del punto muerto alto máximo (FDC+)
+programado en los parámetros máquina.
+PROGRAMACIÓN DE UN PERFIL
+Ver los ejemplos del Manual de utilización.
+PROGRAMACIÓN DURANTE EL TRABAJO
+Las DNC 80 / 800 / 880S / 900 / 1200 / ModEva permiten programar el
+control digital durante el trabajo.
+Se debe, a dichos efectos:
+Programar el parámetro máquina Programación durante el trabajo
+(páginas Preferencias) = SÍ.
+Pasar a modo automático: se enciende el diodo de la tecla, la DNC
+trabaja en modo automático. El operador puede plegar.
+DEFINICIONES PÁGINA 81
+===== PAGE 84 =====
+Modo dual
+Pasar a modo dual : pulsando la tecla programación .
+El diodo auto permanece encendido y el diodo de la tecla programación se
+encuentra asimismo activado.
+A partir de ese momento es posible utilizar el control digital para programar,
+al tiempo que la máquina puede seguir ejecutando la pieza que se hallaba en
+curso.
+Se hallan accesibles todas las funciones de programación. Memorizar, buscar,
+suprimir, transferir, etc.
+Volver a modo simple
+Tras el modo dual (que se visualiza por los dos diodos Automático y
+Programación encendidos de manera simultánea) pulsar la tecla
+Programación: En este caso aparece visualizada la pieza en proceso de
+edición
+o bien
+Automático: Aparece visualizada la pieza en fase de ejecución.
+PROGRAMAR EN PLEGADO NUM
+Para programar un perfil en página PLEGADO NUM, proceder como sigue:
+(cid:121) Llamar a la página PLEGADO NUM.
+(cid:121) Borrar la memoria de trabajo.
+(selección BORRAR PIEZA en el menú ACCIÓN).
+(cid:121) Introducir el espesor, el sigma y el tipo de materia.
+(cid:121) Cursor en la zona PUNZON. Pulsar la tecla o clic derecho para
+hacer aparecer la lista de las matrices y elegir el punzón deseado y
+validar con la tecla .
+(cid:121) Cursor en la zona MATRIZ. Pulsar la tecla o clic derecho para
+hacer aparecer la lista de las matrices y elegir la matriz deseada y
+validar con la tecla .
+(cid:121) Introducir el ángulo deseado.
+(cid:121) Introducir la cota del tope trasero.
+(cid:121) Introducir las cotas de los otros ejes (R, Z, etc..).
+(cid:121) Introducir las otras funciones de la secuencia (Fuerza de plegado,
+PMA, PCV, Espera ejes, etc...).
+(cid:121) Para crear una segunda secuencia. Seleccionar COPIAR PLEGADO
+en el menú Acción. Esta operación copia la secuencia en curso en la
+secuencia siguiente con los mismos valores. Basta con modificar los
+valores de la nueva secuencia y repetir la operación para las
+secuencias siguientes.
+Ver igualmente los ejemplos del Manual de utilización.
+PÁGINA 82 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 85 =====
+RADIO INTERNO
+Páginas: PIEZA NUM, PLEGADO NUM
+El radio interno se calcula automáticamente en función del espesor de la chapa
+y de los útiles. Este radio calculado sólo es válido para los pliegues al aire.
+Ri
+(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)
+Si el radio del punzón es sup(cid:0)erior(cid:0) al ra(cid:0)dio i(cid:0)nterno natural de la chapa, es el
+del punzón quien tiene prioridad.
+Es posible imponer el radio para adaptar el cálculo de la longitud desarrollada
+y el cálculo de la posición de los topes lo mejor posible para una materia
+particular. A este efecto:
+(cid:121) Programar el radio en la zona referida.
+(cid:121) Programar la zona CR a 1.
+RÉFÉRENCIA YR COR.
+Página: UTILES PLEGADO
+Esta zona permite corregir la referencia de la pareja de útiles.
+Se memoriza esta corrección con la pieza y no con el útil.
+Esta corrección modifica también el punto de seguridad, el punto de contacto
+con la chapa y el punto muerto bajo. Esta corrección se debe utilizar con
+cuidado. Un error en esta zona puede perjudicar el buen funcionamiento de la
+máquina, ocasionar daños materiales importantes, o hacer la máquina peligrosa.
+(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)
+PCV
+PCV
+PCV
+PSS
+Punto de contacto con la PSS Punto contacto con la
+PSS
+chapa antes de corrección chapa después de la
+de la referencia. PCT corrección de la referencia.
+PCT
+PCT
+0 Référence
+0 Référence 0 Réf.
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)
+Se nota en este diagrama que la corrección de la referencia modifica todos los
+puntos de conmutación, así como el punto muerto bajo.
+DEFINICIONES PÁGINA 83
+===== PAGE 86 =====
+REGLAJE MANUAL DEL TOPE
+Frecuentemente los topes traseros no están equipados del eje Z para el
+desplazamiento lateral de los dedos de tope. En otros casos el operario debe
+cambiar la configuración mecánica del tope o añadir otros accesorios.
+Para eso el operario tenia que intervenir por detrás de la máquina o pasar sus
+brazos por debajo la corredera.
+A fín de facilitar este trabajo y dar una seguridad mas grande, ahora es
+posible de programar posiciones especificas a los ejes X, R y/o a las
+funciones auxiliares en modo de gestión de TOPE.
+Esas posiciones son destinadas a poner el tope adelante y en cima de la matriz
+(por lo tanto que la máquina autorice esa posibilidad) de tal manera a que el
+operario pueda ejecutar su trabajo cómodamente y sin riesgo desde el delante
+de la máquina.
+Idealmente, el constructor de la máquina concebirá un sistema mecánico o
+eléctrico/neumático que abrirá los dedos del tope en esta posición de reglaje y
+que los cerrará cuando el tope quite el emplazamiento.
+Las posiciones del tope para esta operación se programan en la página
+parámetros máquina llamados CICLOS ESPECIALES.
+(cid:121) La corredera debe estar en el punto muerto alto máximo. Cuando el
+control numérico esta en semiautomático o automático, el operario
+activa el ciclo especial desde la página PLEGADO NUM con la
+función AJUSTE TOPE (menú Acción).
+(cid:121) El operario después debe explícitamente confirmar cada etapa de este
+ciclo en clicando en la ventanilla de dialogo apropiada.
+(cid:121) Al fin del ciclo, el tope vuelve a su emplazamiento de origen.
+RETROCESO TOPE TRAS.
+Página PLEGADO NUM.
+En algunas situaciones es preciso desbloquear el tope trasero durante el
+plegado.
+Esta zona se programa automáticamente durante una búsqueda automática de
+la gama de pliegues. Este valor se puede modificar después de la simulación
+por el operario.
+El valor de retroceso es un valor relativo generalmente positivo. Si se
+programa un valor negativo, esto permite ejecutar un "retroceso" negativo, es
+decir un desplazamiento hacia la matriz.
+Un retroceso mínimo por defecto puede ser impuesto por los parámetros
+máquina.
+SALVAR LOS DATOS
+Ver Transferencia de los datos.
+PÁGINA 84 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 87 =====
+SECCIÓN
+Páginas: PIEZA NUM y PLEGADO 2D
+Una sección es una línea imaginaria que "secciona" la pieza en el sentido de
+la longitud y que define un perfil. Es este perfil lo que ve el operario en la
+página PLEGADO 2D.
+Una pieza puede constar de varias secciones (en el ejemplo abajo,
+2 secciones). Cada sección se considera como un perfil separado.
+El operario utilizará principalmente la página PIEZA NUM para programar
+uno o varios perfiles (ver el documento Manual de utilización y el párrafo
+con título Programación de un perfil en este manual).
+La creación de las secciones es automática si la pieza está programada en 3D.
+45
+SIGMA
+Páginas PIEZA NUM y PLEGADO NUM
+Introducir en esta zona el valor en Kg/mm2 de la materia utilizada para
+realizar la pieza.
+Ejemplo:
+AC37-2 K Acero 38,22 Kg/mm2
+X5CrNiS18 8 Inox 51 a 71 Kg/mm2
+ALMg2,7Mn Aluminio 24,97 Kg/mm2
+DEFINICIONES PÁGINA 85
+===== PAGE 88 =====
+START EJES-FA
+Página: PLEGADO NUM.
+Esta función permite seleccionar el momento de inicio de los ejes y funciones
+auxiliares según dos modos predefinidos:
+AUTO Los ejes y las funciones auxiliares empiezan
+según lo determinado en los parámetros
+máquina, pero a más tardar al llegar la trancha al
+punto muerto superior.
+El inicio de los ejes difiere según el valor
+programado en el parámetro de la máquina
+60 Punto de inicio de los ejes/FA.
+EXTERNO Los ejes y las funciones auxiliares empiezan al
+accionamiento por el operario.
+Este accionamiento puede ser sea :
+- una orden de descenso (via el pedal o el puesto
+de dos manos). En este caso, no desciende la
+trancha, pero los ejes y las funciones se
+posicionan, necesitará una segunda orden de
+descenso para hacer mover la trancha.
+- pulsar la tecla del panel delantero.
+- la activación de la entrada Start externo del
+control numérico, que para el usuario puede ser
+un botón especialmente previsto al efecto por el
+constructor de la máquina.
+PÁGINA 86 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 89 =====
+TECLADO
+Teclado externo al DNC
+En caso de necesidad, es posible conectar un teclado externo compatible
+100% PC AT en la parte trasera del control numérico.
+Cuidado: El DNC se debe desconectar para conectar el teclado, bajo
+pena de alterar su buen funcionamiento.
+Cuando se conecta un teclado externo al DNC, el panel delantero del control
+numérico queda activo permanentemente.
+DEFINICIONES PÁGINA 87
+===== PAGE 90 =====
+TIEMPO PRESIÓN
+Página: PLEGADO NUM
+Define el tiempo de mantenimiento en presión.
+Si no es programado, el valor por defecto es de 0.5 segundos. Se pueden
+introducir otros valores entre 0.0 y 9.9 segundos.
+TOLERANCIA
+Página: PIEZA NUM
+Sólo se visualiza (calcula) esta zona si el operario impone un radio de
+plegado. Típicamente la tolerancia se utilizará al programar en curva ideal.
+La tolerancia se visualiza después del lanzamiento del CALCULO.
+R1 = Radio de plegado introducido por
+el operario
+Ri = Radio de plegado calculado por
+el sistema
+En el caso de un plegado simple, si el operario impone el radio (Ver Radio
+interno y Curva ideal (CR)), la tolerancia indica el valor según la ilustración
+arriba:
+Ri = Radio de plegado teórico pedido por el operario
+A = Apotema
+Si el valor de la zona CR está incluso entre 4 y 99, esta tolerancia indica la
+diferencia entre la cuerda cerrada por dos pliegues y el arco de círculo
+teórico, sea la diferencia entre el radio teórico Ri y el apothema A de la
+cuerda.
+PÁGINA 88 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 91 =====
+TRANSFERENCIA DE LOS DATOS
+Página: TRANSFERENCIA
+A partir de esta página, se pueden salvar o cargar datos en los diferentes
+periféricos. (Disquette, red, etc.)
+Fuente
+Esta zona selecciona el periférico que provee los datos al periférico de
+destino al momento de la transferencia.
+Destino
+Esta zona selecciona el periférico que recibe los datos al momento de la
+transferencia.
+Transferencia global
+Las selecciones son:
+PUNZON Transferencia de la totalidad de los punzones
+MATRICES Transferencia de la totalidad de las matrices
+UTILES Transferencia de los útiles definidos en
+SELECCIONADOS multisimulación
+LISTA PERIFERICOS Transferencia de la lista de los periféricos
+PARAMETROS Transferencia de los parámetros máquina
+MAQUINA
+PRODUCCION Transferencia de las páginas producción
+TODAS LAS PIEZAS Y Transferencia global de todas las piezas y grupos
+LOS GRUPOS de piezas
+Transferencia parcial
+Selecciona la transferencia de las piezas mencionadas en la tabla abajo.
+En esta tabla se puede especificar para cada pieza la fuente y el destino en las
+columnas respectivas. Si no se especifican estas zonas, la selección FUENTE y
+DESTINO en lo alto de la página se utiliza por defecto.
+Para simplificar la selección de las piezas a transferir, basta con "marcarlas" en
+la página LISTA DE PIEZAS. Aparecerán automáticamente en esta tabla.
+Ver Marcar piezas.
+DEFINICIONES PÁGINA 89
+===== PAGE 92 =====
+La columna ESTADO da los estados de la transferencia.
+(cid:189) La pieza se halla en curso de transferencia.
+? La pieza no fue transferida
+(Doble definición en la lista u otro error).
+! Un error fue detectado durante la fase de
+transferencia, la pieza no fue transferida.
+* La pieza fue transferida correctamente.
+Efectuar una transferencia:
+(cid:121) Seleccionar la FUENTE y el DESTINO.
+(cid:121) Posicionar el cursor en el tipo de transferencia elegido.
+(cid:121) Lanzar la transferencia por medio de la orden TRANSFERIR del
+menú ACCIÓN, luego confirmar.
+Recomendaciones:
+Salvar los útiles y parámetros máquina (y la lista de los periféricos si su DNC
+está conectado en red) justo después de poner en marcha y antes y después de
+la intervención de un técnico. Conservar estas informaciones a buen recaudo.
+Salvar periódicamente las piezas en disquettes si su DNC no está conectado a
+una red. Es simple, rápido y menos costoso que tener que reintroducir todo en
+caso de problemas.
+UTILES
+Al crear una pieza, se pueden componer sus pares de útiles como se desee,
+composición válida para toda la pieza, o diferente para cada pliegue. Sin
+embargo al ejecutar la pieza, los útiles seleccionados deben hallarse en la
+memoria apuntada por el periférico activo (ver Périfericos activos)
+Como para los otros datos, es posible memorizar los útiles en otra parte que
+en la memoria INTERNA del software.
+PÁGINA 90 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 93 =====
+PROGRAMACION DE LOS PUNZONES
+Página: PROGRAMACION PUNZONES
+Tres formas de base son disponibles para la programación. Estas formas se
+eligen en la zona TIPO (0, 1 o 2)
+0 1 2
+Una vez programados todos los datos de un punzón, la herramienta aparece
+de color azul.
+Cuando aparezca la herramienta de base, la podrá reconocer por su color
+marrón.
+Cuando se programa una herramienta, puede que la posición de algunas cotas
+sea difícil de definir. Para visualizar la forma de base predefinida, basta con
+hacer clic en la pequeña casilla (D o E) situada en la parte superior del
+dibujo. Entonces, la herramienta tomará su forma de base, reconocible por su
+color marrón.
+(cid:121) Llegar a la página PROGRAMACION PUNZONES.
+(cid:121) Definir el tipo de punzón de base para la programación en la zona
+TIPO.
+(cid:121) Indicar en la zona INVERTIDO, si está invertido el punzón.
+(cid:121) Completar los otros datos de dimensiones y seguridades.
+(cid:121) Elegir si es preciso el periférico (zona EN) en el cual desean
+memorizar este útil.
+(cid:121) Inscribir el nombre (numérico o alfanumérico) del punzón en la zona
+PUNZON.
+(cid:121) Memorizar el punzón.
+Si el mensaje interactivo EXISTE aparece, esto quiere decir que un
+punzón existente en este periférico ya lleva el mismo nombre, así hay
+que elegir otro nombre para este útil o suprimirlo y memorizarlo de
+nuevo.
+Algunas definiciones de las zonas de esta página
+REF Esta zona indica al software si la cara de apoyo
+del punzón es la cota H1 o H2.
+Esta selección debe ser idéntica para todos
+los útiles de esta máquina.
+La altura H1 o H2 elegida como referencia debe
+ser lo más precisa posible. El resultado de
+plegado depende de esta información.
+DEFINICIONES PÁGINA 91
+===== PAGE 94 =====
+construcción de la máquina. Así esta selección
+es impuesta por el constructor. Es imperativo
+respetar esta selección, si no hay riesgo de
+colisión.
+FUERZA LINEAL < Este valor indica la fuerza máxima que soporta
+el útil. Si el cálculo de presión de la pieza en
+curso supera este valor y si la longitud de
+plegado es conocida, un mensaje interactivo
+informa al operario.
+COLISION EN Si NO (por defecto) el DNC realiza un test de
+PROFUNDIDAD colisión en profundidad (ver Colision
+AUTORIZADA profundidad autorizada), el operario deberá
+validar la "colisión" si es preciso, caso por caso
+en la página UTILES PLEGADO. Si SI esta
+autorización es implícita para este útil.
+SEGURIDAD XS Prohibe que el eje X sobrepase este límite (para
+evitar una colisión con el punzón durante el
+plegado por ejemplo).
+Seguridad XS punzón
+Seguridad XS matriz XS
+XS
+PÁGINA 92 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 95 =====
+PROGRAMACIÓN DE LAS MATRICES
+Página: PROGRAMACIÓN MATRICES
+Cuando todos los datos de una matriz ya han sido programados, la
+herramienta aparece de color rojo.
+Cuando aparezca la herramienta de base, la podrá reconocer por su color
+marrón.
+Cuando se programa una herramienta, puede que la posición de algunas cotas
+sean difícil de definir. Para visualizar la forma de base predefinida, basta con
+hacer clic en la pequeña casilla (D o E) situada en la parte superior del
+dibujo. En este caso la herramienta tomará su forma de base reconocible por
+su color marrón.
+(cid:121) Llegar a la página PROGRAMACIÓN MATRICES
+(cid:121) Indicar en la zona INVERTIDA, si está invertida la matriz.
+(cid:121) Completar los otras datos de dimensiones y seguridades.
+(cid:121) Inscribir el nombre (numérico o alfanumérico) del útil en la zona
+MATRIZ.
+(cid:121) Memorizar la matriz. Si el mensaje interactivo EXISTE aparece, esto
+quiere decir que una matriz existente en este periférico ya lleva el
+mismo nombre, así hay que elegir otro nombre para este útil y
+memorizarlo.
+Algunas definiciones de las zonas de esta página
+Altura H La altura H debe ser lo más precisa posible.
+El resultado del plegado depende de esta
+información.
+Ve Anchura de la V de plegado. Según la acotación
+definida en el dibujo abajo.
+RADIO r Radio de la matriz según dibujo abajo.
+DEFINICIONES PÁGINA 93
+===== PAGE 96 =====
+FUERZA LINEAL < Este valor indica la fuerza máxima que soporta
+el útil. Si el cálculo de presión de la pieza en
+curso supera este valor y si la longitud de
+plegado es conocida, un mensaje interactivo
+informa al operario.
+COLISION EN Si NO (falta) el DNC realiza un test de colisión
+PROFUNDIDAD en profundidad (ver Colision profundidad
+AUTORIZADA autorizada), el operario deberá validar la
+"colisión" si es preciso, caso por caso en la
+página UTILES PLEGADO. Si SI esta
+autorización es implícita para este útil.
+SEGURIDAD XS Prohibe que el eje X supere este límite (para
+evitar una colisión con el punzón durante el
+plegado por ejemplo).
+XS
+SEGURIDAD RS Prohibe que el eje R se acerque a esta zona. Si
+es necesario, el tope realizará un desbloqueo
+antes de desplazarse.
+RS
+PÁGINA 94 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 97 =====
+MODIFICAR UN UTIL
+Páginas: PROGRAMACION PUNZONES o MATRICES
+Si se modifica un útil y especialmente la altura (lo que modifica el cálculo de
+la posición de la trancha) se deberá imperativamente lanzar de nuevo el
+cálculo (CALCULO) cada vez que se llama una pieza que utiliza este útil y
+eventualmente la búsqueda de la continuación de los pliegues si se modifica
+la forma del útil.
+Para modificar un útil:
+(cid:121) Llamar a la página PROGRAMACION PUNZON o MATRIZ.
+(cid:121) Buscar el útil a modificar.
+(cid:121) Suprimir el útil.
+(cid:121) Modificar los valores deseados.
+(cid:121) Memorizar el útil con el mismo nombre.
+POSICIÓN DE LOS UTILES
+Página: MONTAJES UTILES o POS UTILES
+La descripción del montaje del útil figura en detalle en el documento Manual
+de utilización, sirvanse consultarlo.
+Si instalan varios puestos de trabajo, hay que comprobar que sea posible
+trabajar con estos útiles sin riesgo de colisión o daños.
+LISTA PUNZONES / LISTA MATRICES
+Esta página permite visualizar la lista de los punzones o matrices con sus
+principales características.
+DEFINICIONES PÁGINA 95
+===== PAGE 98 =====
+VELOCIDAD PLEGADO
+Página: PLEGADO NUM.
+Esta zona permite reducir la velocidad de plegado. Es programable en % de
+la velocidad de plegado máxima.
+ZONAS ALFANUMERICAS
+Algunas zonas (PLANO, PUNZON, MATRIZ etc.) pueden contener
+caracteres alfanuméricos.
+Para programar las zonas alfanuméricas en los controles numéricos, hay que
+utilizar el teclado alfanumérico "soft".
+Para llamar al teclado alfanumérico "soft" del software, hay que posicionar el
+cursor en la zona alfanumérica (si la zona es únicamente numérica, no
+aparece el teclado) y pulsar la tecla .
+4 tablas de caracteres son disponibles (#1, #2, #3 y Alt)
+Para cambiar la "tabla":
+(cid:121) Indicar la zona en la parte baja a la izquierda #1, #2, #3 o Alt
+y pulsar o clic izquierdo en esta zona.
+Para introducir los caracteres en la zona alfanumérica:
+(cid:121) Seleccionar el caracter.
+(cid:121) Pulsar o clic izquierdo.
+Repetir la operación para los otros caracteres.
+(cid:121) Para dejar, pulsar la tecla de nuevo.
+PÁGINA 96 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 99 =====
+Í
+NDICE
+angulares 25
+calibración 28
+- A - con arreglo a la materia 22
+de ángulo 24
+Acotación 61
+de espesor independiente Y1 Y2 30
+longitud o LU/LW 60
+de la referencia 83
+Aeración 63 directas 24
+fuerza de plegado 22
+Ajuste tope 84
+longitud desarollada 22
+Anchura por medida de espesor 25
+de plegado 59 por medida de espesor en el PCC 28
+por medida de espesor en el PMA 26
+Apoyo 13
+sensibilidad PMB 30
+tabla de ... 22
+- B - Criterios
+de búsqueda de piezas 16
+Backup 90
+de simulación 31
+Basculado 32 fecha de memorización 16
+Bombeado 15 Curva ideal 34
+Borrar
+los parámetros máquina 15
+- D -
+Borrar 16
+Datos
+las memorias 15
+salvar los.. 90
+todas las piezas 15
+todos los útiles 15 Dejar el software 39
+Buscar Déscentramiento de las herramientas 40
+una pieza 16, 49
+Desempeño del tope 41
+Desplegado 48
+- C -
+Dibujo 73
+Cambiar
+Dirigir varias máquinas 67
+tope 14
+DXF 53
+Campo
+significado de los colores 9
+Captura pantalla 18 - E -
+Caracteres alfanuméricos 96 Ejes
+indexar los ... 53
+Colisión
+start retardado 86
+utiles 92, 94
+útiles 21 Embutición 42
+Colores ENC no conectada 67
+de los campos 9
+Contador de pliegues 22
+- F -
+Convenciones 7
+Fecha
+Copiar de memorización 16
+un pliegue 58
+Fecha y hora 43
+una pieza 50
+formato 43
+una secuencia 58
+Fecha y hora 43
+Correcciones
+ÍNDICE PÁGINA 97
+===== PAGE 100 =====
+Ficheros PCX DXF 53 - L -
+Filtros 63 Lengua 59
+Final Limpiado 63
+pliegue final 75
+Lista: 49
+Formato
+Longitud
+fecha y hora 43
+desarrollada 61
+Foto 53 desarrollada 83
+dessarollada (correcciones) 22
+Fuerza de plegado 44, 45
+correcciones 22 Longitud de plegado 59
+Funciones auxiliares 45
+- M -
+- G - Mantenimiento 63
+Gama de plegado 45 Marcar
+una pieza 50
+Matriz 90, 93
+- H -
+Memorizar
+Herramientas
+una pieza 49
+corrección 40
+déscentramiento 40 Método
+fuerza admisible 44 de acotación 61
+visualización del modelo por defecto 91,
+Modificar
+93
+apoyos 13
+Hora 43 el origen de los ejes 64
+fecha y hora 43
+posición de los topes 13
+- I - tope 14
+un útil 95
+Imagenes 53
+Montaje
+Impresora 19
+de un útil 95
+Imprimir las pantallas 19
+Indice
+- N -
+nueva indexación 53
+Norma DIN 61
+Informaciones pieza 53
+periféricos activos 67
+Inicializacion 53 - O -
+Inicialización Origen de los ejes 64
+de un eje 64
+del DNC 67
+- P -
+Insertar
+un pliegue 58 Pantalla
+una secuencia 58 capturar 18
+imprimir 19
+Intervenciones en el control numérico 90
+negro-blanco 18
+Introducción datos
+Parámetros máquina 65
+captura pantalla 18
+Parar 39
+PCX 53
+- K -
+Perfil 85
+Kg/mm2 85
+Periféricos 89
+PÁGINA 98 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D
+===== PAGE 101 =====
+activos 90 Secuencia sin plegado 74
+Periféricos activos 67 Seguridad
+colisión utiles 92, 94
+Pieza 49
+desplazamiento de los topes 41
+buscar 67
+ejemplos 67 Selección
+memorizar 67 de los topes 13
+suprimir 67
+Sensibilidad PMB 30
+Pieza paramétrica 69
+Set de un eje 64
+crear 69
+Trabajo con ... 73 Sigma 85
+Piezas Simulación 45
+suprimir todas las ... 15
+Start retardado de los ejes 86
+Pivotado 32
+Suprimir 16
+Plegado los parámetros máquina 15
+a fondo de matriz 42 todas las piezas 15
+secuencia 74 todos los útiles 15
+serie 45 una pieza 49
+Pliegue
+aplastado 75
+- T -
+ejemplos de pliegues especiales(en U en Z
+75, 76, 80 Tecla
+enderezado 75 de función 8
+especiales 75
+Teclado
+ficticio 75
+alfanumérico 96
+final 75
+externo al DNC 87
+preliminar 75
+Tiempo
+Posición
+de mantenimiento en presión 88
+de un útil 95
+Tolerancia 88
+Preliminar
+pliegue preliminar 75 Tope 13, 14
+ciclo especial 84
+Programación
+Ciclo especial 41
+de los útiles 90
+desempeño 41
+de un punzón 91
+reglaje manual 84
+de una matriz 93
+retroceso 84
+en la página PLEGADO NUM 82
+Trancha
+Punto muerto alto 81
+punto de cambio de velocidad 66
+Punzón 90, 91
+Transferencia 89
+selección de las piezas 50
+- R -
+Radio interno 83 - U -
+Reglaje manual del tope 84 Utiles 90
+colisión 21, 92, 94
+Reglas 7
+periféricos activos 90
+Retroceso tope 84 periféricos activos 67
+posición, montaje 95
+Seguridad XS 92, 94
+- S - suprimir todos los ... 15
+Salvaguardia 89, 90
+Sección 85
+ÍNDICE PÁGINA 99
+===== PAGE 102 =====
+- V - Dibujo 73
+DIN 61
+Vaciar
+Distancia PV (cid:207) 42
+las memorias 15
+espera ejes 86
+Velocidad plegado 96 fuente 89
+fuerza lineal 92
+Visualizar
+fuerza plegado 45
+fichero DXF 53
+L. Plegado 59
+fichero PCX 53
+L.DESARR. 61
+foto 53
+longitud 60
+Volteado 32 LU/LW 60
+memoria libre 63
+PCV 66
+- Z - periféricos activos 67
+PMA 81
+Zona
+REAL 61
+! 53
+referencia YR corr 83
+? 53
+REL 11
+ABS 11
+Retroceso tope 84
+ala demasiado corta autorizada 12
+Ri 83
+alfanumérica 96
+sección 85
+apoyo 13
+Seguridad XS 92, 94
+BA 14
+Sigma 85
+bombeado 15
+start ejes/FA 86
+C.Req.__Efec.__ 18
+tiempo presión 88
+colisión profundidad autorizada 92, 94
+tolerancia 88
+colisión profundidad autorizada 21
+tope 14
+Corrección X (herramientas) 40
+tranferencia global 89
+CR 34
+velocidad plegado 96
+desempeño X 41
+destino 89
+PÁGINA 100 MODEVA/DNC 880S MANUAL DE REFERENCIA 2D

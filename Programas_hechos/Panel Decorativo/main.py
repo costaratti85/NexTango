@@ -43,6 +43,10 @@ from geometry.tresbolillo_pattern import (
     create_tresbolillo_piece,
 )
 
+from geometry.cuadriculado_pattern import (
+    create_cuadriculado_piece,
+)
+
 from layout.tile_classifier import (
     TileClassifier,
 )
@@ -151,6 +155,17 @@ def load_pattern(settings):
                 settings.hole_diameter,
                 settings.hole_distance,
             )
+        )
+
+        return piece, step_x, step_y
+
+    if settings.pattern_type == "cuadriculado":
+
+        piece, step_x, step_y = create_cuadriculado_piece(
+            settings.hole_shape,
+            settings.hole_size,
+            settings.step_x,
+            settings.step_y,
         )
 
         return piece, step_x, step_y

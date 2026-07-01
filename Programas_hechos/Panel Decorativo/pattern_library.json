@@ -30,5 +30,13 @@
         "step_y": 32.91,
         "restricted": false,
         "restricted_reason": ""
+    },
+    "Aconcagua": {
+        "type": "dxf",
+        "file_path": "//190.190.190.9/Ventas/Users/Pantografia/Hierros Ratti/LLLLAAAAASSSSEEEERRRRR PAPA/Paneles Decorativos/Patrones/Aconcagua OFF XY 85.dxf",
+        "step_x": 85.0,
+        "step_y": 85.0,
+        "restricted": false,
+        "restricted_reason": ""
     }
 }
