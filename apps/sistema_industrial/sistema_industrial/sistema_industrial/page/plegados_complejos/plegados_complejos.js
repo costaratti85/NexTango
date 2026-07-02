@@ -243,10 +243,6 @@ class PlegadosComplejos {
 			return;
 		}
 		const f = this.get_factores();
-		const cant = this.get_cantidad();
-		let observaciones = '';
-		// El DocType no tiene campo cantidad (flag a Punto) — se registra en observaciones
-		if (cant > 1) observaciones = __('Cantidad: ') + cant;
 
 		const data = Object.assign(
 			{
@@ -257,7 +253,7 @@ class PlegadosComplejos {
 				largo_int: r.geo.largo_int,
 				alto: r.geo.alto,
 				espesor: r.geo.espesor,
-				observaciones: observaciones,
+				cantidad: this.get_cantidad(),
 			},
 			f
 		);
