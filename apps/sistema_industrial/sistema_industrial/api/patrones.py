@@ -3,10 +3,14 @@
 URL base: /api/method/sistema_industrial.api.patrones.
 
 Endpoints:
-    get_all(customer=None) — lista patrones Públicos + Exclusivos del cliente
-    get_patron(name, version=None) — resolver versionado (contrato con SI Pieza / Lechu)
+    get_all(customer=None)       — lista patrones Públicos + Exclusivos del cliente
+    get_patron(name, version)    — resolver versionado (contrato con SI Pieza / Lechu)
+    upload_pattern(...)          — sube DXF y crea/actualiza SI Patron
+    delete_pattern(name)         — baja lógica del doc (archivo queda en disco)
 """
+import base64
 import json
+import os
 import re
 from pathlib import Path
 
@@ -18,6 +22,28 @@ _THUMBNAIL_BASE = "/assets/sistema_industrial/pattern_thumbnails"
 
 def _safe_name(name):
     return re.sub(r"[^\w]", "_", name)
+
+
+def _safe_filename(filename):
+    """Basename seguro: sin path traversal, sin caracteres peligrosos."""
+    name = os.path.basename(filename)
+    safe = re.sub(r"[^\w\-.]", "_", name)
+    return safe or "patron.dxf"
+
+
+def _planos_root() -> Path:
+    """Raíz configurable en site_config como nextango_planos_path."""
+    configured = frappe.conf.get("nextango_planos_path")
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[4] / "planos"
+
+
+def _patron_dest_dir(visibilidad, customer=None) -> Path:
+    root = _planos_root()
+    if visibilidad == "Exclusivo" and customer:
+        return root / customer / "patrones"
+    return root / "generico" / "patrones"
 
 
 def _thumbnail_url(filename):
@@ -202,6 +228,89 @@ def get_all(customer=None):
         return {"rows": frappe_rows, "source": "frappe"}
 
     return {"rows": _get_all_from_legacy(), "source": "legacy_json"}
+
+
+@frappe.whitelist(allow_guest=False)
+def upload_pattern(name, file_b64, filename, visibilidad, step_x=None, step_y=None, customer=None, descripcion=""):
+    """Sube un DXF y crea o actualiza el SI Patron correspondiente.
+
+    El archivo se guarda en:
+        Público   → <planos_root>/generico/patrones/<filename>
+        Exclusivo → <planos_root>/<customer>/patrones/<filename>
+
+    Si el patrón ya existe, el archivo nuevo recibe sufijo de versión (_v2, _v3…)
+    para no pisar el historial.
+
+    r.message: {ok, name, version, path, file_available}
+    """
+    if visibilidad == "Exclusivo" and not customer:
+        frappe.throw("customer es requerido para visibilidad Exclusivo")
+
+    dest_dir = _patron_dest_dir(visibilidad, customer)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    safe = _safe_filename(filename)
+
+    if frappe.db.exists("SI Patron", name):
+        existing = frappe.get_doc("SI Patron", name)
+        next_v = int(existing.version or 1) + 1
+        stem, ext = os.path.splitext(safe)
+        safe = f"{stem}_v{next_v}{ext}"
+
+    dest_path = dest_dir / safe
+    dest_path.write_bytes(base64.b64decode(file_b64))
+
+    parametros = json.dumps({
+        "step_x": float(step_x) if step_x not in (None, "") else None,
+        "step_y": float(step_y) if step_y not in (None, "") else None,
+    }, ensure_ascii=False)
+
+    if frappe.db.exists("SI Patron", name):
+        doc = frappe.get_doc("SI Patron", name)
+        doc.archivo_dxf = str(dest_path)
+        doc.visibilidad = visibilidad
+        doc.cliente = customer if visibilidad == "Exclusivo" else ""
+        if descripcion:
+            doc.descripcion = descripcion
+        doc.parametros = parametros
+        doc.save(ignore_permissions=True)
+    else:
+        payload = {
+            "doctype": "SI Patron",
+            "name": name,
+            "tipo": "Archivo",
+            "visibilidad": visibilidad,
+            "descripcion": descripcion or "",
+            "archivo_dxf": str(dest_path),
+            "parametros": parametros,
+        }
+        if visibilidad == "Exclusivo" and customer:
+            payload["cliente"] = customer
+        doc = frappe.get_doc(payload)
+        doc.insert(ignore_permissions=True)
+
+    frappe.db.commit()
+    return {
+        "ok": True,
+        "name": name,
+        "version": int(doc.version or 1),
+        "path": str(dest_path),
+        "file_available": dest_path.exists(),
+    }
+
+
+@frappe.whitelist(allow_guest=False)
+def delete_pattern(name):
+    """Baja lógica de un SI Patron. El archivo DXF NO se borra del disco.
+
+    r.message: {ok: true, name: "Subte"}
+    Error: frappe.DoesNotExistError si el patrón no existe.
+    """
+    if not frappe.db.exists("SI Patron", name):
+        frappe.throw(f"Patrón '{name}' no encontrado", frappe.DoesNotExistError)
+    frappe.delete_doc("SI Patron", name, ignore_permissions=True)
+    frappe.db.commit()
+    return {"ok": True, "name": name}
 
 
 @frappe.whitelist(allow_guest=False)
