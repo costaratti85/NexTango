@@ -124,6 +124,8 @@ class AdminPatrones {
 						.text(__('✓ Patrón guardado: ') + m.name + ' (v' + (m.version || 1) + ')');
 					this.reset_form();
 					this.load_list();
+					// Si el DXF trae splines, ofrecer conversión a arcos (no bloqueante).
+					if (m.has_splines) this.offer_convert(m.name, m.spline_count || 0);
 				} else {
 					fail(__('Error: ') + (m.error || __('desconocido')));
 				}
@@ -213,12 +215,23 @@ class AdminPatrones {
 			);
 			if (!p.file_available)
 				badges.append($('<span class="ap-badge ap-badge-nodisp">').text(__('No disp.')));
+			if (p.has_splines)
+				badges.append($('<span class="ap-badge ap-badge-splines">').text(__('⚠ splines')));
 			if (!activo)
 				badges.append($('<span class="ap-badge ap-badge-baja">').text(__('Baja')));
 			card.append(badges);
 
 			if (excl && p.cliente)
 				card.append($('<div class="ap-card-cliente">').text(p.cliente));
+
+			// Convertir splines a arcos — solo cuando el patrón las tiene y está activo
+			if (activo && p.has_splines) {
+				card.append(
+					$('<button class="btn btn-xs btn-default ap-convert">')
+						.text(__('Convertir a arcos'))
+						.on('click', () => this.convertir(p.name, p.spline_count || 0))
+				);
+			}
 
 			// Borrar (baja lógica) — solo para activos
 			if (activo) {
@@ -256,5 +269,60 @@ class AdminPatrones {
 				});
 			}
 		);
+	}
+
+	// ------------------------------------------------------------------
+	// Splines → arcos
+	// ------------------------------------------------------------------
+
+	// Diálogo no bloqueante tras un upload que trajo splines.
+	offer_convert(name, count) {
+		const msg = count
+			? __('Este patrón contiene {0} splines. El láser trabaja mejor con arcos — ¿convertir ahora?', [count])
+			: __('Este patrón contiene splines. El láser trabaja mejor con arcos — ¿convertir ahora?');
+		frappe.confirm(
+			msg,
+			() => this.convertir(name, count),      // Convertir a arcos
+			() => {}                                  // Dejar como está (no-op)
+		);
+	}
+
+	// Llama al backend de conversión; reusable desde el diálogo y desde la card.
+	convertir(name, count) {
+		frappe.call({
+			method: 'sistema_industrial.api.patrones.convert_splines',
+			args: { name: name },
+			freeze: true,
+			freeze_message: __('Convirtiendo splines a arcos…'),
+			callback: (r) => {
+				const m = r.message || {};
+				if (m.ok) {
+					const partes = [];
+					if (m.splines_converted != null) partes.push(m.splines_converted + ' ' + __('splines'));
+					const productos = [];
+					if (m.arcs_created != null) productos.push(m.arcs_created + ' ' + __('arcos'));
+					if (m.lines_created != null) productos.push(m.lines_created + ' ' + __('líneas'));
+					let txt = __('Conversión lista');
+					if (partes.length && productos.length)
+						txt = __('{0} convertidas en {1}', [partes.join(''), productos.join(' y ')]);
+					if (m.version != null) txt += ' — v' + m.version;
+					frappe.show_alert({ message: '✓ ' + txt, indicator: 'green' });
+					this.load_list();
+				} else {
+					frappe.msgprint(__('No se pudo convertir: ') + (m.error || __('desconocido')));
+				}
+			},
+			error: (e) => {
+				// Degradación: convert_splines todavía no publicado (PUNTO_TASK_056).
+				const blob = JSON.stringify(e || {});
+				if (/does not exist|not found|AttributeError|404/i.test(blob)) {
+					frappe.msgprint(
+						__('El backend de conversión (convert_splines) todavía no está publicado. Se conectará cuando Punto lo despliegue.')
+					);
+				} else {
+					frappe.msgprint(__('Error al convertir. Revisá la consola.'));
+				}
+			},
+		});
 	}
 }
