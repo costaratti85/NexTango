@@ -17,10 +17,96 @@ class PanelDecorativo {
 		this.materials = [];     // rows de api.materiales.get_all
 		this.matIndex = {};      // {material: [{espesor_mm, precio_por_kg, precio_plegar_por_kg, ...}]}
 		this.precios = { precio_segundo_laser: 0, precio_por_plegado: 0 };
+		this.patterns = [];              // rows de api.patrones.get_all
+		this.selected_patron = 'tresbolillo';
+		this.dist_mode = 'centradas';
 
 		this.make_customer_control();
+		this.render_pattern_gallery();
 		this.bind_events();
 		this.load_initial_data();
+	}
+
+	// ------------------------------------------------------------------
+	// Galería de patrones — nativos (SVG inline) + DXF (thumbnails PNG)
+	// ------------------------------------------------------------------
+
+	static get NATIVE_PATTERNS() {
+		const circ = (cx, cy) => `<circle cx="${cx}" cy="${cy}" r="6" fill="none" stroke="#176b87" stroke-width="1.5"/>`;
+		const sq = (x, y) => `<rect x="${x}" y="${y}" width="11" height="11" fill="none" stroke="#176b87" stroke-width="1.5"/>`;
+		let tres = '', cuadC = '', cuadS = '';
+		for (let r = 0; r < 4; r++)
+			for (let c = 0; c < 6; c++) {
+				const offs = r % 2 ? 10 : 0;
+				tres += circ(14 + c * 20 + offs, 13 + r * 21);
+				cuadC += circ(14 + c * 20, 13 + r * 21);
+				cuadS += sq(8 + c * 20, 7 + r * 21);
+			}
+		const wrap = (inner) => `<svg class="pd-pat-thumb-svg" viewBox="0 0 130 90" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+		return [
+			{ val: 'tresbolillo', label: __('Tresbolillo'), svg: wrap(tres) },
+			{ val: 'cuadriculado_circle', label: __('Cuadriculado redondo'), svg: wrap(cuadC) },
+			{ val: 'cuadriculado_square', label: __('Cuadriculado cuadrado'), svg: wrap(cuadS) },
+			{ val: 'none', label: __('Sin perforar'), svg: wrap('<rect x="10" y="10" width="110" height="70" fill="none" stroke="#176b87" stroke-width="2"/>') },
+		];
+	}
+
+	render_pattern_gallery() {
+		const gal = $('#pd-patron-gallery').empty();
+
+		PanelDecorativo.NATIVE_PATTERNS.forEach((p) => {
+			const card = $('<div class="pd-pat-card">').attr('data-val', p.val);
+			card.append(p.svg);
+			card.append($('<div class="pd-pat-name">').text(p.label));
+			card.on('click', () => this.select_patron(p.val));
+			gal.append(card);
+		});
+
+		this.patterns.forEach((p, i) => {
+			const val = 'dxf:' + i;
+			const available = !!p.file_available;
+			const card = $('<div class="pd-pat-card">')
+				.attr('data-val', val)
+				.toggleClass('disabled', !available);
+			if (p.thumbnail_url) {
+				card.append(
+					$('<img class="pd-pat-thumb" loading="lazy">')
+						.attr('src', p.thumbnail_url)
+						.attr('alt', p.label || p.name)
+				);
+			} else {
+				card.append($(PanelDecorativo.NATIVE_PATTERNS[3].svg));
+			}
+			card.append($('<div class="pd-pat-name">').text(p.label || p.name));
+			if (!available) card.append($('<span class="pd-pat-badge">').text(__('No disponible')));
+			if (available) card.on('click', () => this.select_patron(val));
+			gal.append(card);
+		});
+
+		this.update_gallery_selection();
+	}
+
+	update_gallery_selection() {
+		$('#pd-patron-gallery .pd-pat-card').removeClass('selected');
+		$('#pd-patron-gallery .pd-pat-card[data-val="' + this.selected_patron + '"]').addClass('selected');
+	}
+
+	select_patron(val) {
+		this.selected_patron = val;
+		this.update_gallery_selection();
+		$('#pd-params-tresbolillo').toggleClass('hidden', val !== 'tresbolillo');
+		$('#pd-params-cuadriculado').toggleClass(
+			'hidden',
+			val !== 'cuadriculado_circle' && val !== 'cuadriculado_square'
+		);
+		const is_dxf = val.startsWith('dxf:');
+		$('#pd-params-dxf').toggleClass('hidden', !is_dxf);
+		if (is_dxf) {
+			// Pre-cargar paso X/Y sugerido del patrón
+			const row = this.patterns[parseInt(val.slice(4))];
+			if (row && row.step_x) $('#pd-dxf-step-x').val(row.step_x);
+			if (row && row.step_y) $('#pd-dxf-step-y').val(row.step_y);
+		}
 	}
 
 	// ------------------------------------------------------------------
@@ -88,7 +174,6 @@ class PanelDecorativo {
 	// no dispare el diálogo de error de Frappe en cada carga de página.
 
 	load_patterns() {
-		this.patterns = [];
 		fetch('/api/method/sistema_industrial.api.patrones.get_all', {
 			headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token },
 		})
@@ -97,12 +182,9 @@ class PanelDecorativo {
 				const rows = (d && d.message && d.message.rows) || [];
 				if (!rows.length) return;
 				this.patterns = rows;
-				const sel = $('#pd-patron');
-				rows.forEach((p, i) => {
-					sel.append($('<option>').val('dxf:' + i).text(p.name + ' (patrón DXF)'));
-				});
+				this.render_pattern_gallery();
 			})
-			.catch(() => {}); // endpoint aún no publicado — modos nativos solamente
+			.catch(() => {}); // sin endpoint — la galería queda con los modos nativos
 	}
 
 	build_material_index() {
@@ -138,11 +220,29 @@ class PanelDecorativo {
 
 	bind_events() {
 		$('#pd-material').on('change', () => this.on_material_change());
-		$('#pd-patron').on('change', () => this.on_patron_change());
+		$('#pd-dist-centradas').on('click', () => this.set_dist_mode('centradas'));
+		$('#pd-dist-cortar').on('click', () => this.set_dist_mode('cortar'));
 		$('#pd-btn-add').on('click', () => this.add_batch());
 		$('#pd-btn-calcular').on('click', () => this.calcular());
 		$('#pd-btn-dxf').on('click', () => this.descargar_dxf());
 		$('#pd-btn-guardar').on('click', () => this.guardar_presupuesto());
+	}
+
+	set_dist_mode(mode) {
+		this.dist_mode = mode;
+		$('#pd-dist-centradas').toggleClass('selected', mode === 'centradas');
+		$('#pd-dist-cortar').toggleClass('selected', mode === 'cortar');
+	}
+
+	// Label de espesor: calibre para hierro (doble decapada) y galvanizada,
+	// mm para el resto — misma convención que _abbreviated_label() del compiler.
+	espesor_label(m) {
+		const con_calibre =
+			(m.familia === 'hierro' || m.familia === 'galvanizada') &&
+			m.calibre && m.calibre !== '-';
+		return con_calibre
+			? 'N°' + m.calibre + ' (' + m.espesor_mm + 'mm)'
+			: m.espesor_mm + ' mm';
 	}
 
 	on_material_change() {
@@ -151,20 +251,10 @@ class PanelDecorativo {
 		sel.empty().append('<option value="">—</option>').prop('disabled', true);
 		if (!mat || !this.matIndex[mat]) return;
 		this.matIndex[mat].forEach((m) =>
-			sel.append($('<option>').val(m.espesor_mm).text(m.espesor_mm + ' mm'))
+			sel.append($('<option>').val(m.espesor_mm).text(this.espesor_label(m)))
 		);
 		sel.prop('disabled', false);
 		if (this.matIndex[mat].length === 1) sel.val(this.matIndex[mat][0].espesor_mm);
-	}
-
-	on_patron_change() {
-		const p = $('#pd-patron').val();
-		$('#pd-params-tresbolillo').toggleClass('hidden', p !== 'tresbolillo');
-		$('#pd-params-cuadriculado').toggleClass(
-			'hidden',
-			p !== 'cuadriculado_circle' && p !== 'cuadriculado_square'
-		);
-		$('#pd-params-dxf').toggleClass('hidden', !p.startsWith('dxf:'));
 	}
 
 	// ------------------------------------------------------------------
@@ -175,7 +265,7 @@ class PanelDecorativo {
 		const err = $('#pd-batch-error');
 		err.addClass('hidden');
 		try {
-			const patron = $('#pd-patron').val();
+			const patron = this.selected_patron;
 			const mat = $('#pd-material').val();
 			const esp = parseFloat($('#pd-espesor').val());
 			const cant = parseInt($('#pd-cantidad').val());
@@ -193,16 +283,19 @@ class PanelDecorativo {
 			const is_dxf = patron.startsWith('dxf:');
 			const dxf_row = is_dxf ? this.patterns[parseInt(patron.slice(4))] : null;
 			if (is_dxf && !dxf_row) throw new Error(__('Patrón DXF inválido — recargá la página.'));
+			if (is_dxf && !dxf_row.file_available)
+				throw new Error(__('El patrón no está disponible en el servidor todavía.'));
 
+			const native_def = PanelDecorativo.NATIVE_PATTERNS.find((p) => p.val === patron);
 			const batch = {
 				panel_mode: is_dxf
 					? 'dxf_pattern_grid'
 					: patron.startsWith('cuadriculado')
 					? 'cuadriculado'
 					: patron,
-				preset_name: is_dxf ? dxf_row.name : $('#pd-patron option:selected').text(),
+				preset_name: is_dxf ? dxf_row.name : (native_def ? native_def.label : patron),
 				pattern_type: 'nativo',
-				cut_partial_figures: $('#pd-dist-mode').val() === 'cortar',
+				cut_partial_figures: this.dist_mode === 'cortar',
 				margin_mm: margen,
 				material: mat,
 				thickness_mm: esp,

@@ -1,3 +1,29 @@
+<style>
+  /* Galería de patrones */
+  .si-page .pd-gallery { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+  .si-page .pd-pat-card { width:130px; border:2px solid var(--si-line); border-radius:8px; background:#fff;
+                          cursor:pointer; text-align:center; padding:8px; transition:border-color .15s, box-shadow .15s; }
+  .si-page .pd-pat-card:hover { border-color:var(--si-brand); }
+  .si-page .pd-pat-card.selected { border-color:var(--si-brand); background:#e8f4f8; box-shadow:0 0 0 3px rgba(23,107,135,.15); }
+  .si-page .pd-pat-card.disabled { opacity:.45; cursor:not-allowed; }
+  .si-page .pd-pat-thumb { width:100%; height:90px; object-fit:contain; background:#f8f9fa; border-radius:5px; display:block; }
+  .si-page .pd-pat-thumb-svg { width:100%; height:90px; background:#f8f9fa; border-radius:5px; }
+  .si-page .pd-pat-name { font-size:12px; font-weight:600; color:var(--si-ink); margin-top:6px; }
+  .si-page .pd-pat-badge { display:inline-block; font-size:9px; font-weight:700; text-transform:uppercase;
+                           letter-spacing:.5px; background:#eee; color:#888; padding:2px 6px; border-radius:3px; margin-top:4px; }
+  /* Distribución con explicación gráfica */
+  .si-page .pd-dist-row { display:flex; gap:12px; flex-wrap:wrap; }
+  .si-page .pd-dist-card { flex:1 1 220px; max-width:340px; border:2px solid var(--si-line); border-radius:8px;
+                           background:#fff; cursor:pointer; padding:10px 10px 0; text-align:center;
+                           font-size:13px; font-weight:600; color:var(--si-ink); transition:border-color .15s; }
+  .si-page .pd-dist-card:hover { border-color:var(--si-brand); }
+  .si-page .pd-dist-card.selected { border-color:var(--si-brand); background:#e8f4f8; box-shadow:0 0 0 3px rgba(23,107,135,.15); }
+  .si-page .pd-dist-thumb { margin-top:8px; border-top:1px solid #ddd; aspect-ratio:3/1;
+                            background-size:contain; background-repeat:no-repeat; background-position:center;
+                            background-color:#f8f9fa; border-radius:0 0 6px 6px; }
+  .si-page .pd-dist-thumb-centradas { background-image:url('/assets/sistema_industrial/images/comparacion_centradas.png'); }
+  .si-page .pd-dist-thumb-cortar { background-image:url('/assets/sistema_industrial/images/comparacion_cortar.png'); }
+</style>
 <div class="si-page">
   <div class="page-wrapper">
 
@@ -20,22 +46,16 @@
     <div class="card">
       <div class="card-title">Definir lote</div>
 
+      <label>Patrón</label>
+      <div class="pd-gallery" id="pd-patron-gallery"></div>
+
       <div class="form-row">
-        <div class="form-group">
-          <label for="pd-patron">Patrón</label>
-          <select id="pd-patron">
-            <option value="tresbolillo">Tresbolillo (agujeros redondos)</option>
-            <option value="cuadriculado_circle">Cuadriculado — agujeros redondos</option>
-            <option value="cuadriculado_square">Cuadriculado — agujeros cuadrados</option>
-            <option value="none">Sin perforar (solo corte)</option>
-          </select>
-        </div>
         <div class="form-group">
           <label for="pd-material">Material</label>
           <select id="pd-material"><option value="">Cargando…</option></select>
         </div>
-        <div class="form-group" style="max-width:130px">
-          <label for="pd-espesor">Espesor mm</label>
+        <div class="form-group" style="max-width:180px">
+          <label for="pd-espesor">Espesor</label>
           <select id="pd-espesor" disabled><option value="">—</option></select>
         </div>
       </div>
@@ -95,14 +115,19 @@
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label>Distribución</label>
-          <select id="pd-dist-mode">
-            <option value="centradas">Figuras completas centradas</option>
-            <option value="cortar">Cortar en borde</option>
-          </select>
+      <label>Distribución</label>
+      <div class="pd-dist-row" style="margin-bottom:16px">
+        <div class="pd-dist-card selected" id="pd-dist-centradas">
+          Figuras completas centradas
+          <div class="pd-dist-thumb pd-dist-thumb-centradas"></div>
         </div>
+        <div class="pd-dist-card" id="pd-dist-cortar">
+          Cortar en borde
+          <div class="pd-dist-thumb pd-dist-thumb-cortar"></div>
+        </div>
+      </div>
+
+      <div class="form-row">
         <div class="form-group" style="justify-content:flex-end">
           <button class="btn btn-primary" id="pd-btn-add" style="padding:9px 24px">+ Agregar lote</button>
         </div>
