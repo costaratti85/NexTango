@@ -46,6 +46,13 @@
       "in_standard_filter": 1
     },
     {
+      "fieldname": "cantidad",
+      "fieldtype": "Int",
+      "label": "Cantidad",
+      "default": "1",
+      "in_list_view": 1
+    },
+    {
       "fieldname": "col_break_1",
       "fieldtype": "Column Break"
     },
@@ -187,6 +194,13 @@
       "fieldname": "sec_costo",
       "fieldtype": "Section Break",
       "label": "Costo"
+    },
+    {
+      "fieldname": "costo_unitario",
+      "fieldtype": "Currency",
+      "label": "Costo unitario (ARS)",
+      "options": "ARS",
+      "read_only": 1
     },
     {
       "fieldname": "costo_total",

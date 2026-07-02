@@ -70,13 +70,14 @@ class SIPedidoPlegado(Document):
             p_kg = float(mat.precio_por_kg or 0) if mat else 0.0
             p_plegar_kg = float(mat.precio_plegar_por_kg or 0) if mat else 0.0
 
-            self.costo_total = round(
+            unit = (
                 float(self.peso_kg or 0) * p_kg * float(self.factor_kg or 1)
                 + float(self.tiempo_laser_s or 0) * p_laser * float(self.factor_laser or 1)
                 + float(self.peso_kg or 0) * p_plegar_kg * float(self.factor_plegar_kg or 1)
-                + int(self.cantidad_pliegues or 0) * p_pliegue * float(self.factor_pliegue or 1),
-                2
+                + int(self.cantidad_pliegues or 0) * p_pliegue * float(self.factor_pliegue or 1)
             )
+            self.costo_unitario = round(unit, 2)
+            self.costo_total = round(unit * int(self.cantidad or 1), 2)
         except Exception as exc:
             if frappe:
                 frappe.log_error(f"SI Pedido Plegado._recalcular_costo: {exc}")
