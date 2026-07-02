@@ -1,0 +1,37 @@
+{
+  "doctype": "DocType",
+  "name": "SI Precios Globales",
+  "module": "Sistema Industrial",
+  "issingle": 1,
+  "custom": 0,
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "precio_segundo_laser",
+      "fieldtype": "Currency",
+      "label": "Precio por segundo de láser (ARS)",
+      "options": "ARS"
+    },
+    {
+      "fieldname": "precio_por_plegado",
+      "fieldtype": "Currency",
+      "label": "Precio por plegado (ARS)",
+      "options": "ARS"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "SI Admin Produccion",
+      "read": 1,
+      "write": 1
+    },
+    {
+      "role": "SI Gerencia",
+      "read": 1
+    },
+    {
+      "role": "SI Vendedor",
+      "read": 1
+    }
+  ]
+}

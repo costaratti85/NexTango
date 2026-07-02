@@ -1,0 +1,125 @@
+{
+  "doctype": "DocType",
+  "name": "SI Material Corte",
+  "module": "Sistema Industrial",
+  "autoname": "format:{material} {espesor_mm}mm",
+  "custom": 0,
+  "editable_grid": 1,
+  "is_submittable": 0,
+  "istable": 0,
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "material",
+      "fieldtype": "Data",
+      "label": "Material",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "familia",
+      "fieldtype": "Select",
+      "label": "Familia",
+      "options": "\nhierro\ngalvanizada\ninox430\ninox304\nacero\notro",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "calibre",
+      "fieldtype": "Data",
+      "label": "Calibre",
+      "default": "-",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "espesor_mm",
+      "fieldtype": "Float",
+      "label": "Espesor (mm)",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "col_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "densidad_kg_m2",
+      "fieldtype": "Float",
+      "label": "Densidad (kg/m²)",
+      "reqd": 1
+    },
+    {
+      "fieldname": "velocidad_corte_mm_s",
+      "fieldtype": "Float",
+      "label": "Velocidad de corte (mm/s)",
+      "reqd": 1
+    },
+    {
+      "fieldname": "tiempo_perforacion_s",
+      "fieldtype": "Float",
+      "label": "Tiempo perforación (s)",
+      "default": "0.1"
+    },
+    {
+      "fieldname": "consumible_por_perforacion",
+      "fieldtype": "Float",
+      "label": "Consumible/perforación",
+      "default": "0"
+    },
+    {
+      "fieldname": "sec_precios",
+      "fieldtype": "Section Break",
+      "label": "Precios"
+    },
+    {
+      "fieldname": "precio_por_kg",
+      "fieldtype": "Currency",
+      "label": "Precio por kg (ARS)",
+      "options": "ARS"
+    },
+    {
+      "fieldname": "precio_plegar_por_kg",
+      "fieldtype": "Currency",
+      "label": "Precio plegar por kg (ARS)",
+      "options": "ARS"
+    },
+    {
+      "fieldname": "activo",
+      "fieldtype": "Check",
+      "label": "Activo",
+      "default": "1",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "SI Admin Produccion",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "SI Operador Panel",
+      "read": 1
+    },
+    {
+      "role": "SI Operador Plegado",
+      "read": 1
+    },
+    {
+      "role": "SI Operador Laser",
+      "read": 1
+    },
+    {
+      "role": "SI Vendedor",
+      "read": 1
+    },
+    {
+      "role": "SI Gerencia",
+      "read": 1
+    }
+  ]
+}

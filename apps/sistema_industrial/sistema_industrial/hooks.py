@@ -7,3 +7,7 @@ app_license = "MIT"
 
 # CSS común de las páginas del módulo (scopeado bajo .si-page — ver el archivo)
 app_include_css = "/assets/sistema_industrial/css/sistema_industrial.css"
+
+fixtures = [
+    {"dt": "Role", "filters": [["role_name", "like", "SI %"]]},
+]

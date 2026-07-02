@@ -1,0 +1,111 @@
+{
+  "doctype": "DocType",
+  "name": "SI Linea Presupuesto",
+  "module": "Sistema Industrial",
+  "istable": 1,
+  "custom": 0,
+  "editable_grid": 1,
+  "fields": [
+    {
+      "fieldname": "patron",
+      "fieldtype": "Data",
+      "label": "Patrón",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "material_corte",
+      "fieldtype": "Link",
+      "label": "Material",
+      "options": "SI Material Corte",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "cantidad",
+      "fieldtype": "Int",
+      "label": "Cantidad",
+      "reqd": 1,
+      "default": "1",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "ancho_mm",
+      "fieldtype": "Float",
+      "label": "Ancho (mm)"
+    },
+    {
+      "fieldname": "alto_mm",
+      "fieldtype": "Float",
+      "label": "Alto (mm)"
+    },
+    {
+      "fieldname": "col_break_dims",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "peso_kg",
+      "fieldtype": "Float",
+      "label": "Peso (kg)",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "tiempo_laser_s",
+      "fieldtype": "Float",
+      "label": "Tiempo láser (s)",
+      "read_only": 1
+    },
+    {
+      "fieldname": "cantidad_plegados",
+      "fieldtype": "Int",
+      "label": "Plegados",
+      "read_only": 1,
+      "default": "0"
+    },
+    {
+      "fieldname": "sec_factores",
+      "fieldtype": "Section Break",
+      "label": "Factores de cotización"
+    },
+    {
+      "fieldname": "factor_kg",
+      "fieldtype": "Float",
+      "label": "Factor kg",
+      "default": "1"
+    },
+    {
+      "fieldname": "factor_laser",
+      "fieldtype": "Float",
+      "label": "Factor láser",
+      "default": "1"
+    },
+    {
+      "fieldname": "col_break_factors",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "factor_plegar_kg",
+      "fieldtype": "Float",
+      "label": "Factor plegar kg",
+      "default": "1"
+    },
+    {
+      "fieldname": "factor_pliegue",
+      "fieldtype": "Float",
+      "label": "Factor pliegue",
+      "default": "1"
+    },
+    {
+      "fieldname": "sec_costo",
+      "fieldtype": "Section Break",
+      "label": "Costo"
+    },
+    {
+      "fieldname": "costo_total",
+      "fieldtype": "Currency",
+      "label": "Costo total (ARS)",
+      "options": "ARS",
+      "read_only": 1,
+      "in_list_view": 1
+    }
+  ]
+}

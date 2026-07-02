@@ -1,0 +1,38 @@
+[
+  {
+    "doctype": "Role",
+    "role_name": "SI Operador Panel",
+    "desk_access": 1,
+    "disabled": 0
+  },
+  {
+    "doctype": "Role",
+    "role_name": "SI Operador Plegado",
+    "desk_access": 1,
+    "disabled": 0
+  },
+  {
+    "doctype": "Role",
+    "role_name": "SI Operador Laser",
+    "desk_access": 1,
+    "disabled": 0
+  },
+  {
+    "doctype": "Role",
+    "role_name": "SI Admin Produccion",
+    "desk_access": 1,
+    "disabled": 0
+  },
+  {
+    "doctype": "Role",
+    "role_name": "SI Gerencia",
+    "desk_access": 1,
+    "disabled": 0
+  },
+  {
+    "doctype": "Role",
+    "role_name": "SI Vendedor",
+    "desk_access": 1,
+    "disabled": 0
+  }
+]

@@ -1,0 +1,88 @@
+{
+  "doctype": "DocType",
+  "name": "SI Presupuesto Panel",
+  "module": "Sistema Industrial",
+  "autoname": "PRES-.YYYY.-.#####",
+  "custom": 0,
+  "is_submittable": 0,
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "customer",
+      "fieldtype": "Link",
+      "label": "Cliente",
+      "options": "Customer",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "job_name",
+      "fieldtype": "Data",
+      "label": "Nombre del trabajo",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "fecha",
+      "fieldtype": "Date",
+      "label": "Fecha",
+      "default": "Today",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "col_break_main",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "total_ars",
+      "fieldtype": "Currency",
+      "label": "Total (ARS)",
+      "options": "ARS",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "quotation",
+      "fieldtype": "Link",
+      "label": "Cotización ERPNext",
+      "options": "Quotation",
+      "read_only": 1
+    },
+    {
+      "fieldname": "observaciones",
+      "fieldtype": "Small Text",
+      "label": "Observaciones"
+    },
+    {
+      "fieldname": "sec_lineas",
+      "fieldtype": "Section Break",
+      "label": "Líneas"
+    },
+    {
+      "fieldname": "lineas",
+      "fieldtype": "Table",
+      "label": "Líneas",
+      "options": "SI Linea Presupuesto"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "SI Vendedor",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "SI Admin Produccion",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "SI Gerencia",
+      "read": 1
+    }
+  ]
+}
