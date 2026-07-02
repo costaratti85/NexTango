@@ -1,9 +1,123 @@
+<style>
+  .si-plegados-complejos .pc-kpi { background:#e8f4f8; border:1px solid #c5dde8; border-radius:8px; padding:12px 18px; min-width:130px; }
+  .si-plegados-complejos .pc-kpi-label { font-size:10px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--si-brand); }
+  .si-plegados-complejos .pc-kpi-val { font-size:18px; font-weight:700; color:var(--si-ink); margin-top:2px; font-family:monospace; }
+</style>
 <div class="si-page si-plegados-complejos">
-  <div class="si-plegados-header">
-    <h2>Plegados Complejos</h2>
-    <p class="text-muted">Presupuesto y pedido de bandejas plegadas</p>
-  </div>
-  <div class="si-plegados-body">
-    <!-- Vega: implementar UI aquí -->
+  <div class="page-wrapper">
+
+    <!-- Datos del pedido -->
+    <div class="card">
+      <div class="card-title">Datos del pedido</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cliente</label>
+          <div id="pc-customer-field"></div>
+        </div>
+        <div class="form-group">
+          <label for="pc-job">Trabajo</label>
+          <input type="text" id="pc-job" placeholder="ej. Bandeja portacables depósito">
+        </div>
+      </div>
+    </div>
+
+    <!-- Geometría de la bandeja -->
+    <div class="card">
+      <div class="card-title">Bandeja — medidas internas</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="pc-material">Material</label>
+          <select id="pc-material"><option value="">Cargando…</option></select>
+        </div>
+        <div class="form-group" style="max-width:130px">
+          <label for="pc-espesor">Espesor mm</label>
+          <select id="pc-espesor" disabled><option value="">—</option></select>
+        </div>
+        <div class="form-group" style="max-width:110px">
+          <label for="pc-cantidad">Cantidad</label>
+          <input type="number" id="pc-cantidad" min="1" value="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="pc-ancho">Ancho interno mm</label>
+          <input type="number" id="pc-ancho" step="1" min="10" placeholder="ej. 300">
+        </div>
+        <div class="form-group">
+          <label for="pc-largo">Largo interno mm</label>
+          <input type="number" id="pc-largo" step="1" min="10" placeholder="ej. 500">
+        </div>
+        <div class="form-group">
+          <label for="pc-alto">Alto mm</label>
+          <input type="number" id="pc-alto" step="1" min="1" placeholder="ej. 30">
+        </div>
+      </div>
+      <button class="btn btn-success" id="pc-btn-calcular" style="padding:9px 28px;font-weight:700">Calcular</button>
+      <div class="error-box hidden" id="pc-error" style="margin-top:12px"></div>
+    </div>
+
+    <!-- Resultado -->
+    <div class="card hidden" id="pc-section-resultado">
+      <div class="card-title">Resultado</div>
+
+      <div class="form-row" style="gap:24px;flex-wrap:wrap">
+        <div class="pc-kpi"><div class="pc-kpi-label">Blank (corte)</div><div class="pc-kpi-val" id="pc-r-blank">—</div></div>
+        <div class="pc-kpi"><div class="pc-kpi-label">Despunte</div><div class="pc-kpi-val" id="pc-r-despunte">—</div></div>
+        <div class="pc-kpi"><div class="pc-kpi-label">Peso</div><div class="pc-kpi-val" id="pc-r-peso">—</div></div>
+        <div class="pc-kpi"><div class="pc-kpi-label">Láser</div><div class="pc-kpi-val" id="pc-r-laser">—</div></div>
+        <div class="pc-kpi"><div class="pc-kpi-label">Pliegues</div><div class="pc-kpi-val" id="pc-r-pliegues">—</div></div>
+      </div>
+
+      <div class="card-title" style="margin-top:20px">Presupuesto</div>
+      <table class="table table-bordered" style="font-size:13px;max-width:680px">
+        <thead>
+          <tr>
+            <th>Componente</th>
+            <th style="text-align:center;width:90px">Factor</th>
+            <th style="text-align:right;width:140px">Importe</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Material (kg × $/kg)</td>
+            <td style="text-align:center"><input type="number" id="pc-f-kg" min="0" step="0.05" value="1" style="width:70px;text-align:center"></td>
+            <td style="text-align:right" id="pc-c-kg">—</td>
+          </tr>
+          <tr>
+            <td>Corte láser (s × $/s)</td>
+            <td style="text-align:center"><input type="number" id="pc-f-laser" min="0" step="0.05" value="1" style="width:70px;text-align:center"></td>
+            <td style="text-align:right" id="pc-c-laser">—</td>
+          </tr>
+          <tr>
+            <td>Plegado por peso (kg × $/kg)</td>
+            <td style="text-align:center"><input type="number" id="pc-f-plegar-kg" min="0" step="0.05" value="1" style="width:70px;text-align:center"></td>
+            <td style="text-align:right" id="pc-c-plegar-kg">—</td>
+          </tr>
+          <tr>
+            <td>Pliegues (n × $/pliegue)</td>
+            <td style="text-align:center"><input type="number" id="pc-f-pliegue" min="0" step="0.05" value="1" style="width:70px;text-align:center"></td>
+            <td style="text-align:right" id="pc-c-pliegue">—</td>
+          </tr>
+          <tr style="font-weight:700">
+            <td colspan="2" style="text-align:right">Unitario</td>
+            <td style="text-align:right" id="pc-c-unit">—</td>
+          </tr>
+          <tr style="font-weight:700;background:#e8f4f8">
+            <td colspan="2" style="text-align:right">TOTAL × <span id="pc-c-cant">1</span></td>
+            <td style="text-align:right" id="pc-c-total">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="dimmed" style="margin:6px 0 14px">
+        Factor 1 = precio estándar · 0 = no se cobra · 1.2 = +20%.
+      </div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="pc-btn-guardar" style="padding:9px 28px">💾 Guardar pedido</button>
+        <button class="btn btn-default" id="pc-btn-dxf" style="padding:9px 20px">⤓ Descargar DXF</button>
+        <span id="pc-save-status" style="align-self:center;font-weight:600"></span>
+      </div>
+    </div>
+
   </div>
 </div>
