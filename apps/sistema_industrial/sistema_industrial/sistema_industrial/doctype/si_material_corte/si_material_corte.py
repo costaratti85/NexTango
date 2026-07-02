@@ -5,4 +5,8 @@ except Exception:  # pragma: no cover
 
 
 class SIMaterialCorte(Document):
-    pass
+    def autoname(self):
+        # El autoname "format:" de Frappe omite campos Float (solo concatena
+        # strings), por lo que {espesor_mm} quedaba vacío y los nombres
+        # colisionaban. Se nombra desde el controller, que tiene precedencia.
+        self.name = f"{self.material} {self.espesor_mm}mm"
