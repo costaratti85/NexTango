@@ -9,11 +9,16 @@ Uso:
     bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.run \
         --kwargs '{"overwrite": true}'
 
-    # Parche de paths tras copiar DXF al servidor (Forge MSG_029):
-    bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.fix_dxf_paths
+    # Borrado total de patrones DXF (decisión Constantino — los va a recargar):
+    bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.wipe_file_patterns
+
+    # OBSOLETO (reemplazado por wipe_file_patterns):
+    # bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.fix_dxf_paths
 """
 import json
 from pathlib import Path
+
+
 
 
 # Nombres exactos de los DXF copiados a /planos/generico/patrones/ por Forge (MSG_029).
@@ -147,6 +152,112 @@ def _find_pattern_library():
         return p if p.exists() else None
     except Exception:
         return None
+
+
+def wipe_file_patterns():
+    """Hard-delete de todos los SI Patron tipo Archivo + Vectorizado.
+
+    Decisión de Constantino (autorizada en vivo, 2026-07-02): borrar los
+    patrones DXF para recargarlos desde cero. No hay pedidos que los referencien.
+
+    Alcance:
+      1. Borrar SI Patron con tipo IN ("Archivo", "Vectorizado") y sus versiones
+         congeladas (SI Patron Version — cascada de delete_doc).
+      2. Borrar los .dxf físicos referenciados en archivo_dxf.
+      3. Borrar Frappe File huérfanos (archivos privados .dxf subidos por el
+         FileUploader de admin-patrones antes de copiarse a /planos/).
+      4. Neutralizar el fallback a pattern_library.json → escribirlo como {}.
+         Sin esto, si SI Patron queda vacío de activos, get_all() caería al JSON
+         y los patrones borrados reaparecerían.
+
+    NO modifica los patrones Paramétricos (Tresbolillo, Cuadriculado, etc.).
+
+    Retorna:
+      {docs_borrados, versiones_borradas, archivos_borrados,
+       files_huerfanos_borrados, errors}
+    """
+    import frappe
+
+    docs_borrados = []
+    archivos_borrados = []
+    errors = []
+
+    # 1. Localizar todos los SI Patron no-paramétricos
+    targets = frappe.db.get_all(
+        "SI Patron",
+        filters={"tipo": ["in", ["Archivo", "Vectorizado"]]},
+        fields=["name", "archivo_dxf"],
+    )
+
+    for t in targets:
+        name = t["name"]
+        dxf_path = (t.get("archivo_dxf") or "").strip()
+
+        # Contar versiones antes de borrar (para el reporte)
+        versiones_count = frappe.db.count("SI Patron Version", {"parent": name})
+
+        # Borrar .dxf físico
+        if dxf_path:
+            try:
+                p = Path(dxf_path)
+                if p.exists():
+                    p.unlink()
+                    archivos_borrados.append(dxf_path)
+            except Exception as exc:
+                errors.append({
+                    "step": "unlink_dxf", "name": name,
+                    "path": dxf_path, "error": str(exc),
+                })
+
+        # Hard-delete del doc (cascada a SI Patron Version por ser tabla hija)
+        try:
+            frappe.delete_doc(
+                "SI Patron", name,
+                force=True, delete_permanently=True, ignore_permissions=True,
+            )
+            docs_borrados.append({"name": name, "versiones": versiones_count})
+        except Exception as exc:
+            errors.append({"step": "delete_doc", "name": name, "error": str(exc)})
+
+    frappe.db.commit()
+
+    # 3. Borrar Frappe File huérfanos (privados .dxf subidos por el FileUploader)
+    huerfanos = frappe.db.get_all(
+        "File",
+        filters={"file_url": ["like", "/private/files/%.dxf"]},
+        fields=["name", "file_url"],
+    )
+    files_borrados = []
+    for f in huerfanos:
+        try:
+            frappe.delete_doc(
+                "File", f["name"],
+                force=True, delete_permanently=True, ignore_permissions=True,
+            )
+            files_borrados.append(f["file_url"])
+        except Exception as exc:
+            errors.append({"step": "delete_file", "name": f["name"], "error": str(exc)})
+
+    frappe.db.commit()
+
+    # 4. Neutralizar fallback: vaciar pattern_library.json
+    lib_file = _find_pattern_library()
+    if lib_file:
+        try:
+            lib_file.write_text("{}", encoding="utf-8")
+        except Exception as exc:
+            errors.append({"step": "neutralize_library", "error": str(exc)})
+
+    total_versiones = sum(d["versiones"] for d in docs_borrados)
+
+    return {
+        "docs_borrados": len(docs_borrados),
+        "docs_borrados_nombres": [d["name"] for d in docs_borrados],
+        "versiones_borradas": total_versiones,
+        "archivos_borrados": len(archivos_borrados),
+        "files_huerfanos_borrados": len(files_borrados),
+        "errors": errors,
+    }
 
 
 def fix_dxf_paths():
