@@ -1,11 +1,56 @@
 {
   "pending": [
     {
-      "agent": "Punto",
-      "task": "TASK_044",
-      "descripcion": "Segmentación en zonas flycut para Cuadriculado modo Cuadrado. Cada zona → capa DXF. Paneles >16 zonas → ZIP con múltiples DXFs.",
-      "msg": "coordination/inbox/PUNTO_TASK_044_FLYCUT_ZONAS_CUADRICULADO.md",
-      "status": "pendiente"
+      "agent": "Atlas",
+      "task": "ATLAS_TASK_005",
+      "descripcion": "Push clientes Tango→ERPNext: custom field si_tango_code como clave de upsert (Escenario B de MSG_038), default_price_list Precio Standard, idempotente, 8426 clientes.",
+      "msg": "coordination/inbox/ATLAS_TASK_005_PUSH_CLIENTES.md",
+      "status": "pendiente",
+      "sprint": "001-fase1",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Forge",
+      "task": "FORGE_DEPLOY_REMATE",
+      "descripcion": "Bloque nocturno 2 — git pull (37dd312) + bench migrate (SI Pedido Plegado) + bench build (thumbnails) + bench restart. FUNCIONALES pendientes: execute migrate_materiales, verificar get_all() source=frappe, probar Quotation vs Customer (bug is_billing_contact), nextango_engine_path + prueba api.paneles.calcular + api.patrones.get_all.",
+      "msg": "coordination/channel/Forge/MSG_010_nova_deploy_remate.md",
+      "status": "pendiente",
+      "sprint": "001-fase1",
+      "prioridad": "urgente"
+    },
+    {
+      "agent": "Tango",
+      "task": "PLAN_TANGO_SPRINT001",
+      "descripcion": "Ronda de planificación Sprint 1 (ÚNICO plan pendiente): revisar si el sync de clientes necesita mapear Price Lists. Contrato ya definido por Atlas: default_price_list='Precio Standard' para clientes nuevos. Reportar en coordination/channel/Nova/.",
+      "msg": "coordination/inbox/PLAN_TANGO_SPRINT001.md",
+      "status": "pendiente",
+      "sprint": "001-planning"
+    }
+  ],
+  "plan_noche_2026-07-01": {
+    "directiva": "Constantino: avanzar todo lo posible, la noche es larga. Nova coordina con autonomía.",
+    "bloque_1_completado": [
+      "Atlas TASK_004 ✓ (MSG_038) — Items, Price List, hallazgos",
+      "Punto TASK_051 ✓ (MSG_045, e2ddb78) — backend Fase 1 completo",
+      "Vega TASK_007 ✓ (MSG_046, c893b0c) — CSS bundle + page panel-decorativo",
+      "Forge deploy estructural ✓ (MSG_045-forge) — falta remate funcional"
+    ],
+    "bloque_2_cadena": [
+      "Punto: TASK_053 patrones PRIMERO → avisa a Vega → después TASK_052 plegados",
+      "Vega: TASK_008 Parte A (Customer Link) ya → Parte B (galería) cuando Punto avise",
+      "Atlas: TASK_005 push clientes con si_tango_code — independiente",
+      "Cybelec: TASK_001 reactivada — independiente",
+      "Forge: remate funcional del deploy (4 items MSG_010) → soporte continuo"
+    ]
+  },
+  "postponed": [
+    {
+      "agent": "Vega",
+      "task": "VEGA_TASK_006",
+      "descripcion": "UI lista de cortes — se reformulará directamente como Frappe Desk Page una vez terminada la planificación del Sprint 1. La versión standalone no se implementa.",
+      "msg": "coordination/inbox/VEGA_TASK_006_LISTA_CORTES_UI.md",
+      "status": "postponed",
+      "razon": "Decisión de Constantino 2026-07-01: no implementar en standalone. Se diseña directamente en Frappe después del Sprint 1."
     }
   ],
   "dispatched": [
@@ -21,6 +66,29 @@
     { "agent": "Punto", "tasks": ["TASK_040"], "status": "completado", "nota": "Tool standalone + checkbox en admin + 3 tests nuevos. 42 tests pasan. Requiere restart del servidor." },
     { "agent": "Punto", "tasks": ["TASK_041"], "status": "completado", "nota": "Patrón Cuadriculado implementado. Servidor reiniciado." },
     { "agent": "Punto", "tasks": ["TASK_042"], "status": "completado", "nota": "Kerf invertido corregido en CostADCAM Claude — signo negado en _offset_piece_entities." },
-    { "agent": "Punto", "tasks": ["TASK_043"], "status": "completado", "nota": "Página /plegados con preset Bandeja funcionando. Servidor reiniciado." }
+    { "agent": "Punto", "tasks": ["TASK_043"], "status": "completado", "nota": "Página /plegados con preset Bandeja funcionando. Servidor reiniciado." },
+    { "agent": "Punto", "tasks": ["TASK_044"], "status": "completado", "nota": "Flycut zones implementado con ZIP para >16 zonas. Revertido por TASK_046 — Constantino quiere un solo DXF siempre." },
+    { "agent": "Forge", "tasks": ["TASK_045"], "status": "completado", "nota": "Company Nextango/ARS/Argentina creada. Item PANEL-DEC creado. API Keys generadas. Ver coordination/SERVIDOR_ERPNEXT.md." },
+    { "agent": "Atlas", "tasks": ["ATLAS_TASK_003"], "status": "completado", "nota": "ERPNextClient en client.py, send_quotation() en api.py, URL hardcodeada removida, 4 tests + 80 total pasando." },
+    { "agent": "Tango", "tasks": ["TANGO_TASK_003"], "status": "completado", "nota": "GVA14 process ID = 2117. 8426 clientes confirmados. get_customers() implementado. Bug en _extract_records() corregido (afectaba también get_articles)." },
+    { "agent": "Punto", "tasks": ["TASK_046"], "status": "completado", "nota": "Flycut siempre 1 DXF. zona%16 para superposición. ZIP eliminado de flycut. 81 tests pasando." },
+    { "agent": "Punto", "tasks": ["TASK_047"], "status": "completado", "nota": "Rutas /plegados/perfiles, /paneles, /api/plegados/pedido(s). Directorio Programas_hechos/Plegados/pedidos/ creado. 85 tests pasando." },
+    { "agent": "Vega", "tasks": ["VEGA_TASK_005"], "status": "completado", "nota": "Landing hub en /, Panel Decorativo movido a /paneles, app Cybelec integrado en /plegados/perfiles con cabecera de pedido + panel de presupuesto + botón guardar." },
+    { "agent": "Punto", "tasks": ["TASK_049"], "status": "completado", "nota": "Flycut XDATA FS_CYPCUT standalone: APPID registrado, capas 1-indexed, XDATA Channel en cada entidad. 95 tests pasando. DECISIÓN: se reformulará como Frappe después del Sprint 1 — la versión standalone queda como referencia técnica." },
+    { "agent": "Punto", "tasks": ["TASK_048"], "status": "completado", "nota": "DXF unificado + fix exportar_dxf_bandeja() standalone. 5 endpoints /api/cortes/*. compile_unified_batch(). 95 tests pasando. DECISIÓN: se reformulará como Frappe después del Sprint 1 — endpoints standalone pausados." },
+    { "agent": "Punto", "tasks": ["TASK_050"], "status": "completado", "nota": "Fix cross-panel channel collision: parámetro zone_offset en _write_cuadriculado_square_to_doc, acumulado entre paneles. 95 tests pasando." },
+    { "agent": "Punto", "tasks": ["PLAN_PUNTO_SPRINT001"], "status": "completado", "nota": "Documento en MSG_042. 12 preguntas respondidas: Desk/Web por herramienta, árbol directorios, migración HTML→archivos, endpoints @whitelist completos, path resolution con site_config, DXF binario, Material de Corte como doctype propio, Presupuesto→Quotation manual, 6 roles custom, Cybelec via Web Page. 3 preguntas para Constantino, 3 para Atlas." },
+    { "agent": "Atlas", "tasks": ["PLAN_ATLAS_SPRINT001"], "status": "completado", "nota": "Plan en MSG_037. Items planos + Pricing Rules, no Price List por cliente. Consolidado en SPRINT_001_CONSOLIDACION_PLANNING.md." },
+    { "agent": "Forge", "tasks": ["PLAN_FORGE_SPRINT001"], "status": "completado", "nota": "Plan en MSG_043. Bloqueadores detectados: falta setup.py, rama erpnext no pusheada. Consolidado." },
+    { "agent": "Vega", "tasks": ["PLAN_VEGA_SPRINT001"], "status": "completado", "nota": "Plan en MSG_019. Workspace nativo reemplaza landing, Web Page para Cybelec. Consolidado." },
+    { "agent": "Forge", "tasks": ["FORGE_TASK_002"], "status": "completado", "nota": "Fase 0 completa (MSG_044): setup.py+MANIFEST, estructura módulo corregida (doctypes en app/paquete/módulo), rama erpnext pusheada, backup 20260701_220634, app instalada via symlink a /home/costa/Nextango, ezdxf 1.4.4 en venv, 6 doctypes legacy migrados. Pendiente menor: nextango_engine_path en site_config (FORGE_FOLLOWUP_ENGINE_PATH)." },
+    { "agent": "Atlas", "tasks": ["ATLAS_TASK_004"], "status": "completado", "nota": "MSG_038: Items BANDEJA/SRV-CORTE-LASER/SRV-PLEGADO creados, Price List Precio Standard sin Item Prices, Quotation con rate manual verificado (contra Lead). HALLAZGOS: (1) bug schema is_billing_contact → Forge migrate URGENTE; (2) push de clientes Tango→ERPNext NO EXISTE, ERPNext tiene 0 Customers — sync futuro debe usar si_tango_code como clave; (3) contrato línea Quotation con 7 custom fields propuesto para Punto Fase 3." },
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_051"], "status": "completado", "nota": "MSG_045, commit e2ddb78 pusheado (falta deploy — FORGE_DEPLOY_051): 6 roles fixtures, SI Material Corte (+precio_por_kg/precio_plegar_por_kg), SI Precios Globales (Single), SI Presupuesto Panel + SI Linea Presupuesto (recursos+factores, before_save con fórmula §3), api/materiales completa con fallback legacy_json, api/paneles calcular+descargar_dxf, migrate_materiales.py. PENDIENTE CONSTANTINO: valores de precio_plegar_por_kg y precio_por_plegado (quedaron en 0), validar velocidades de corte y tiempos de perforación." },
+    { "agent": "Vega", "tasks": ["VEGA_TASK_007"], "status": "completado", "nota": "MSG_046, commit c893b0c pusheado (falta deploy): Parte A CSS bundle + Parte B Desk Page panel-decorativo completa — 4 secciones, factores con recálculo en vivo, DXF opción B con showSaveFilePicker, guardar via frappe.client.insert (fórmula server-side gana). PENDIENTES: galería de patrones necesita api/patrones (→ PUNTO_TASK_053), campo cliente es texto (Link a Customer en próxima iteración), verificación en vivo espera deploy de Forge." },
+    { "agent": "Vega", "tasks": ["VEGA_TASK_008"], "status": "completado", "nota": "MSG_047, commits 2a9dbed+f622436 (deploy: solo build+restart): Parte A cliente → Link a Customer con typeahead nativo. Parte B galería PREPARADA con degradación silenciosa — se auto-activa cuando exista api.patrones.get_all. CONTRATO FIJADO para Punto (MSG_010 de su canal): get_all → {rows:[{name, file_path,...}]}, file_path legible por el worker del servidor." },
+    { "agent": "Cybelec", "tasks": ["CYBELEC_TASK_001"], "status": "completado", "nota": "MSG_040_CYBELEC: zoom centrado en pliegue con botón toggle (default activado, integrado con Bajar punzón), Guardar DXF como... iOS-12-safe, EXTRA: corrección de ángulo empírica acumulativa (pendiente ⭐⭐ del handoff) que persiste con la pieza en galería + fix bug machineGeom sentido de brazos. DECISIÓN ABIERTA para Constantino: corrección empírica por-pieza (actual) vs por juego de útiles+espesor." },
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_051"], "status": "completado", "nota": "commit e2ddb78. 6 roles SI *, SI Material Corte + SI Precios Globales + SI Presupuesto Panel + SI Linea Presupuesto. api/materiales.get_all() con fallback a legacy_json. api/paneles.calcular() + descargar_dxf(). migrate_materiales.py. Formato exacto de r.message en MSG_045. Pushed a origin/erpnext. Forge: bench migrate + bench execute migrate_materiales." },
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_053"], "status": "completado", "nota": "MSG_048, commit 37dd312: api/patrones.get_all() — 5 patrones DXF de pattern_library.json con file_available (false en todos — UNC paths), thumbnail_url /assets/sistema_industrial/pattern_thumbnails/. 11 PNGs en public/. Vega avisada (MSG_012 en su canal). Forge: git pull + bench build --app sistema_industrial + bench restart (sin migrate)." },
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_052"], "status": "completado", "nota": "MSG_048, commit 37dd312: SI Pedido Plegado (before_save recalcula recursos+costo, 6 permisos incl. operarios), api/plegados (calcular/guardar_pedido/list_pedidos/get_pedido/descargar_dxf), page plegados-complejos skeleton. Forge: git pull + bench migrate + bench build + bench restart." }
   ]
 }
