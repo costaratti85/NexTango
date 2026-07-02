@@ -1,9 +1,6 @@
 from config.settings import Settings
 from config.pattern_library import PatternLibrary
 
-import tkinter as tk
-from tkinter import filedialog
-
 
 def parse_sheet_size(text):
 
@@ -27,6 +24,8 @@ def parse_sheet_size(text):
 
 
 def ask_dxf_file():
+    import tkinter as tk
+    from tkinter import filedialog
 
     root = tk.Tk()
     root.withdraw()
@@ -45,6 +44,8 @@ def ask_dxf_file():
 
 
 def ask_output_file():
+    import tkinter as tk
+    from tkinter import filedialog
 
     root = tk.Tk()
     root.withdraw()
