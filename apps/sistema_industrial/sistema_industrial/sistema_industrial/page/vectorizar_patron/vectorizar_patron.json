@@ -1,0 +1,19 @@
+{
+ "content": null,
+ "doctype": "Page",
+ "icon": "camera",
+ "idx": 0,
+ "module": "Sistema Industrial",
+ "name": "vectorizar-patron",
+ "owner": "Administrator",
+ "page_name": "vectorizar-patron",
+ "roles": [
+  {"role": "SI Admin Produccion"},
+  {"role": "System Manager"}
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Vectorizar Imagen"
+}

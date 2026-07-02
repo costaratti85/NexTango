@@ -5,6 +5,9 @@ frappe.pages['admin-patrones'].on_page_load = function (wrapper) {
 		single_column: true,
 	});
 	$(frappe.render_template('admin_patrones', {})).appendTo(page.body);
+	page.set_primary_action(__('Vectorizar imagen'), () => {
+		frappe.set_route('vectorizar-patron');
+	}, 'camera');
 	page.set_secondary_action(__('Ir al Panel Decorativo'), () => {
 		frappe.set_route('panel-decorativo');
 	});

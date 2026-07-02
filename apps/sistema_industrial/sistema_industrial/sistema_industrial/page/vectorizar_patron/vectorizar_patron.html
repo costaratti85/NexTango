@@ -1,0 +1,63 @@
+<div class="si-page">
+  <div class="page-wrapper">
+
+    <!-- Paso 1: subir imagen -->
+    <div class="card">
+      <div class="card-title">1 — Subir imagen del panel</div>
+      <div class="vp-drop" id="vp-drop">
+        <div id="vp-drop-prompt">⤒ Elegir imagen (PNG / JPG)…</div>
+        <div class="vp-file-name hidden" id="vp-file-name"></div>
+      </div>
+      <div style="display:flex; gap:12px; align-items:center; margin-top:14px">
+        <button class="btn btn-primary" id="vp-btn-vectorizar" style="padding:9px 28px" disabled>Vectorizar</button>
+        <span class="vp-status" id="vp-status"></span>
+      </div>
+      <div class="vp-spinner hidden" id="vp-spinner">
+        <div class="vp-spin"></div>
+        <span>Vectorizando… (varias corridas de potrace, puede tardar unos segundos)</span>
+      </div>
+    </div>
+
+    <!-- Paso 2: figuras detectadas -->
+    <div class="card hidden" id="vp-section-figuras">
+      <div class="card-title">2 — Elegí la mejor variante de cada figura</div>
+      <div class="vp-sel-count" id="vp-sel-count"></div>
+      <div id="vp-figuras"></div>
+    </div>
+
+    <!-- Paso 3: confirmar -->
+    <div class="card hidden" id="vp-section-confirmar">
+      <div class="card-title">3 — Crear patrón</div>
+      <div class="vp-confirm-grid">
+        <div class="form-group" style="flex:2 1 200px">
+          <label for="vp-nombre">Nombre</label>
+          <input type="text" id="vp-nombre" placeholder="ej. Panel Rombo">
+        </div>
+        <div class="form-group" style="max-width:120px">
+          <label for="vp-stepx">Paso X mm</label>
+          <input type="number" id="vp-stepx" step="0.1" min="1" placeholder="ej. 50">
+        </div>
+        <div class="form-group" style="max-width:120px">
+          <label for="vp-stepy">Paso Y mm</label>
+          <input type="number" id="vp-stepy" step="0.1" min="1" placeholder="ej. 50">
+        </div>
+        <div class="form-group" style="max-width:190px">
+          <label for="vp-visibilidad">Visibilidad</label>
+          <select id="vp-visibilidad">
+            <option value="Publico">Genérico (todos)</option>
+            <option value="Exclusivo">Exclusivo de cliente</option>
+          </select>
+        </div>
+        <div class="form-group hidden" id="vp-customer-group" style="flex:2 1 200px">
+          <label>Cliente</label>
+          <div id="vp-customer-field"></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px; align-items:center; margin-top:14px">
+        <button class="btn btn-success" id="vp-btn-crear" style="padding:9px 28px; font-weight:700">✓ Crear patrón</button>
+        <span class="vp-status" id="vp-confirm-status"></span>
+      </div>
+    </div>
+
+  </div>
+</div>
