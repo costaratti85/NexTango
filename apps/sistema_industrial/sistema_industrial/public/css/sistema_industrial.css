@@ -1,0 +1,70 @@
+/*
+ * Sistema Industrial — CSS común para las Desk Pages y Web Pages.
+ * Extraído de _COMMON_CSS en presets/panel_sales_local_app.py (VEGA_TASK_007).
+ *
+ * IMPORTANTE: todos los estilos están scopeados bajo .si-page para no
+ * pisar el CSS del Desk de Frappe (el bundle se carga globalmente via
+ * app_include_css). Cada página del módulo envuelve su contenido en
+ * <div class="si-page">...</div>.
+ */
+
+:root {
+  --si-brand: #176b87;
+  --si-brand-dark: #125a72;
+  --si-green: #2e7d32;
+  --si-bg: #f0f2f5;
+  --si-card: #fff;
+  --si-line: #e0e6ed;
+  --si-ink: #1a1a2e;
+  --si-muted: #607080;
+  --si-accent2: #8a4b20;
+  --si-red: #c62828;
+}
+
+.si-page,
+.si-page *,
+.si-page *::before,
+.si-page *::after {
+  box-sizing: border-box;
+}
+
+.si-page {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: var(--si-bg);
+  color: var(--si-ink);
+  font-size: 14px;
+}
+
+/* ---- Layout ---- */
+.si-page .page-wrapper { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+.si-page .card { background: var(--si-card); border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.08); padding: 28px 32px; margin-bottom: 24px; }
+.si-page .card-title { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--si-brand); margin-bottom: 20px; border-bottom: 2px solid #e8f4f8; padding-bottom: 10px; }
+
+/* ---- Formularios ---- */
+.si-page label { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #555; margin-bottom: 5px; display: block; }
+.si-page input[type=text],
+.si-page input[type=number],
+.si-page select,
+.si-page textarea { border: 1px solid #ccc; border-radius: 5px; padding: 8px 10px; font-size: 14px; color: #222; background: #fff; transition: border-color .15s; width: 100%; font-family: inherit; }
+.si-page input[type=text]:focus,
+.si-page input[type=number]:focus,
+.si-page select:focus,
+.si-page textarea:focus { outline: none; border-color: var(--si-brand); box-shadow: 0 0 0 2px rgba(23,107,135,.15); }
+.si-page input[readonly] { background: #f3f5f7; color: #555; }
+.si-page .field-hint { font-size: 11px; color: #888; margin-top: 3px; }
+.si-page .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+.si-page .form-group { display: flex; flex-direction: column; flex: 1; }
+
+/* ---- Utilidades ---- */
+.si-page .hidden { display: none !important; }
+.si-page .error-box { background: #fdecea; border: 1px solid #f5a5a0; color: var(--si-red); padding: 12px; border-radius: 6px; margin-bottom: 14px; font-size: 14px; }
+.si-page .dimmed { color: #aaa; font-size: 12px; font-style: italic; }
+
+/* ---- Responsive ---- */
+@media (max-width: 700px) {
+  .si-page .form-row { flex-direction: column; }
+}
+@media (max-width: 600px) {
+  .si-page .page-wrapper { padding-left: 0; padding-right: 0; }
+  .si-page .card { padding: 16px 14px; border-radius: 0; }
+}
