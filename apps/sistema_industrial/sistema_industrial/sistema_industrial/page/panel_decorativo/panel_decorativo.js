@@ -74,6 +74,35 @@ class PanelDecorativo {
 				if (r.message) this.precios = r.message;
 			},
 		});
+
+		this.load_patterns();
+	}
+
+	// ------------------------------------------------------------------
+	// Patrones DXF custom — degradación silenciosa si el endpoint no existe
+	// ------------------------------------------------------------------
+	// Contrato asumido (a confirmar con Punto):
+	//   sistema_industrial.api.patrones.get_all
+	//   r.message = { rows: [{ name, file_path, ... }] }
+	// Se usa fetch directo (no frappe.call) para que un 404 pre-endpoint
+	// no dispare el diálogo de error de Frappe en cada carga de página.
+
+	load_patterns() {
+		this.patterns = [];
+		fetch('/api/method/sistema_industrial.api.patrones.get_all', {
+			headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token },
+		})
+			.then((r) => (r.ok ? r.json() : null))
+			.then((d) => {
+				const rows = (d && d.message && d.message.rows) || [];
+				if (!rows.length) return;
+				this.patterns = rows;
+				const sel = $('#pd-patron');
+				rows.forEach((p, i) => {
+					sel.append($('<option>').val('dxf:' + i).text(p.name + ' (patrón DXF)'));
+				});
+			})
+			.catch(() => {}); // endpoint aún no publicado — modos nativos solamente
 	}
 
 	build_material_index() {
@@ -135,6 +164,7 @@ class PanelDecorativo {
 			'hidden',
 			p !== 'cuadriculado_circle' && p !== 'cuadriculado_square'
 		);
+		$('#pd-params-dxf').toggleClass('hidden', !p.startsWith('dxf:'));
 	}
 
 	// ------------------------------------------------------------------
@@ -160,9 +190,17 @@ class PanelDecorativo {
 			if (isNaN(alto) || alto <= 0) throw new Error(__('Alto inválido.'));
 			if (isNaN(margen) || margen < 0) throw new Error(__('Margen inválido.'));
 
+			const is_dxf = patron.startsWith('dxf:');
+			const dxf_row = is_dxf ? this.patterns[parseInt(patron.slice(4))] : null;
+			if (is_dxf && !dxf_row) throw new Error(__('Patrón DXF inválido — recargá la página.'));
+
 			const batch = {
-				panel_mode: patron.startsWith('cuadriculado') ? 'cuadriculado' : patron,
-				preset_name: $('#pd-patron option:selected').text(),
+				panel_mode: is_dxf
+					? 'dxf_pattern_grid'
+					: patron.startsWith('cuadriculado')
+					? 'cuadriculado'
+					: patron,
+				preset_name: is_dxf ? dxf_row.name : $('#pd-patron option:selected').text(),
 				pattern_type: 'nativo',
 				cut_partial_figures: $('#pd-dist-mode').val() === 'cortar',
 				margin_mm: margen,
@@ -176,7 +214,15 @@ class PanelDecorativo {
 				step_y_mm: null,
 			};
 
-			if (patron === 'tresbolillo') {
+			if (is_dxf) {
+				if (!dxf_row.file_path)
+					throw new Error(__('El patrón DXF no tiene ruta de archivo.'));
+				batch.pattern_dxf_path = dxf_row.file_path;
+				batch.step_x_mm = parseFloat($('#pd-dxf-step-x').val());
+				batch.step_y_mm = parseFloat($('#pd-dxf-step-y').val());
+				if (!(batch.step_x_mm > 0) || !(batch.step_y_mm > 0))
+					throw new Error(__('Paso X/Y inválido.'));
+			} else if (patron === 'tresbolillo') {
 				batch.hole_diameter_mm = parseFloat($('#pd-diam').val());
 				batch.hole_distance_mm = parseFloat($('#pd-dist').val());
 				if (!(batch.hole_diameter_mm > 0)) throw new Error(__('Diámetro inválido.'));
