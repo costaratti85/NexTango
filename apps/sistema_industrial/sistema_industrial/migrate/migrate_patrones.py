@@ -8,8 +8,22 @@ Uso:
     bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.run
     bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.run \
         --kwargs '{"overwrite": true}'
+
+    # Parche de paths tras copiar DXF al servidor (Forge MSG_029):
+    bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.fix_dxf_paths
 """
 import json
+from pathlib import Path
+
+
+# Nombres exactos de los DXF copiados a /planos/generico/patrones/ por Forge (MSG_029).
+_DXF_FILENAMES = {
+    "Subte":      "subte Offx84 Offy84.dxf",
+    "Philo":      "Philo_editado.dxf",
+    "Cosmos":     "Cosmos OffXY 500.dxf",
+    "Hexagonal":  "Hexagonal offx 19 offy 32.91.dxf",
+    "Aconcagua":  "Aconcagua OFF XY 85.dxf",
+}
 
 
 _PARAMETRICOS = [
@@ -133,3 +147,48 @@ def _find_pattern_library():
         return p if p.exists() else None
     except Exception:
         return None
+
+
+def fix_dxf_paths():
+    """Actualiza los 5 SI Patron de archivo al path real en /planos/ del servidor.
+
+    Corre DESPUÉS de que Forge copió los DXF a /home/costa/planos/generico/patrones/.
+    Lee nextango_planos_path de site_config. Cada save dispara el versionado:
+    se congela el path viejo en SI Patron Version y el master queda con el path nuevo.
+
+    Retorna: {"updated": [...], "skipped": [...], "errors": [...]}
+    """
+    import frappe
+
+    planos_path = frappe.conf.get("nextango_planos_path")
+    if not planos_path:
+        return {"error": "nextango_planos_path no configurado en site_config.json"}
+
+    base = Path(planos_path) / "generico" / "patrones"
+    updated, skipped, errors = [], [], []
+
+    for patron_name, filename in _DXF_FILENAMES.items():
+        try:
+            if not frappe.db.exists("SI Patron", patron_name):
+                skipped.append({"name": patron_name, "reason": "no existe en DB"})
+                continue
+
+            new_path = str(base / filename)
+
+            if not Path(new_path).exists():
+                skipped.append({"name": patron_name, "reason": f"archivo no encontrado en disco: {new_path}"})
+                continue
+
+            doc = frappe.get_doc("SI Patron", patron_name)
+            if doc.archivo_dxf == new_path:
+                skipped.append({"name": patron_name, "reason": "path ya es correcto"})
+                continue
+
+            doc.archivo_dxf = new_path
+            doc.save(ignore_permissions=True)
+            updated.append({"name": patron_name, "path": new_path, "version": int(doc.version or 1)})
+        except Exception as exc:
+            errors.append({"name": patron_name, "error": str(exc)})
+
+    frappe.db.commit()
+    return {"updated": updated, "skipped": skipped, "errors": errors}
