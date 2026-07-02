@@ -2,18 +2,18 @@
   "pending": [
     {
       "agent": "Atlas",
-      "task": "ATLAS_TASK_005",
-      "descripcion": "Push clientes Tango→ERPNext: custom field si_tango_code como clave de upsert (Escenario B de MSG_038), default_price_list Precio Standard, idempotente, 8426 clientes.",
-      "msg": "coordination/inbox/ATLAS_TASK_005_PUSH_CLIENTES.md",
+      "task": "ATLAS_RUN_SYNC_MASIVO",
+      "descripcion": "Ejecutar el run masivo de producción: tango.get_customers() → push_customers_to_erpnext (8.426 clientes). Si la API de Tango no responde de madrugada, reportar el error y queda como primer comando de la mañana.",
+      "msg": "coordination/channel/Atlas/MSG_007_nova_run_masivo.md",
       "status": "pendiente",
       "sprint": "001-fase1",
       "prioridad": "alta"
     },
     {
       "agent": "Forge",
-      "task": "FORGE_DEPLOY_REMATE",
-      "descripcion": "Bloque nocturno 2 — git pull (37dd312) + bench migrate (SI Pedido Plegado) + bench build (thumbnails) + bench restart. FUNCIONALES pendientes: execute migrate_materiales, verificar get_all() source=frappe, probar Quotation vs Customer (bug is_billing_contact), nextango_engine_path + prueba api.paneles.calcular + api.patrones.get_all.",
-      "msg": "coordination/channel/Forge/MSG_010_nova_deploy_remate.md",
+      "task": "FORGE_FUNCIONALES_NOCHE",
+      "descripcion": "TERCERA INSISTENCIA — deploys estructurales OK (MSG_045/046 forge), pero los FUNCIONALES siguen sin correr: (1) execute migrate_materiales, (2) get_all source=frappe, (3) engine_path + prueba api.paneles.calcular, (4) prueba api.plegados.calcular, (5) copiar patrones DXF desde UNC. Pegar output de CADA comando, errores incluidos. Ver MSG_013.",
+      "msg": "coordination/channel/Forge/MSG_013_nova_solo_funcionales.md",
       "status": "pendiente",
       "sprint": "001-fase1",
       "prioridad": "urgente"
@@ -87,8 +87,13 @@
     { "agent": "Vega", "tasks": ["VEGA_TASK_007"], "status": "completado", "nota": "MSG_046, commit c893b0c pusheado (falta deploy): Parte A CSS bundle + Parte B Desk Page panel-decorativo completa — 4 secciones, factores con recálculo en vivo, DXF opción B con showSaveFilePicker, guardar via frappe.client.insert (fórmula server-side gana). PENDIENTES: galería de patrones necesita api/patrones (→ PUNTO_TASK_053), campo cliente es texto (Link a Customer en próxima iteración), verificación en vivo espera deploy de Forge." },
     { "agent": "Vega", "tasks": ["VEGA_TASK_008"], "status": "completado", "nota": "MSG_047, commits 2a9dbed+f622436 (deploy: solo build+restart): Parte A cliente → Link a Customer con typeahead nativo. Parte B galería PREPARADA con degradación silenciosa — se auto-activa cuando exista api.patrones.get_all. CONTRATO FIJADO para Punto (MSG_010 de su canal): get_all → {rows:[{name, file_path,...}]}, file_path legible por el worker del servidor." },
     { "agent": "Cybelec", "tasks": ["CYBELEC_TASK_001"], "status": "completado", "nota": "MSG_040_CYBELEC: zoom centrado en pliegue con botón toggle (default activado, integrado con Bajar punzón), Guardar DXF como... iOS-12-safe, EXTRA: corrección de ángulo empírica acumulativa (pendiente ⭐⭐ del handoff) que persiste con la pieza en galería + fix bug machineGeom sentido de brazos. DECISIÓN ABIERTA para Constantino: corrección empírica por-pieza (actual) vs por juego de útiles+espesor." },
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_053", "PUNTO_TASK_052"], "status": "completado", "nota": "MSG_048, commit 37dd312 (falta deploy): api.patrones.get_all con contrato de Vega (5 patrones, file_available=false hasta que Forge copie los DXF desde UNC), 11 thumbnails en /assets/. SI Pedido Plegado (BAN-YYYY-#####, recursos+factores+before_save fórmula §3, operarios leen), api/plegados completa (calcular/guardar/list/get/descargar_dxf), skeleton page plegados-complejos. Postergado: add/delete_pattern (edición manual de pattern_library.json por ahora)." },
+    { "agent": "Forge", "tasks": ["FORGE_DEPLOY_37dd312"], "status": "completado", "nota": "MSG_046-forge: deploy estructural limpio — page plegados-complejos OK, SI Pedido Plegado OK, thumbnails HTTP 200. Los funcionales siguen pendientes (FORGE_FUNCIONALES_NOCHE)." },
+    { "agent": "Atlas", "tasks": ["ATLAS_TASK_005"], "status": "completado", "nota": "MSG_040-atlas-sync: custom fields si_tango_code/si_tango_id creados en servidor, customer_push.py con upsert por si_tango_code (manuales intocables), mapeo IVA→Customer Group, 14/14 tests, smoke test live idempotente (3 clientes SMOKE-*). PENDIENTE: run masivo de 8.426 (ATLAS_RUN_SYNC_MASIVO)." },
+    { "agent": "Vega", "tasks": ["VEGA_PLEGADOS_UI"], "status": "completado", "nota": "MSG_048-VEGA, commit 5d55368 (deploy: build+restart): UI completa plegados-complejos por iniciativa propia sobre el skeleton de Punto — Customer Link, material/espesor dependientes, 5 KPIs, presupuesto con desglose por componente de la fórmula §3 (cada término con su factor visible), guardar + DXF. GAP detectado: SI Pedido Plegado sin campo cantidad → PUNTO_TASK_054." },
     { "agent": "Punto", "tasks": ["PUNTO_TASK_051"], "status": "completado", "nota": "commit e2ddb78. 6 roles SI *, SI Material Corte + SI Precios Globales + SI Presupuesto Panel + SI Linea Presupuesto. api/materiales.get_all() con fallback a legacy_json. api/paneles.calcular() + descargar_dxf(). migrate_materiales.py. Formato exacto de r.message en MSG_045. Pushed a origin/erpnext. Forge: bench migrate + bench execute migrate_materiales." },
     { "agent": "Punto", "tasks": ["PUNTO_TASK_053"], "status": "completado", "nota": "MSG_048, commit 37dd312: api/patrones.get_all() — 5 patrones DXF de pattern_library.json con file_available (false en todos — UNC paths), thumbnail_url /assets/sistema_industrial/pattern_thumbnails/. 11 PNGs en public/. Vega avisada (MSG_012 en su canal). Forge: git pull + bench build --app sistema_industrial + bench restart (sin migrate)." },
-    { "agent": "Punto", "tasks": ["PUNTO_TASK_052"], "status": "completado", "nota": "MSG_048, commit 37dd312: SI Pedido Plegado (before_save recalcula recursos+costo, 6 permisos incl. operarios), api/plegados (calcular/guardar_pedido/list_pedidos/get_pedido/descargar_dxf), page plegados-complejos skeleton. Forge: git pull + bench migrate + bench build + bench restart." }
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_052"], "status": "completado", "nota": "MSG_048, commit 37dd312: SI Pedido Plegado (before_save recalcula recursos+costo, 6 permisos incl. operarios), api/plegados (calcular/guardar_pedido/list_pedidos/get_pedido/descargar_dxf), page plegados-complejos skeleton. Forge: git pull + bench migrate + bench build + bench restart." },
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_054"], "status": "completado", "nota": "commit 1371962: campo cantidad (Int, default 1) + costo_unitario (Currency, read_only) en SI Pedido Plegado; before_save persiste unit y total=unit×cantidad. Vega avisada (MSG_013). Forge: bench migrate." }
   ]
 }
