@@ -44,6 +44,14 @@
       "in_standard_filter": 1
     },
     {
+      "fieldname": "spline_count",
+      "fieldtype": "Int",
+      "label": "Splines detectadas",
+      "default": "0",
+      "read_only": 1,
+      "description": "Número de entidades SPLINE en el DXF. 0 = sin splines o ya convertidas."
+    },
+    {
       "fieldname": "col_break_1",
       "fieldtype": "Column Break"
     },

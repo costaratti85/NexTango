@@ -55,6 +55,16 @@ def _resolve_frappe_file(file_url: str) -> Path:
     return Path(frappe.get_doc("File", fname).get_full_path())
 
 
+def _count_splines(dxf_path) -> int:
+    """Cuenta entidades SPLINE en el modelspace del DXF. Retorna 0 si falla."""
+    try:
+        import ezdxf
+        doc = ezdxf.readfile(str(dxf_path))
+        return sum(1 for e in doc.modelspace() if e.dxftype() == "SPLINE")
+    except Exception:
+        return 0
+
+
 def _thumbnail_url(filename):
     """Retorna la URL Frappe si el PNG existe en public/pattern_thumbnails/, o None."""
     thumb_dir = Path(__file__).resolve().parents[1] / "public" / "pattern_thumbnails"
@@ -101,6 +111,7 @@ def _patron_doc_to_row(doc):
     # Thumbnail: campo Attach del doc tiene precedencia; fallback a public/pattern_thumbnails/
     thumb = doc.get("thumbnail") or _thumbnail_url(f"{_safe_name(name)}.png")
 
+    spline_count = int(doc.get("spline_count") or 0)
     return {
         "name": name,
         "label": name,
@@ -115,6 +126,8 @@ def _patron_doc_to_row(doc):
         "visibilidad": visibilidad,
         "version": version,
         "parametros": parametros,
+        "has_splines": spline_count > 0,
+        "spline_count": spline_count,
     }
 
 
@@ -127,7 +140,8 @@ def _get_all_from_frappe(customer=None):
 
         fields = [
             "name", "tipo", "visibilidad", "cliente",
-            "archivo_dxf", "parametros", "version", "thumbnail", "descripcion", "activo",
+            "archivo_dxf", "parametros", "version", "thumbnail", "descripcion",
+            "activo", "spline_count",
         ]
 
         public_rows = frappe.get_all(
@@ -275,6 +289,8 @@ def upload_pattern(nombre, step_x, step_y, visibilidad, file_url, customer=None,
     dest_path = dest_dir / safe
     shutil.copy2(str(src_path), str(dest_path))
 
+    sc = _count_splines(dest_path)
+
     parametros = json.dumps({
         "step_x": float(step_x) if step_x not in (None, "") else None,
         "step_y": float(step_y) if step_y not in (None, "") else None,
@@ -289,6 +305,7 @@ def upload_pattern(nombre, step_x, step_y, visibilidad, file_url, customer=None,
             doc.descripcion = descripcion
         doc.parametros = parametros
         doc.activo = 1
+        doc.spline_count = sc
         doc.save(ignore_permissions=True)
     else:
         payload = {
@@ -300,6 +317,7 @@ def upload_pattern(nombre, step_x, step_y, visibilidad, file_url, customer=None,
             "archivo_dxf": str(dest_path),
             "parametros": parametros,
             "activo": 1,
+            "spline_count": sc,
         }
         if visibilidad == "Exclusivo" and customer:
             payload["cliente"] = customer
@@ -307,7 +325,13 @@ def upload_pattern(nombre, step_x, step_y, visibilidad, file_url, customer=None,
         doc.insert(ignore_permissions=True)
 
     frappe.db.commit()
-    return {"ok": True, "name": nombre, "version": int(doc.version or 1)}
+    return {
+        "ok": True,
+        "name": nombre,
+        "version": int(doc.version or 1),
+        "has_splines": sc > 0,
+        "spline_count": sc,
+    }
 
 
 @frappe.whitelist(allow_guest=False)
@@ -327,6 +351,48 @@ def delete_pattern(name):
 
 
 @frappe.whitelist(allow_guest=False)
+def convert_splines(name):
+    """Convierte splines a arcos en el DXF del patrón y guarda como nueva versión.
+
+    Usa el conversor curado tools/dxf_spline_to_arcs.py (TASK_022 + fix puntas).
+    El archivo original queda congelado en el historial (constraint de versionado).
+
+    r.message:
+    {
+        "ok": true, "name": "Subte", "version": 2,
+        "splines_convertidas": 12, "arcos_generados": 47, "lineas_generadas": 15
+    }
+    """
+    if not frappe.db.exists("SI Patron", name):
+        frappe.throw(f"Patrón '{name}' no encontrado", frappe.DoesNotExistError)
+
+    doc = frappe.get_doc("SI Patron", name)
+    src_path = Path(doc.archivo_dxf or "")
+    if not src_path.exists():
+        frappe.throw(f"Archivo DXF no disponible en disco: {doc.archivo_dxf}")
+
+    next_v = int(doc.version or 1) + 1
+    dest_path = src_path.parent / f"{src_path.stem}_v{next_v}{src_path.suffix}"
+
+    from sistema_industrial.presets.panel_sales_local_app import convert_dxf_splines_clean
+    stats = convert_dxf_splines_clean(str(src_path), str(dest_path), tolerance=0.1)
+
+    doc.archivo_dxf = str(dest_path)
+    doc.spline_count = 0  # convertidas: ya no hay splines
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "name": name,
+        "version": int(doc.version or 1),
+        "splines_convertidas": stats.get("converted_count", 0),
+        "arcos_generados": stats.get("arc_count", 0),
+        "lineas_generadas": stats.get("line_count", 0),
+    }
+
+
+@frappe.whitelist(allow_guest=False)
 def list_admin():
     """Lista TODOS los SI Patron (activos e inactivos) para la página de administración.
 
@@ -337,7 +403,8 @@ def list_admin():
         "rows": [
             {
                 "name", "tipo", "visibilidad", "cliente",
-                "thumbnail_url", "file_available", "version", "activo"
+                "thumbnail_url", "file_available", "version", "activo",
+                "has_splines", "spline_count"
             },
             ...
         ]
@@ -345,7 +412,8 @@ def list_admin():
     """
     fields = [
         "name", "tipo", "visibilidad", "cliente",
-        "archivo_dxf", "parametros", "version", "thumbnail", "descripcion", "activo",
+        "archivo_dxf", "parametros", "version", "thumbnail", "descripcion",
+        "activo", "spline_count",
     ]
     docs = frappe.get_all("SI Patron", fields=fields, order_by="name asc")
     rows = []
