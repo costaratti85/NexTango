@@ -282,7 +282,7 @@ class PlegadosComplejos {
 	// DXF — URL directa + showSaveFilePicker con fallback
 	// ------------------------------------------------------------------
 
-	descargar_dxf() {
+	async descargar_dxf() {
 		const err = $('#pc-error').addClass('hidden');
 		let geo;
 		try {
@@ -291,6 +291,8 @@ class PlegadosComplejos {
 			err.text(e.message).removeClass('hidden');
 			return;
 		}
+		const btn = $('#pc-btn-dxf');
+		if (btn.prop('disabled')) return;   // descarga en curso — no re-disparar
 		const job = $('#pc-job').val() || 'bandeja';
 		const url =
 			'/api/method/sistema_industrial.api.plegados.descargar_dxf' +
@@ -300,22 +302,32 @@ class PlegadosComplejos {
 			'&alto=' + geo.alto +
 			'&espesor=' + geo.espesor +
 			'&job_name=' + encodeURIComponent(job);
-		this.save_dxf_as(url, job.replace(/\s+/g, '_') + '.dxf');
+		const filename = job.replace(/\s+/g, '_') + '.dxf';
+
+		const orig = btn.text();
+		btn.prop('disabled', true).text(__('Generando DXF…'));
+		try {
+			const resp = await fetch(url, { headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token } });
+			if (!resp.ok) throw new Error('HTTP ' + resp.status);
+			const blob = await resp.blob();
+			await this.save_blob(blob, filename);
+		} catch (e) {
+			err.text(__('Error al descargar el DXF. Reintentá.')).removeClass('hidden');
+		} finally {
+			btn.prop('disabled', false).text(orig);
+		}
 	}
 
-	async save_dxf_as(url, filename) {
+	// Guarda un blob YA generado (sin re-pegarle al endpoint).
+	async save_blob(blob, filename) {
 		if (window.showSaveFilePicker) {
 			try {
 				const handle = await window.showSaveFilePicker({
 					suggestedName: filename,
 					types: [{ description: 'DXF', accept: { 'application/dxf': ['.dxf'] } }],
 				});
-				const resp = await fetch(url, {
-					headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token },
-				});
-				if (!resp.ok) throw new Error('HTTP ' + resp.status);
 				const writable = await handle.createWritable();
-				await writable.write(await resp.blob());
+				await writable.write(blob);
 				await writable.close();
 				frappe.show_alert({ message: __('DXF guardado'), indicator: 'green' });
 				return;
@@ -324,11 +336,13 @@ class PlegadosComplejos {
 				// caer al fallback
 			}
 		}
+		const objUrl = URL.createObjectURL(blob);
 		const a = document.createElement('a');
-		a.href = url;
+		a.href = objUrl;
 		a.download = filename;
 		document.body.appendChild(a);
 		a.click();
 		a.remove();
+		setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
 	}
 }

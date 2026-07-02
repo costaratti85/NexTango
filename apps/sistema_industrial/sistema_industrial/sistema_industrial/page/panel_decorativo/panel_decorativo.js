@@ -470,43 +470,62 @@ class PanelDecorativo {
 	// DXF — opción B: URL binaria directa + showSaveFilePicker
 	// ------------------------------------------------------------------
 
-	descargar_dxf() {
+	async descargar_dxf() {
 		if (!this.batches.length) return;
+		const btn = $('#pd-btn-dxf');
+		if (btn.prop('disabled')) return;   // ya hay una descarga en curso — no re-disparar
 		const job = $('#pd-job').val() || 'panel';
+		// URL armada con el estado ACTUAL de batches en el instante del clic (determinístico).
 		const url =
 			'/api/method/sistema_industrial.api.paneles.descargar_dxf' +
 			'?batches_json=' + encodeURIComponent(JSON.stringify(this.batches)) +
 			'&customer=' + encodeURIComponent(this.get_customer()) +
 			'&job_name=' + encodeURIComponent(job);
-		this.save_dxf_as(url, job.replace(/\s+/g, '_') + '.dxf');
+		const filename = job.replace(/\s+/g, '_') + '.dxf';
+
+		// Botón deshabilitado + spinner: la descarga ESPERA a que el backend termine
+		// de generar antes de guardar; imposible disparar con estado intermedio o doble.
+		const orig = btn.text();
+		btn.prop('disabled', true).text(__('Generando DXF…'));
+		try {
+			const resp = await fetch(url, { headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token } });
+			if (!resp.ok) throw new Error('HTTP ' + resp.status);
+			const blob = await resp.blob();   // generación completa antes de guardar
+			await this.save_blob(blob, filename);
+		} catch (e) {
+			frappe.show_alert({ message: __('Error al descargar el DXF. Reintentá.'), indicator: 'red' });
+		} finally {
+			btn.prop('disabled', false).text(orig);
+		}
 	}
 
-	async save_dxf_as(url, filename) {
-		// showSaveFilePicker donde exista (Chrome/Edge); fallback <a download>
+	// Guarda un blob YA generado (sin re-pegarle al endpoint): showSaveFilePicker
+	// donde exista, fallback a <a download> sobre una object-URL local.
+	async save_blob(blob, filename) {
 		if (window.showSaveFilePicker) {
 			try {
 				const handle = await window.showSaveFilePicker({
 					suggestedName: filename,
 					types: [{ description: 'DXF', accept: { 'application/dxf': ['.dxf'] } }],
 				});
-				const resp = await fetch(url, { headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token } });
-				if (!resp.ok) throw new Error('HTTP ' + resp.status);
 				const writable = await handle.createWritable();
-				await writable.write(await resp.blob());
+				await writable.write(blob);
 				await writable.close();
 				frappe.show_alert({ message: __('DXF guardado'), indicator: 'green' });
 				return;
 			} catch (e) {
-				if (e && e.name === 'AbortError') return; // usuario canceló
+				if (e && e.name === 'AbortError') return; // usuario canceló el diálogo
 				// caer al fallback
 			}
 		}
+		const objUrl = URL.createObjectURL(blob);
 		const a = document.createElement('a');
-		a.href = url;
+		a.href = objUrl;
 		a.download = filename;
 		document.body.appendChild(a);
 		a.click();
 		a.remove();
+		setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
 	}
 
 	// ------------------------------------------------------------------
