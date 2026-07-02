@@ -30,7 +30,7 @@
     },
     {
       "fieldname": "archivo_dxf_frozen",
-      "fieldtype": "Data",
+      "fieldtype": "Small Text",
       "label": "Archivo DXF (URL)",
       "read_only": 1
     }
