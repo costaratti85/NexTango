@@ -1,0 +1,8 @@
+/* Estilos de la page plegados-complejos.
+ * Frappe carga este .css automáticamente (homónimo de la page), igual que el .js.
+ * NO poner estos estilos como <style> inline en el .html (ver nota en
+ * panel_decorativo.css: rompe la compilación del template con new Function). */
+
+.si-plegados-complejos .pc-kpi { background:#e8f4f8; border:1px solid #c5dde8; border-radius:8px; padding:12px 18px; min-width:130px; }
+.si-plegados-complejos .pc-kpi-label { font-size:10px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--si-brand); }
+.si-plegados-complejos .pc-kpi-val { font-size:18px; font-weight:700; color:var(--si-ink); margin-top:2px; font-family:monospace; }
