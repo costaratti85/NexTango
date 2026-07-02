@@ -1,6 +1,15 @@
 {
   "pending": [
     {
+      "agent": "Vega",
+      "task": "VEGA_TASK_009",
+      "descripcion": "URGENTE+CORTA: Workspace 'Sistema Industrial' en el Desk con 6 shortcuts (pages panel-decorativo y plegados-complejos + doctypes SI Material Corte, SI Precios Globales, SI Presupuesto Panel, SI Pedido Plegado). Constantino está probando y no hay entrada desde la home.",
+      "msg": "coordination/inbox/VEGA_TASK_009_WORKSPACE.md",
+      "status": "pendiente",
+      "sprint": "001-fase3-adelantada",
+      "prioridad": "urgente"
+    },
+    {
       "agent": "Lechu",
       "task": "LECHU_TASK_001",
       "descripcion": "MES: DocType SI Pieza (estados corte/plegado, matriceria, prompt versionado por (name,version) de SI Patron) + 6 endpoints api/piezas (por_pedido/por_cliente/por_material/por_matriceria/marcar_cortada/marcar_plegada). Paralelo con PUNTO_TASK_055.",
@@ -20,12 +29,21 @@
     },
     {
       "agent": "Forge",
-      "task": "FORGE_CIERRE_NOCHE",
-      "descripcion": "Progreso MSG_047: migración corrida (28 materiales, autoname fix d1110c4), test end-to-end plegados PASS. RESTAN (MSG_015): (1) copiar daily_prices.json de Windows al servidor + re-migrar overwrite + commitear a erpnext → precios reales ≠ 0; (2) aclarar 28 vs 30 rows; (3) prueba api.paneles.calcular; (4) patrones DXF desde UNC; (5) Quotation vs Customer.",
+      "task": "FORGE_PATRONES_Y_PRECIOS",
+      "descripcion": "Restantes user-facing tras el fix tkinter: (1) copiar 5 patrones DXF desde UNC //190.190.190.9/Ventas + pattern_library.json → file_available=true; (2) daily_prices.json al servidor + re-migrar overwrite + commitear → precio_por_kg reales; (3) aclarar 28 vs 30 materiales; (4) verificar Quotation vs Customer. Ver MSG_015 y MSG_016.",
       "msg": "coordination/channel/Forge/MSG_015_nova_precios_y_restantes.md",
       "status": "pendiente",
       "sprint": "001-fase1",
       "prioridad": "urgente"
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_TASK_010",
+      "descripcion": "Feedback en vivo de Constantino: (1) espesores como calibre (N°22) para doble decapada/galvanizada, (2) restaurar explicación gráfica de distribución centradas/corte, (3) thumbnails visibles en galería de patrones. DESPUÉS de VEGA_TASK_009.",
+      "msg": "coordination/inbox/VEGA_TASK_010_UX_FEEDBACK_CONSTANTINO.md",
+      "status": "pendiente",
+      "sprint": "001-fase3-adelantada",
+      "prioridad": "alta"
     },
     {
       "agent": "Tango",
@@ -107,6 +125,8 @@
     { "agent": "Punto", "tasks": ["PUNTO_TASK_055"], "status": "completado", "nota": "MSG_049, commit 86adeda: SI Patron (Paramétrico/Archivo, Público/Exclusivo) + SI Patron Version (child table inmutable). before_save congela versiones. get_all(customer) + get_patron(name,version) resolver. migrate_patrones.py: 3 paramétricos + 5 archivo. Contrato publicado a Lechu (MSG_002). Forge: bench migrate + execute migrate_patrones.run." },
     { "agent": "Atlas", "tasks": ["ATLAS_PRESUPUESTOS_API_OFFPLAN"], "status": "completado-fuera-de-plan", "nota": "MSG_041-atlas: api/presupuestos list+get. Las rutas standalone son sobre código deprecado (no se usan); list/get_presupuesto en erpnext_extensions/api.py se conservan para consumo programático. 7/7 tests. Redirigido a ATLAS_RUN_SYNC_MASIVO (MSG_008 de su canal)." },
     { "agent": "Atlas", "tasks": ["ATLAS_RUN_SYNC_MASIVO"], "status": "bloqueado-reasignado", "nota": "MSG_042-atlas: servidor Tango responde (401) pero TANGO_TOKEN no está en el entorno de Atlas ni documentado en el repo. Script listo en scratchpad. REASIGNADO a Tango (TANGO_RUN_SYNC_MASIVO) que tiene el token desde TASK_003. Escalación a Constantino solo si Tango tampoco puede." },
-    { "agent": "Forge", "tasks": ["FORGE_DEPLOY_8de279c_TEST_CANTIDAD"], "status": "completado", "nota": "MSG_047-forge: deploy fix JS cantidad de Vega + TEST END-TO-END PASS (BAN-2026-00001, cantidad=3, costo_total=unitario×3, datos de prueba limpiados). Fix autoname SI Material Corte (d1110c4 — format naming omite Floats) + migración re-corrida: 28 materiales. HALLAZGO: daily_prices.json no trackeado → precio_por_kg=0 en servidor → MSG_015." }
+    { "agent": "Forge", "tasks": ["FORGE_DEPLOY_8de279c_TEST_CANTIDAD"], "status": "completado", "nota": "MSG_047-forge: deploy fix JS cantidad de Vega + TEST END-TO-END PASS (BAN-2026-00001, cantidad=3, costo_total=unitario×3, datos de prueba limpiados). Fix autoname SI Material Corte (d1110c4 — format naming omite Floats) + migración re-corrida: 28 materiales. HALLAZGO: daily_prices.json no trackeado → precio_por_kg=0 en servidor → MSG_015." },
+    { "agent": "Forge", "tasks": ["FORGE_TKINTER_URGENTE"], "status": "completado", "nota": "MSG_050-forge: bug 'Error al calcular' RESUELTO. Matiz clave: era python3.14-tk (deadsnakes), no python3-tk. Replay del payload de Constantino PASS (peso 3.904kg, 724s laser, 2750 perforaciones). Motor de paneles operativo. Backlog: import lazy de tkinter → ya existe PUNTO_TKINTER_HEADLESS." },
+    { "agent": "Punto", "tasks": ["PUNTO_TKINTER_HEADLESS"], "status": "completado", "nota": "commit bda5ded (main) + 4f42c31 (erpnext): lazy import de tkinter movido al cuerpo de ask_dxf_file() y ask_output_file(). config.user_input importable sin python3-tk instalado. Test test_user_input_headless verifica con tkinter bloqueado vía sys.modules." }
   ]
 }
