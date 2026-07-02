@@ -1,19 +1,28 @@
 {
   "pending": [
     {
-      "agent": "Atlas",
-      "task": "ATLAS_RUN_SYNC_MASIVO",
-      "descripcion": "Ejecutar el run masivo de producción: tango.get_customers() → push_customers_to_erpnext (8.426 clientes). Si la API de Tango no responde de madrugada, reportar el error y queda como primer comando de la mañana.",
-      "msg": "coordination/channel/Atlas/MSG_007_nova_run_masivo.md",
+      "agent": "Lechu",
+      "task": "LECHU_TASK_001",
+      "descripcion": "MES: DocType SI Pieza (estados corte/plegado, matriceria, prompt versionado por (name,version) de SI Patron) + 6 endpoints api/piezas (por_pedido/por_cliente/por_material/por_matriceria/marcar_cortada/marcar_plegada). Paralelo con PUNTO_TASK_055.",
+      "msg": "coordination/inbox/LECHU_TASK_001_SI_PIEZA.md",
+      "status": "pendiente",
+      "sprint": "001-mes",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Tango",
+      "task": "TANGO_RUN_SYNC_MASIVO",
+      "descripcion": "REASIGNADO desde Atlas (bloqueado por TANGO_TOKEN que solo Tango tiene en su entorno desde TASK_003): ejecutar push masivo 8.426 clientes con customer_push.py de Atlas. Idempotente. Reportar counts. Ver MSG_003 de su canal.",
+      "msg": "coordination/channel/Tango/MSG_003_nova_ejecutar_sync_masivo.md",
       "status": "pendiente",
       "sprint": "001-fase1",
       "prioridad": "alta"
     },
     {
       "agent": "Forge",
-      "task": "FORGE_FUNCIONALES_NOCHE",
-      "descripcion": "TERCERA INSISTENCIA — deploys estructurales OK (MSG_045/046 forge), pero los FUNCIONALES siguen sin correr: (1) execute migrate_materiales, (2) get_all source=frappe, (3) engine_path + prueba api.paneles.calcular, (4) prueba api.plegados.calcular, (5) copiar patrones DXF desde UNC. Pegar output de CADA comando, errores incluidos. Ver MSG_013.",
-      "msg": "coordination/channel/Forge/MSG_013_nova_solo_funcionales.md",
+      "task": "FORGE_CIERRE_NOCHE",
+      "descripcion": "Progreso MSG_047: migración corrida (28 materiales, autoname fix d1110c4), test end-to-end plegados PASS. RESTAN (MSG_015): (1) copiar daily_prices.json de Windows al servidor + re-migrar overwrite + commitear a erpnext → precios reales ≠ 0; (2) aclarar 28 vs 30 rows; (3) prueba api.paneles.calcular; (4) patrones DXF desde UNC; (5) Quotation vs Customer.",
+      "msg": "coordination/channel/Forge/MSG_015_nova_precios_y_restantes.md",
       "status": "pendiente",
       "sprint": "001-fase1",
       "prioridad": "urgente"
@@ -94,6 +103,10 @@
     { "agent": "Punto", "tasks": ["PUNTO_TASK_051"], "status": "completado", "nota": "commit e2ddb78. 6 roles SI *, SI Material Corte + SI Precios Globales + SI Presupuesto Panel + SI Linea Presupuesto. api/materiales.get_all() con fallback a legacy_json. api/paneles.calcular() + descargar_dxf(). migrate_materiales.py. Formato exacto de r.message en MSG_045. Pushed a origin/erpnext. Forge: bench migrate + bench execute migrate_materiales." },
     { "agent": "Punto", "tasks": ["PUNTO_TASK_053"], "status": "completado", "nota": "MSG_048, commit 37dd312: api/patrones.get_all() — 5 patrones DXF de pattern_library.json con file_available (false en todos — UNC paths), thumbnail_url /assets/sistema_industrial/pattern_thumbnails/. 11 PNGs en public/. Vega avisada (MSG_012 en su canal). Forge: git pull + bench build --app sistema_industrial + bench restart (sin migrate)." },
     { "agent": "Punto", "tasks": ["PUNTO_TASK_052"], "status": "completado", "nota": "MSG_048, commit 37dd312: SI Pedido Plegado (before_save recalcula recursos+costo, 6 permisos incl. operarios), api/plegados (calcular/guardar_pedido/list_pedidos/get_pedido/descargar_dxf), page plegados-complejos skeleton. Forge: git pull + bench migrate + bench build + bench restart." },
-    { "agent": "Punto", "tasks": ["PUNTO_TASK_054"], "status": "completado", "nota": "commit 1371962: campo cantidad (Int, default 1) + costo_unitario (Currency, read_only) en SI Pedido Plegado; before_save persiste unit y total=unit×cantidad. Vega avisada (MSG_013). Forge: bench migrate." }
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_054"], "status": "completado", "nota": "commit 1371962: campo cantidad (Int, default 1) + costo_unitario (Currency, read_only) en SI Pedido Plegado; before_save persiste unit y total=unit×cantidad. Vega avisada (MSG_013). Forge: bench migrate." },
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_055"], "status": "completado", "nota": "MSG_049, commit 86adeda: SI Patron (Paramétrico/Archivo, Público/Exclusivo) + SI Patron Version (child table inmutable). before_save congela versiones. get_all(customer) + get_patron(name,version) resolver. migrate_patrones.py: 3 paramétricos + 5 archivo. Contrato publicado a Lechu (MSG_002). Forge: bench migrate + execute migrate_patrones.run." },
+    { "agent": "Atlas", "tasks": ["ATLAS_PRESUPUESTOS_API_OFFPLAN"], "status": "completado-fuera-de-plan", "nota": "MSG_041-atlas: api/presupuestos list+get. Las rutas standalone son sobre código deprecado (no se usan); list/get_presupuesto en erpnext_extensions/api.py se conservan para consumo programático. 7/7 tests. Redirigido a ATLAS_RUN_SYNC_MASIVO (MSG_008 de su canal)." },
+    { "agent": "Atlas", "tasks": ["ATLAS_RUN_SYNC_MASIVO"], "status": "bloqueado-reasignado", "nota": "MSG_042-atlas: servidor Tango responde (401) pero TANGO_TOKEN no está en el entorno de Atlas ni documentado en el repo. Script listo en scratchpad. REASIGNADO a Tango (TANGO_RUN_SYNC_MASIVO) que tiene el token desde TASK_003. Escalación a Constantino solo si Tango tampoco puede." },
+    { "agent": "Forge", "tasks": ["FORGE_DEPLOY_8de279c_TEST_CANTIDAD"], "status": "completado", "nota": "MSG_047-forge: deploy fix JS cantidad de Vega + TEST END-TO-END PASS (BAN-2026-00001, cantidad=3, costo_total=unitario×3, datos de prueba limpiados). Fix autoname SI Material Corte (d1110c4 — format naming omite Floats) + migración re-corrida: 28 materiales. HALLAZGO: daily_prices.json no trackeado → precio_por_kg=0 en servidor → MSG_015." }
   ]
 }
