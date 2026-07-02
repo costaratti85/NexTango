@@ -1,0 +1,239 @@
+{
+  "doctype": "DocType",
+  "name": "SI Pedido Plegado",
+  "module": "Sistema Industrial",
+  "autoname": "BAN-.YYYY.-.#####",
+  "custom": 0,
+  "is_submittable": 0,
+  "istable": 0,
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "sec_cabecera",
+      "fieldtype": "Section Break",
+      "label": "Cabecera"
+    },
+    {
+      "fieldname": "customer",
+      "fieldtype": "Link",
+      "label": "Cliente",
+      "options": "Customer",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "job_name",
+      "fieldtype": "Data",
+      "label": "Descripción",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "fecha",
+      "fieldtype": "Date",
+      "label": "Fecha",
+      "reqd": 1,
+      "default": "Today",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Estado",
+      "options": "\nBorrador\nConfirmado",
+      "default": "Borrador",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "col_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "material_corte",
+      "fieldtype": "Link",
+      "label": "Material de corte",
+      "options": "SI Material Corte",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "observaciones",
+      "fieldtype": "Small Text",
+      "label": "Observaciones"
+    },
+    {
+      "fieldname": "sec_geometria",
+      "fieldtype": "Section Break",
+      "label": "Geometría de entrada"
+    },
+    {
+      "fieldname": "ancho_int",
+      "fieldtype": "Float",
+      "label": "Ancho interior (mm)",
+      "reqd": 1
+    },
+    {
+      "fieldname": "largo_int",
+      "fieldtype": "Float",
+      "label": "Largo interior (mm)",
+      "reqd": 1
+    },
+    {
+      "fieldname": "col_break_2",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "alto",
+      "fieldtype": "Float",
+      "label": "Alto / flange (mm)",
+      "reqd": 1
+    },
+    {
+      "fieldname": "espesor",
+      "fieldtype": "Float",
+      "label": "Espesor (mm)",
+      "reqd": 1
+    },
+    {
+      "fieldname": "sec_geometria_calc",
+      "fieldtype": "Section Break",
+      "label": "Geometría calculada"
+    },
+    {
+      "fieldname": "blank_ancho",
+      "fieldtype": "Float",
+      "label": "Blank ancho (mm)",
+      "read_only": 1
+    },
+    {
+      "fieldname": "blank_largo",
+      "fieldtype": "Float",
+      "label": "Blank largo (mm)",
+      "read_only": 1
+    },
+    {
+      "fieldname": "col_break_3",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "despunte",
+      "fieldtype": "Float",
+      "label": "Despunte (mm)",
+      "read_only": 1
+    },
+    {
+      "fieldname": "sec_recursos",
+      "fieldtype": "Section Break",
+      "label": "Recursos"
+    },
+    {
+      "fieldname": "peso_kg",
+      "fieldtype": "Float",
+      "label": "Peso chapa (kg)",
+      "read_only": 1
+    },
+    {
+      "fieldname": "tiempo_laser_s",
+      "fieldtype": "Float",
+      "label": "Tiempo laser (s)",
+      "read_only": 1
+    },
+    {
+      "fieldname": "col_break_4",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "cantidad_pliegues",
+      "fieldtype": "Int",
+      "label": "Cantidad pliegues",
+      "read_only": 1,
+      "default": "4"
+    },
+    {
+      "fieldname": "sec_factores",
+      "fieldtype": "Section Break",
+      "label": "Factores de precio"
+    },
+    {
+      "fieldname": "factor_kg",
+      "fieldtype": "Float",
+      "label": "Factor kg",
+      "default": "1"
+    },
+    {
+      "fieldname": "factor_laser",
+      "fieldtype": "Float",
+      "label": "Factor laser",
+      "default": "1"
+    },
+    {
+      "fieldname": "col_break_5",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "factor_plegar_kg",
+      "fieldtype": "Float",
+      "label": "Factor plegar kg",
+      "default": "1"
+    },
+    {
+      "fieldname": "factor_pliegue",
+      "fieldtype": "Float",
+      "label": "Factor pliegue",
+      "default": "1"
+    },
+    {
+      "fieldname": "sec_costo",
+      "fieldtype": "Section Break",
+      "label": "Costo"
+    },
+    {
+      "fieldname": "costo_total",
+      "fieldtype": "Currency",
+      "label": "Costo total (ARS)",
+      "options": "ARS",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "quotation",
+      "fieldtype": "Link",
+      "label": "Quotation ERPNext",
+      "options": "Quotation",
+      "read_only": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "SI Vendedor",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "SI Admin Produccion",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "SI Gerencia",
+      "read": 1
+    },
+    {
+      "role": "SI Operador Plegado",
+      "read": 1
+    },
+    {
+      "role": "SI Operador Panel",
+      "read": 1
+    },
+    {
+      "role": "SI Operador Laser",
+      "read": 1
+    }
+  ]
+}
