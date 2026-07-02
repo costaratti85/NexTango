@@ -1,0 +1,19 @@
+{
+ "content": null,
+ "doctype": "Page",
+ "icon": "upload",
+ "idx": 0,
+ "module": "Sistema Industrial",
+ "name": "admin-patrones",
+ "owner": "Administrator",
+ "page_name": "admin-patrones",
+ "roles": [
+  {"role": "SI Admin Produccion"},
+  {"role": "System Manager"}
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Administrar Patrones"
+}

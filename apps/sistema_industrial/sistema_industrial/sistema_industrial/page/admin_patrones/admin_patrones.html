@@ -1,0 +1,54 @@
+<div class="si-page">
+  <div class="page-wrapper">
+
+    <!-- Subir patrón -->
+    <div class="card">
+      <div class="card-title">Subir patrón DXF</div>
+
+      <div class="ap-upload-grid">
+        <div class="form-group" style="flex:2 1 200px">
+          <label for="ap-nombre">Nombre</label>
+          <input type="text" id="ap-nombre" placeholder="ej. Hexagonal fino">
+        </div>
+        <div class="form-group" style="max-width:120px">
+          <label for="ap-stepx">Paso X mm</label>
+          <input type="number" id="ap-stepx" step="0.1" min="1" placeholder="ej. 84">
+        </div>
+        <div class="form-group" style="max-width:120px">
+          <label for="ap-stepy">Paso Y mm</label>
+          <input type="number" id="ap-stepy" step="0.1" min="1" placeholder="ej. 84">
+        </div>
+        <div class="form-group" style="max-width:190px">
+          <label for="ap-visibilidad">Visibilidad</label>
+          <select id="ap-visibilidad">
+            <option value="Publico">Genérico (todos)</option>
+            <option value="Exclusivo">Exclusivo de cliente</option>
+          </select>
+        </div>
+        <div class="form-group hidden" id="ap-customer-group" style="flex:2 1 200px">
+          <label>Cliente</label>
+          <div id="ap-customer-field"></div>
+        </div>
+      </div>
+
+      <div class="ap-file-drop" id="ap-file-drop" style="margin-top:14px">
+        <div id="ap-file-prompt">⤒ Elegir archivo DXF…</div>
+        <div class="ap-file-name hidden" id="ap-file-name"></div>
+      </div>
+
+      <div style="display:flex; gap:12px; align-items:center; margin-top:14px">
+        <button class="btn btn-primary" id="ap-btn-subir" style="padding:9px 28px">Subir patrón</button>
+        <span class="ap-status" id="ap-status"></span>
+      </div>
+    </div>
+
+    <!-- Patrones existentes -->
+    <div class="card">
+      <div class="card-title">Patrones cargados</div>
+      <div class="ap-grid" id="ap-grid">
+        <div class="ap-empty" id="ap-grid-empty">Cargando…</div>
+      </div>
+    </div>
+
+  </div>
+</div>

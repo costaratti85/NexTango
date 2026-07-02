@@ -1,0 +1,33 @@
+/* Estilos de la page admin-patrones.
+ * Frappe autocarga este .css (homónimo de la page). NUNCA <style> inline en el .html
+ * (rompe la compilación del template con new Function — ver panel_decorativo.css). */
+
+/* Formulario de carga */
+.si-page .ap-upload-grid { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; }
+.si-page .ap-file-drop { border:2px dashed #c5dde8; border-radius:8px; padding:16px; text-align:center;
+                         background:#f8fbfd; cursor:pointer; transition:border-color .15s, background .15s; }
+.si-page .ap-file-drop:hover { border-color:var(--si-brand); background:#eef7fb; }
+.si-page .ap-file-drop.has-file { border-color:var(--si-green); background:#eef7f0; }
+.si-page .ap-file-name { font-size:12px; color:var(--si-muted); margin-top:6px; word-break:break-all; }
+.si-page .ap-status { font-size:13px; font-weight:600; min-height:18px; margin-top:8px; }
+
+/* Grilla de patrones existentes */
+.si-page .ap-grid { display:flex; flex-wrap:wrap; gap:12px; }
+.si-page .ap-card { width:170px; border:2px solid var(--si-line); border-radius:8px; background:#fff;
+                    padding:8px; text-align:center; position:relative; transition:box-shadow .15s; }
+.si-page .ap-card:hover { box-shadow:0 4px 16px rgba(23,107,135,.12); }
+.si-page .ap-card.inactivo { opacity:.5; }
+.si-page .ap-card.inactivo .ap-card-name { text-decoration:line-through; }
+.si-page .ap-thumb { width:100%; height:100px; object-fit:contain; background:#f8f9fa; border-radius:5px; display:block; }
+.si-page .ap-thumb-svg { width:100%; height:100px; background:#f8f9fa; border-radius:5px; }
+.si-page .ap-card-name { font-size:13px; font-weight:600; color:var(--si-ink); margin-top:6px; }
+.si-page .ap-badges { display:flex; flex-wrap:wrap; gap:4px; justify-content:center; margin-top:5px; }
+.si-page .ap-badge { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
+                     padding:2px 7px; border-radius:3px; }
+.si-page .ap-badge-generico { background:#e8f4f8; color:var(--si-brand); }
+.si-page .ap-badge-exclusivo { background:#f3ecf9; color:#7b4bb0; }
+.si-page .ap-badge-nodisp { background:#fdecea; color:var(--si-red); }
+.si-page .ap-badge-baja { background:#eee; color:#888; }
+.si-page .ap-card-cliente { font-size:11px; color:var(--si-muted); margin-top:3px; }
+.si-page .ap-del { position:absolute; top:5px; right:5px; }
+.si-page .ap-empty { color:var(--si-muted); font-size:13px; padding:20px; }
