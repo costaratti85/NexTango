@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include sistema_industrial *.css
+recursive-include sistema_industrial *.csv
+recursive-include sistema_industrial *.html
+recursive-include sistema_industrial *.ico
+recursive-include sistema_industrial *.js
+recursive-include sistema_industrial *.json
+recursive-include sistema_industrial *.md
+recursive-include sistema_industrial *.png
+recursive-include sistema_industrial *.py
+recursive-include sistema_industrial *.svg
+recursive-include sistema_industrial *.txt
+recursive-exclude sistema_industrial *.pyc
