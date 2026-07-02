@@ -1,0 +1,184 @@
+{
+  "doctype": "DocType",
+  "name": "SI Pieza",
+  "module": "Sistema Industrial",
+  "autoname": "PZA-.YYYY.-.#####",
+  "custom": 0,
+  "is_submittable": 0,
+  "istable": 0,
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "sec_pedido",
+      "fieldtype": "Section Break",
+      "label": "Pedido"
+    },
+    {
+      "fieldname": "order_doctype",
+      "fieldtype": "Select",
+      "label": "Tipo de pedido",
+      "options": "SI Presupuesto Panel\nSI Pedido Plegado",
+      "reqd": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "order",
+      "fieldtype": "Dynamic Link",
+      "label": "Pedido",
+      "options": "order_doctype",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "col_break_pedido",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "cliente",
+      "fieldtype": "Link",
+      "label": "Cliente",
+      "options": "Customer",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "sec_material",
+      "fieldtype": "Section Break",
+      "label": "Material y cantidad"
+    },
+    {
+      "fieldname": "material",
+      "fieldtype": "Link",
+      "label": "Material",
+      "options": "SI Material Corte",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "espesor_mm",
+      "fieldtype": "Float",
+      "label": "Espesor (mm)",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "col_break_material",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "cantidad",
+      "fieldtype": "Int",
+      "label": "Cantidad",
+      "reqd": 1,
+      "default": "1",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "matriceria",
+      "fieldtype": "Data",
+      "label": "Matríz de plegado",
+      "description": "Matríz requerida para el plegado, e.g. 'V20'. Dejar vacío si la pieza no se pliega.",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "sec_patron",
+      "fieldtype": "Section Break",
+      "label": "Patrón / Prompt"
+    },
+    {
+      "fieldname": "prompt",
+      "fieldtype": "Long Text",
+      "label": "Prompt (JSON)",
+      "description": "JSON que describe cómo regenerar la pieza. Formatos soportados: {\"tipo\": \"patron\", \"patron_name\": \"Subte\", \"patron_version\": 3, \"overrides\": {...}} | {\"tipo\": \"parametrico\", \"parametros\": {...}} | {\"tipo\": \"archivo\", \"file\": \"/private/files/...\"}. El campo 'patron_version' en tipo 'patron' fija la versión del SI Patron al momento del presupuesto; usar api/patrones.get_patron(name, version) para regenerar."
+    },
+    {
+      "fieldname": "version_patron",
+      "fieldtype": "Int",
+      "label": "Versión del patrón",
+      "description": "Snapshot de la versión del SI Patron al momento de presupuestar. Permite reproducir la pieza aunque el patrón cambie después."
+    },
+    {
+      "fieldname": "sec_estados",
+      "fieldtype": "Section Break",
+      "label": "Estado de producción"
+    },
+    {
+      "fieldname": "estado_corte",
+      "fieldtype": "Select",
+      "label": "Estado de corte",
+      "options": "Pendiente\nCortada",
+      "default": "Pendiente",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "fecha_corte",
+      "fieldtype": "Datetime",
+      "label": "Fecha de corte",
+      "read_only": 1
+    },
+    {
+      "fieldname": "col_break_estados",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "estado_plegado",
+      "fieldtype": "Select",
+      "label": "Estado de plegado",
+      "options": "N/A\nPendiente\nPlegada",
+      "default": "N/A",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "fecha_plegado",
+      "fieldtype": "Datetime",
+      "label": "Fecha de plegado",
+      "read_only": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "SI Admin Produccion",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "SI Vendedor",
+      "read": 1,
+      "write": 0,
+      "create": 1,
+      "delete": 0
+    },
+    {
+      "role": "SI Operador Laser",
+      "read": 1,
+      "write": 1,
+      "create": 0,
+      "delete": 0
+    },
+    {
+      "role": "SI Operador Plegado",
+      "read": 1,
+      "write": 1,
+      "create": 0,
+      "delete": 0
+    },
+    {
+      "role": "SI Operador Panel",
+      "read": 1
+    },
+    {
+      "role": "SI Gerencia",
+      "read": 1
+    }
+  ]
+}
