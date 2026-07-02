@@ -1,0 +1,22 @@
+{
+ "content": null,
+ "doctype": "Page",
+ "icon": "grid",
+ "idx": 0,
+ "module": "Sistema Industrial",
+ "name": "panel-decorativo",
+ "owner": "Administrator",
+ "page_name": "panel-decorativo",
+ "roles": [
+  {"role": "SI Operador Panel"},
+  {"role": "SI Admin Produccion"},
+  {"role": "SI Vendedor"},
+  {"role": "SI Gerencia"},
+  {"role": "System Manager"}
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Panel Decorativo"
+}

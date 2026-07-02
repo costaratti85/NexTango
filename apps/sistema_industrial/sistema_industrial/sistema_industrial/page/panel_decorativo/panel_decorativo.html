@@ -1,0 +1,157 @@
+<div class="si-page">
+  <div class="page-wrapper">
+
+    <!-- Datos del pedido -->
+    <div class="card">
+      <div class="card-title">Datos del pedido</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="pd-customer">Cliente</label>
+          <input type="text" id="pd-customer" placeholder="Nombre o código de cliente">
+        </div>
+        <div class="form-group">
+          <label for="pd-job">Trabajo</label>
+          <input type="text" id="pd-job" placeholder="ej. Panel lobby edificio Norte">
+        </div>
+      </div>
+    </div>
+
+    <!-- Definición del lote -->
+    <div class="card">
+      <div class="card-title">Definir lote</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="pd-patron">Patrón</label>
+          <select id="pd-patron">
+            <option value="tresbolillo">Tresbolillo (agujeros redondos)</option>
+            <option value="cuadriculado_circle">Cuadriculado — agujeros redondos</option>
+            <option value="cuadriculado_square">Cuadriculado — agujeros cuadrados</option>
+            <option value="none">Sin perforar (solo corte)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="pd-material">Material</label>
+          <select id="pd-material"><option value="">Cargando…</option></select>
+        </div>
+        <div class="form-group" style="max-width:130px">
+          <label for="pd-espesor">Espesor mm</label>
+          <select id="pd-espesor" disabled><option value="">—</option></select>
+        </div>
+      </div>
+
+      <!-- Parámetros condicionales del patrón -->
+      <div class="form-row" id="pd-params-tresbolillo">
+        <div class="form-group">
+          <label for="pd-diam">Diámetro agujero mm</label>
+          <input type="number" id="pd-diam" step="0.1" min="0.5" value="3.5">
+        </div>
+        <div class="form-group">
+          <label for="pd-dist">Separación mm</label>
+          <input type="number" id="pd-dist" step="0.1" min="1" value="6">
+        </div>
+      </div>
+      <div class="form-row hidden" id="pd-params-cuadriculado">
+        <div class="form-group">
+          <label for="pd-hole-size">Tamaño agujero mm</label>
+          <input type="number" id="pd-hole-size" step="0.1" min="0.5" value="5">
+        </div>
+        <div class="form-group">
+          <label for="pd-offset-x">Paso X mm</label>
+          <input type="number" id="pd-offset-x" step="0.1" min="1" value="10">
+        </div>
+        <div class="form-group">
+          <label for="pd-offset-y">Paso Y mm</label>
+          <input type="number" id="pd-offset-y" step="0.1" min="1" value="10">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" style="max-width:110px">
+          <label for="pd-cantidad">Cantidad</label>
+          <input type="number" id="pd-cantidad" min="1" value="1">
+        </div>
+        <div class="form-group">
+          <label for="pd-ancho">Ancho mm</label>
+          <input type="number" id="pd-ancho" step="1" min="10" placeholder="ej. 1220">
+        </div>
+        <div class="form-group">
+          <label for="pd-alto">Alto mm</label>
+          <input type="number" id="pd-alto" step="1" min="10" placeholder="ej. 2440">
+        </div>
+        <div class="form-group">
+          <label for="pd-margen">Margen mm <span class="dimmed">(borde sin perforar)</span></label>
+          <input type="number" id="pd-margen" min="0" value="20">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Distribución</label>
+          <select id="pd-dist-mode">
+            <option value="centradas">Figuras completas centradas</option>
+            <option value="cortar">Cortar en borde</option>
+          </select>
+        </div>
+        <div class="form-group" style="justify-content:flex-end">
+          <button class="btn btn-primary" id="pd-btn-add" style="padding:9px 24px">+ Agregar lote</button>
+        </div>
+      </div>
+
+      <div class="error-box hidden" id="pd-batch-error"></div>
+    </div>
+
+    <!-- Lista de lotes -->
+    <div class="card hidden" id="pd-section-batches">
+      <div class="card-title">Lista de lotes</div>
+      <table class="table table-bordered" style="font-size:13px">
+        <thead>
+          <tr><th>Patrón</th><th>Material</th><th>Medidas</th><th style="text-align:center">Cant.</th><th></th></tr>
+        </thead>
+        <tbody id="pd-batch-tbody"></tbody>
+      </table>
+      <div style="display:flex;gap:12px;margin-top:10px">
+        <button class="btn btn-success" id="pd-btn-calcular" style="padding:9px 28px;font-weight:700">Calcular presupuesto</button>
+        <button class="btn btn-default" id="pd-btn-dxf" style="padding:9px 20px">⤓ Descargar DXF</button>
+      </div>
+      <div class="error-box hidden" id="pd-calc-error" style="margin-top:12px"></div>
+    </div>
+
+    <!-- Presupuesto -->
+    <div class="card hidden" id="pd-section-presupuesto">
+      <div class="card-title">Presupuesto</div>
+      <div id="pd-presu-warnings"></div>
+      <div style="overflow-x:auto">
+        <table class="table table-bordered" style="font-size:12.5px" id="pd-presu-table">
+          <thead>
+            <tr>
+              <th>Patrón</th><th>Material</th>
+              <th style="text-align:right">Peso kg</th>
+              <th style="text-align:right">Láser s</th>
+              <th style="text-align:right">Pliegues</th>
+              <th style="text-align:center">f. kg</th>
+              <th style="text-align:center">f. láser</th>
+              <th style="text-align:center">f. pleg/kg</th>
+              <th style="text-align:center">f. pliegue</th>
+              <th style="text-align:right">Costo</th>
+            </tr>
+          </thead>
+          <tbody id="pd-presu-tbody"></tbody>
+          <tfoot>
+            <tr style="font-weight:700;background:#e8f4f8">
+              <td colspan="9" style="text-align:right">TOTAL</td>
+              <td style="text-align:right" id="pd-presu-total">—</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="dimmed" style="margin:6px 0 14px">
+        Los recursos (kg, segundos, pliegues) los calcula el motor — solo se editan los factores.
+        Factor 1 = precio estándar · 0 = no se cobra · 1.2 = +20%.
+      </div>
+      <button class="btn btn-primary" id="pd-btn-guardar" style="padding:9px 28px">💾 Guardar presupuesto</button>
+      <span id="pd-save-status" style="margin-left:12px;font-weight:600"></span>
+    </div>
+
+  </div>
+</div>
