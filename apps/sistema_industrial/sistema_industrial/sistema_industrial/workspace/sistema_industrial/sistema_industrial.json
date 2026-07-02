@@ -1,0 +1,85 @@
+{
+ "app": "sistema_industrial",
+ "charts": [],
+ "content": "[{\"id\":\"si_hdr_tools\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Herramientas</b></span>\",\"col\":12}},{\"id\":\"si_sc_panel0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Panel Decorativo\",\"col\":4}},{\"id\":\"si_sc_pleg00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Plegados Complejos\",\"col\":4}},{\"id\":\"si_sc_patr00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Administrar Patrones\",\"col\":4}},{\"id\":\"si_spacer01\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"si_hdr_datos\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Datos</b></span>\",\"col\":12}},{\"id\":\"si_sc_mat000\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Materiales\",\"col\":3}},{\"id\":\"si_sc_pres00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Presupuestos\",\"col\":3}},{\"id\":\"si_sc_pedi00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pedidos de Plegado\",\"col\":3}},{\"id\":\"si_sc_prec00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Precios Globales\",\"col\":3}}]",
+ "creation": "2026-07-02 00:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "tool",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Sistema Industrial",
+ "links": [],
+ "modified_by": "Administrator",
+ "module": "Sistema Industrial",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [
+  {"role": "SI Operador Panel"},
+  {"role": "SI Operador Plegado"},
+  {"role": "SI Operador Laser"},
+  {"role": "SI Admin Produccion"},
+  {"role": "SI Gerencia"},
+  {"role": "SI Vendedor"},
+  {"role": "System Manager"}
+ ],
+ "sequence_id": 20.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "",
+   "label": "Panel Decorativo",
+   "link_to": "panel-decorativo",
+   "type": "Page"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "",
+   "label": "Plegados Complejos",
+   "link_to": "plegados-complejos",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "label": "Administrar Patrones",
+   "link_to": "admin-patrones",
+   "type": "Page"
+  },
+  {
+   "color": "Green",
+   "doc_view": "List",
+   "label": "Materiales",
+   "link_to": "SI Material Corte",
+   "type": "DocType"
+  },
+  {
+   "color": "Green",
+   "doc_view": "List",
+   "label": "Presupuestos",
+   "link_to": "SI Presupuesto Panel",
+   "type": "DocType"
+  },
+  {
+   "color": "Green",
+   "doc_view": "List",
+   "label": "Pedidos de Plegado",
+   "link_to": "SI Pedido Plegado",
+   "type": "DocType"
+  },
+  {
+   "color": "Orange",
+   "doc_view": "",
+   "label": "Precios Globales",
+   "link_to": "SI Precios Globales",
+   "type": "DocType"
+  }
+ ],
+ "title": "Sistema Industrial"
+}
