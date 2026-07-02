@@ -1,0 +1,120 @@
+{
+  "doctype": "DocType",
+  "name": "SI Patron",
+  "module": "Sistema Industrial",
+  "autoname": "prompt",
+  "custom": 0,
+  "is_submittable": 0,
+  "istable": 0,
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "tipo",
+      "fieldtype": "Select",
+      "label": "Tipo",
+      "options": "\nParamétrico\nArchivo",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "visibilidad",
+      "fieldtype": "Select",
+      "label": "Visibilidad",
+      "options": "\nPúblico\nExclusivo",
+      "reqd": 1,
+      "default": "Público",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "version",
+      "fieldtype": "Int",
+      "label": "Versión vigente",
+      "default": "1",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "col_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "cliente",
+      "fieldtype": "Link",
+      "label": "Cliente",
+      "options": "Customer",
+      "depends_on": "eval:doc.visibilidad=='Exclusivo'",
+      "mandatory_depends_on": "eval:doc.visibilidad=='Exclusivo'",
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "descripcion",
+      "fieldtype": "Small Text",
+      "label": "Descripción"
+    },
+    {
+      "fieldname": "sec_contenido",
+      "fieldtype": "Section Break",
+      "label": "Contenido"
+    },
+    {
+      "fieldname": "archivo_dxf",
+      "fieldtype": "Attach",
+      "label": "Archivo DXF",
+      "depends_on": "eval:doc.tipo=='Archivo'"
+    },
+    {
+      "fieldname": "parametros",
+      "fieldtype": "Long Text",
+      "label": "Parámetros (JSON)",
+      "description": "JSON con step_x, step_y, forma y otros parámetros del patrón"
+    },
+    {
+      "fieldname": "thumbnail",
+      "fieldtype": "Attach Image",
+      "label": "Thumbnail"
+    },
+    {
+      "fieldname": "sec_versiones",
+      "fieldtype": "Section Break",
+      "label": "Historial de versiones",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "versiones",
+      "fieldtype": "Table",
+      "label": "Versiones congeladas",
+      "options": "SI Patron Version"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "SI Admin Produccion",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "SI Operador Panel",
+      "read": 1
+    },
+    {
+      "role": "SI Operador Plegado",
+      "read": 1
+    },
+    {
+      "role": "SI Operador Laser",
+      "read": 1
+    },
+    {
+      "role": "SI Vendedor",
+      "read": 1
+    },
+    {
+      "role": "SI Gerencia",
+      "read": 1
+    }
+  ]
+}

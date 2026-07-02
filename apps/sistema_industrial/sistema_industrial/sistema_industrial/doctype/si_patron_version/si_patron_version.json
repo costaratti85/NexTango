@@ -1,0 +1,39 @@
+{
+  "doctype": "DocType",
+  "name": "SI Patron Version",
+  "module": "Sistema Industrial",
+  "custom": 0,
+  "istable": 1,
+  "editable_grid": 0,
+  "track_changes": 0,
+  "fields": [
+    {
+      "fieldname": "version_num",
+      "fieldtype": "Int",
+      "label": "Versión",
+      "reqd": 1,
+      "in_list_view": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "fecha_congela",
+      "fieldtype": "Datetime",
+      "label": "Congelado el",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "parametros_frozen",
+      "fieldtype": "Long Text",
+      "label": "Parámetros (JSON)",
+      "read_only": 1
+    },
+    {
+      "fieldname": "archivo_dxf_frozen",
+      "fieldtype": "Data",
+      "label": "Archivo DXF (URL)",
+      "read_only": 1
+    }
+  ],
+  "permissions": []
+}
