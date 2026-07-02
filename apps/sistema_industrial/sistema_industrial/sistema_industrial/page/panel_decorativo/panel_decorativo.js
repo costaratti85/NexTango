@@ -18,8 +18,30 @@ class PanelDecorativo {
 		this.matIndex = {};      // {material: [{espesor_mm, precio_por_kg, precio_plegar_por_kg, ...}]}
 		this.precios = { precio_segundo_laser: 0, precio_por_plegado: 0 };
 
+		this.make_customer_control();
 		this.bind_events();
 		this.load_initial_data();
+	}
+
+	// ------------------------------------------------------------------
+	// Cliente — Link a Customer con autocompletado
+	// ------------------------------------------------------------------
+
+	make_customer_control() {
+		this.customer_control = frappe.ui.form.make_control({
+			df: {
+				fieldtype: 'Link',
+				options: 'Customer',
+				fieldname: 'customer',
+				placeholder: __('Nombre o código de cliente'),
+			},
+			parent: $('#pd-customer-field'),
+			render_input: true,
+		});
+	}
+
+	get_customer() {
+		return (this.customer_control && this.customer_control.get_value()) || '';
 	}
 
 	// ------------------------------------------------------------------
@@ -214,7 +236,7 @@ class PanelDecorativo {
 			method: 'sistema_industrial.api.paneles.calcular',
 			args: {
 				batches_json: JSON.stringify(this.batches),
-				customer: $('#pd-customer').val() || '',
+				customer: this.get_customer(),
 				job_name: $('#pd-job').val() || '',
 				observations: '',
 			},
@@ -315,7 +337,7 @@ class PanelDecorativo {
 		const url =
 			'/api/method/sistema_industrial.api.paneles.descargar_dxf' +
 			'?batches_json=' + encodeURIComponent(JSON.stringify(this.batches)) +
-			'&customer=' + encodeURIComponent($('#pd-customer').val() || '') +
+			'&customer=' + encodeURIComponent(this.get_customer()) +
 			'&job_name=' + encodeURIComponent(job);
 		this.save_dxf_as(url, job.replace(/\s+/g, '_') + '.dxf');
 	}
@@ -355,7 +377,7 @@ class PanelDecorativo {
 	guardar_presupuesto() {
 		const status = $('#pd-save-status').css('color', '').text('');
 		if (!this.lineas.length) return;
-		const customer = $('#pd-customer').val();
+		const customer = this.get_customer();
 		if (!customer) {
 			status.css('color', 'var(--si-red)').text(__('Falta el cliente.'));
 			return;
