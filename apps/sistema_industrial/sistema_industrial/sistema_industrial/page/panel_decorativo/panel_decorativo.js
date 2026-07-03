@@ -475,20 +475,27 @@ class PanelDecorativo {
 		const btn = $('#pd-btn-dxf');
 		if (btn.prop('disabled')) return;   // ya hay una descarga en curso — no re-disparar
 		const job = $('#pd-job').val() || 'panel';
-		// URL armada con el estado ACTUAL de batches en el instante del clic (determinístico).
-		const url =
-			'/api/method/sistema_industrial.api.paneles.descargar_dxf' +
-			'?batches_json=' + encodeURIComponent(JSON.stringify(this.batches)) +
-			'&customer=' + encodeURIComponent(this.get_customer()) +
-			'&job_name=' + encodeURIComponent(job);
 		const filename = job.replace(/\s+/g, '_') + '.dxf';
+
+		// El estado COMPLETO actual de todos los lotes viaja en el BODY de un POST,
+		// serializado en el instante del clic. No hay estado server-side ni límite de
+		// longitud de URL: el request siempre lleva TODOS los lotes, sin importar
+		// cuándo se agregó el último. El backend regenera solo de este payload.
+		const body = new FormData();
+		body.append('batches_json', JSON.stringify(this.batches));
+		body.append('customer', this.get_customer());
+		body.append('job_name', job);
 
 		// Botón deshabilitado + spinner: la descarga ESPERA a que el backend termine
 		// de generar antes de guardar; imposible disparar con estado intermedio o doble.
 		const orig = btn.text();
 		btn.prop('disabled', true).text(__('Generando DXF…'));
 		try {
-			const resp = await fetch(url, { headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token } });
+			const resp = await fetch('/api/method/sistema_industrial.api.paneles.descargar_dxf', {
+				method: 'POST',
+				headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token },
+				body: body,
+			});
 			if (!resp.ok) throw new Error('HTTP ' + resp.status);
 			const blob = await resp.blob();   // generación completa antes de guardar
 			await this.save_blob(blob, filename);
