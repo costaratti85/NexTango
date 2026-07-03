@@ -282,6 +282,12 @@ class PlegadosComplejos {
 	// DXF — fetch del binario y descarga automática del blob
 	// ------------------------------------------------------------------
 
+	// Secuencia de descarga (definida por Constantino):
+	//   1. el usuario aprieta el botón
+	//   2. se borra el DXF anterior (cliente y servidor)
+	//   3. se genera el DXF nuevo
+	//   4. mientras se genera, aparece "Generando DXF…"
+	//   5. al terminar, recién ahí arranca la descarga automática
 	async descargar_dxf() {
 		const err = $('#pc-error').addClass('hidden');
 		let geo;
@@ -292,7 +298,14 @@ class PlegadosComplejos {
 			return;
 		}
 		const btn = $('#pc-btn-dxf');
-		if (btn.prop('disabled')) return;   // descarga en curso — no re-disparar
+		if (btn.prop('disabled')) return;   // paso 1: un solo disparo a la vez
+
+		// Paso 2: borrar el DXF anterior (el de la descarga previa) ANTES de generar.
+		if (this._lastObjUrl) {
+			URL.revokeObjectURL(this._lastObjUrl);
+			this._lastObjUrl = null;
+		}
+
 		const job = $('#pc-job').val() || 'bandeja';
 		const url =
 			'/api/method/sistema_industrial.api.plegados.descargar_dxf' +
@@ -304,17 +317,19 @@ class PlegadosComplejos {
 			'&job_name=' + encodeURIComponent(job);
 		const filename = job.replace(/\s+/g, '_') + '.dxf';
 
+		// Paso 4: mensaje "Generando DXF…" mientras se genera (botón bloqueado).
 		const orig = btn.text();
 		btn.prop('disabled', true).text(__('Generando DXF…'));
 		try {
-			// cache:'no-store' → cada generación empieza de cero, sin respuesta cacheada.
+			// Paso 3: generar el DXF nuevo. El backend borra el anterior y genera de cero.
 			const resp = await fetch(url, {
 				cache: 'no-store',
 				headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token },
 			});
 			if (!resp.ok) throw new Error('HTTP ' + resp.status);
-			const blob = await resp.blob();
-			this.auto_download(blob, filename);   // paso 4: descarga automática
+			const blob = await resp.blob();   // esperar a que TERMINE de generarse
+			// Paso 5: recién ahí, descarga automática.
+			this.auto_download(blob, filename);
 			frappe.show_alert({ message: __('DXF descargado'), indicator: 'green' });
 		} catch (e) {
 			err.text(__('Error al descargar el DXF. Reintentá.')).removeClass('hidden');
@@ -323,10 +338,8 @@ class PlegadosComplejos {
 		}
 	}
 
-	// Descarga automática del blob recién generado (sin diálogo). Revoca el
-	// object-URL anterior — no queda ningún DXF previo retenido en memoria.
+	// Descarga automática del blob recién generado (sin diálogo "dónde guardar").
 	auto_download(blob, filename) {
-		if (this._lastObjUrl) URL.revokeObjectURL(this._lastObjUrl);
 		this._lastObjUrl = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = this._lastObjUrl;

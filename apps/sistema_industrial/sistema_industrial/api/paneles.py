@@ -8,6 +8,7 @@ Endpoints:
         → binario .dxf para descarga directa (frappe.response.type = "download")
 """
 import json
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -126,12 +127,19 @@ def descargar_dxf(batches_json, customer="", job_name=""):
     from sistema_industrial.presets.panel_sales_local_app import _run_all_batches
 
     with tempfile.TemporaryDirectory() as tmp:
+        output_dir = Path(tmp) / "output"
+        # Paso 2: empezar de cero — borrar cualquier DXF anterior antes de generar.
+        if output_dir.exists():
+            shutil.rmtree(output_dir, ignore_errors=True)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Paso 3: generar el DXF nuevo.
         result = _run_all_batches(
             batches=batches,
             customer=customer or "FRAPPE",
             job_name=job_name or "panel",
             observations="",
-            output_dir=Path(tmp) / "output",
+            output_dir=output_dir,
             price_file=_get_price_file(),
         )
         dxf_path = result.service_result.dxf_path

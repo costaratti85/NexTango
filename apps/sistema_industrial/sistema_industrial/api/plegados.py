@@ -237,6 +237,11 @@ def descargar_dxf(material_corte, ancho_int, largo_int, alto, espesor, job_name=
 
     with tempfile.TemporaryDirectory() as tmpdir:
         dxf_path = Path(tmpdir) / "bandeja.dxf"
+        # Paso 2: empezar de cero — borrar cualquier DXF anterior antes de generar.
+        if dxf_path.exists():
+            dxf_path.unlink()
+
+        # Paso 3: generar el DXF nuevo.
         exportar_dxf_bandeja(
             geom,
             str(dxf_path),

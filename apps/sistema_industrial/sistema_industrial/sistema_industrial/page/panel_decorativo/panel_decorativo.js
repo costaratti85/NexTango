@@ -470,29 +470,36 @@ class PanelDecorativo {
 	// DXF — POST con todos los lotes en el body, descarga automática del blob
 	// ------------------------------------------------------------------
 
+	// Secuencia de descarga (definida por Constantino):
+	//   1. el usuario aprieta el botón
+	//   2. se borra el DXF anterior (cliente y servidor)
+	//   3. se genera el DXF nuevo
+	//   4. mientras se genera, aparece "Generando DXF…"
+	//   5. al terminar, recién ahí arranca la descarga automática
 	async descargar_dxf() {
 		if (!this.batches.length) return;
 		const btn = $('#pd-btn-dxf');
-		if (btn.prop('disabled')) return;   // ya hay una descarga en curso — no re-disparar
+		if (btn.prop('disabled')) return;   // paso 1: un solo disparo a la vez
+
+		// Paso 2: borrar el DXF anterior (el de la descarga previa) ANTES de generar.
+		if (this._lastObjUrl) {
+			URL.revokeObjectURL(this._lastObjUrl);
+			this._lastObjUrl = null;
+		}
+
 		const job = $('#pd-job').val() || 'panel';
 		const filename = job.replace(/\s+/g, '_') + '.dxf';
-
-		// El estado COMPLETO actual de todos los lotes viaja en el BODY de un POST,
-		// serializado en el instante del clic. No hay estado server-side ni límite de
-		// longitud de URL: el request siempre lleva TODOS los lotes, sin importar
-		// cuándo se agregó el último. El backend regenera solo de este payload.
+		// El estado COMPLETO actual de los lotes viaja en el body del POST.
 		const body = new FormData();
 		body.append('batches_json', JSON.stringify(this.batches));
 		body.append('customer', this.get_customer());
 		body.append('job_name', job);
 
-		// Botón deshabilitado + spinner: la descarga ESPERA a que el backend termine
-		// de generar antes de guardar; imposible disparar con estado intermedio o doble.
+		// Paso 4: mensaje "Generando DXF…" mientras se genera (botón bloqueado).
 		const orig = btn.text();
 		btn.prop('disabled', true).text(__('Generando DXF…'));
 		try {
-			// cache:'no-store' → cada generación pega al backend y empieza de cero;
-			// nunca sirve una respuesta previa cacheada.
+			// Paso 3: generar el DXF nuevo. El backend borra el anterior y genera de cero.
 			const resp = await fetch('/api/method/sistema_industrial.api.paneles.descargar_dxf', {
 				method: 'POST',
 				cache: 'no-store',
@@ -500,8 +507,9 @@ class PanelDecorativo {
 				body: body,
 			});
 			if (!resp.ok) throw new Error('HTTP ' + resp.status);
-			const blob = await resp.blob();   // generación completa antes de descargar
-			this.auto_download(blob, filename);   // paso 4: arranca la descarga sola
+			const blob = await resp.blob();   // esperar a que TERMINE de generarse
+			// Paso 5: recién ahí, descarga automática.
+			this.auto_download(blob, filename);
 			frappe.show_alert({ message: __('DXF descargado'), indicator: 'green' });
 		} catch (e) {
 			frappe.show_alert({ message: __('Error al descargar el DXF. Reintentá.'), indicator: 'red' });
@@ -511,10 +519,7 @@ class PanelDecorativo {
 	}
 
 	// Descarga automática del blob recién generado (sin diálogo "dónde guardar").
-	// Cada llamada crea un object-URL nuevo y revoca el anterior — no queda ningún
-	// DXF previo retenido en memoria.
 	auto_download(blob, filename) {
-		if (this._lastObjUrl) URL.revokeObjectURL(this._lastObjUrl);
 		this._lastObjUrl = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = this._lastObjUrl;
