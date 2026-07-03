@@ -74,7 +74,8 @@ def _parse_potrace_svg(svg_text: str) -> tuple:
     )
     transform_scale = abs(float(m.group(1))) if m else 1.0
 
-    # Extract closed path d attributes
+    # Extract all path d attributes — include every path potrace traced,
+    # even if not explicitly closed (si potrace trazó algo, mostralo)
     path_ds = []
     for pm in re.finditer(r'<path\b[^>]*/>', svg_text):
         elem = pm.group(0)
@@ -82,7 +83,7 @@ def _parse_potrace_svg(svg_text: str) -> tuple:
         if not dm:
             continue
         d = dm.group(1).strip()
-        if d and "z" in d.lower():
+        if d:
             path_ds.append(d)
 
     return transform_scale, viewbox, path_ds

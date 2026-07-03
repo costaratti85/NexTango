@@ -72,6 +72,87 @@ def _thumbnail_url(filename):
     return f"{_THUMBNAIL_BASE}/{filename}" if p.exists() else None
 
 
+def _generate_and_save_thumbnail(nombre: str, dxf_path) -> "str | None":
+    """Renderiza DXF a PNG y lo guarda en public/pattern_thumbnails/{safe_name}.png.
+
+    Usa ezdxf + matplotlib. Retorna la URL pública o None si falla (matplotlib
+    ausente, DXF inválido, etc.) — el caller puede ignorar el error.
+    """
+    try:
+        import ezdxf
+        from ezdxf.addons.drawing import RenderContext, Frontend
+        from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
+        import matplotlib
+        matplotlib.use("Agg")  # headless — sin display X
+        import matplotlib.pyplot as plt
+
+        dxf_doc = ezdxf.readfile(str(dxf_path))
+        msp = dxf_doc.modelspace()
+
+        fig = plt.figure(figsize=(3, 3), dpi=72)
+        ax = fig.add_axes([0, 0, 1, 1])
+        ax.set_aspect("equal")
+        ctx = RenderContext(dxf_doc)
+        out = MatplotlibBackend(ax)
+        Frontend(ctx, out).draw_layout(msp, finalize=True)
+
+        thumb_dir = Path(__file__).resolve().parents[1] / "public" / "pattern_thumbnails"
+        thumb_dir.mkdir(parents=True, exist_ok=True)
+        safe = _safe_name(nombre)
+        out_path = thumb_dir / f"{safe}.png"
+        fig.savefig(str(out_path), dpi=72, bbox_inches="tight",
+                    facecolor="white", edgecolor="none")
+        plt.close(fig)
+        return f"{_THUMBNAIL_BASE}/{safe}.png"
+    except Exception:
+        return None
+
+
+@frappe.whitelist(allow_guest=False)
+def backfill_thumbnails():
+    """Genera thumbnails faltantes para todos los SI Patron con archivo DXF.
+
+    Recorre tipo Archivo y Vectorizado con archivo_dxf definido y sin thumbnail
+    en public/pattern_thumbnails/. Útil tras migración o al arreglar nombres.
+
+    Retorna: {"generados": [...], "ya_existian": [...], "errores": [...]}
+    """
+    patrones = frappe.db.get_all(
+        "SI Patron",
+        filters={"tipo": ["in", ["Archivo", "Vectorizado"]], "activo": 1},
+        fields=["name", "archivo_dxf"],
+    )
+
+    generados, ya_existian, errores = [], [], []
+
+    thumb_dir = Path(__file__).resolve().parents[1] / "public" / "pattern_thumbnails"
+
+    for p in patrones:
+        nombre = p["name"]
+        dxf_path = (p.get("archivo_dxf") or "").strip()
+        if not dxf_path:
+            continue
+
+        safe = _safe_name(nombre)
+        out_path = thumb_dir / f"{safe}.png"
+
+        if out_path.exists():
+            ya_existian.append(nombre)
+            continue
+
+        if not Path(dxf_path).exists():
+            errores.append({"name": nombre, "error": f"DXF no encontrado: {dxf_path}"})
+            continue
+
+        url = _generate_and_save_thumbnail(nombre, dxf_path)
+        if url:
+            generados.append(nombre)
+        else:
+            errores.append({"name": nombre, "error": "render falló (ver logs)"})
+
+    return {"generados": generados, "ya_existian": ya_existian, "errores": errores}
+
+
 def _find_pattern_library():
     try:
         from sistema_industrial.presets.legacy_panel_adapter import find_legacy_panel_dir
@@ -325,6 +406,9 @@ def upload_pattern(nombre, step_x, step_y, visibilidad, file_url, customer=None,
         doc.insert(ignore_permissions=True)
 
     frappe.db.commit()
+
+    _generate_and_save_thumbnail(nombre, dest_path)
+
     return {
         "ok": True,
         "name": nombre,

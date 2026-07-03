@@ -1,13 +1,17 @@
 """Migración de patrones al DocType SI Patron.
 
 Migra:
-  - Patrones paramétricos builtin (Tresbolillo, Cuadriculado, Cuadriculado Square)
+  - Patrones paramétricos builtin (solo Tresbolillo — Cuadriculado y Cuadriculado Square eliminados)
   - Patrones de archivo de pattern_library.json (Subte, Philo, Cosmos, Hexagonal, Aconcagua)
 
 Uso:
     bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.run
     bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.run \
         --kwargs '{"overwrite": true}'
+
+    # Borrar docs específicos por nombre (hard-delete con DXF + File huérfano):
+    bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.delete_named_patrones \
+        --kwargs '{"names": ["Cuadriculado", "Cuadriculado Square"]}'
 
     # Borrado total de patrones DXF (decisión Constantino — los va a recargar):
     bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.wipe_file_patterns
@@ -39,20 +43,8 @@ _PARAMETRICOS = [
         "descripcion": "Perforación circular en tresbolillo (hexagonal offset)",
         "parametros": {"forma": "tresbolillo", "step_x": None, "step_y": None},
     },
-    {
-        "name": "Cuadriculado",
-        "tipo": "Paramétrico",
-        "visibilidad": "Público",
-        "descripcion": "Perforación circular en grilla cuadrada",
-        "parametros": {"forma": "cuadriculado", "step_x": None, "step_y": None},
-    },
-    {
-        "name": "Cuadriculado Square",
-        "tipo": "Paramétrico",
-        "visibilidad": "Público",
-        "descripcion": "Perforación cuadrada en grilla cuadrada",
-        "parametros": {"forma": "cuadriculado_square", "step_x": None, "step_y": None},
-    },
+    # "Cuadriculado" y "Cuadriculado Square" eliminados por decisión de Constantino (2026-07-03).
+    # No recrear. Usar delete_named_patrones() para hard-delete si reaparecen.
 ]
 
 
@@ -155,7 +147,7 @@ def _find_pattern_library():
 
 
 def migrate_parametricos():
-    """Inserta o repara los 3 patrones paramétricos builtin.
+    """Inserta o repara los patrones paramétricos builtin (actualmente solo Tresbolillo).
 
     Cubre dos casos:
     - Doc faltante (migration nunca corrió): lo inserta con activo=1.
@@ -197,6 +189,69 @@ def migrate_parametricos():
 
     frappe.db.commit()
     return {"inserted": inserted, "fixed_activo": fixed_activo, "ok": ok_list, "errors": errors}
+
+
+def delete_named_patrones(names):
+    """Hard-delete de SI Patron por nombre, sin importar su tipo.
+
+    Borra: doc + versiones (cascada), .dxf físico, Frappe File huérfano privado.
+
+    Uso:
+        bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.delete_named_patrones \
+            --kwargs '{"names": ["Cuadriculado", "Cuadriculado Square"]}'
+
+    Retorna: {"borrados": [...], "no_encontrados": [...], "errors": [...]}
+    """
+    import frappe
+
+    borrados, no_encontrados, errors = [], [], []
+
+    for name in names:
+        if not frappe.db.exists("SI Patron", name):
+            no_encontrados.append(name)
+            continue
+
+        try:
+            doc = frappe.get_doc("SI Patron", name)
+            dxf_path = (doc.archivo_dxf or "").strip()
+
+            # Borrar .dxf físico si existe
+            if dxf_path:
+                try:
+                    p = Path(dxf_path)
+                    if p.exists():
+                        p.unlink()
+                except Exception as exc:
+                    errors.append({"step": "unlink_dxf", "name": name, "error": str(exc)})
+
+            # Hard-delete del doc (cascada a SI Patron Version)
+            frappe.delete_doc(
+                "SI Patron", name,
+                force=True, delete_permanently=True, ignore_permissions=True,
+            )
+            borrados.append(name)
+        except Exception as exc:
+            errors.append({"step": "delete_doc", "name": name, "error": str(exc)})
+
+    frappe.db.commit()
+
+    # Borrar Frappe File huérfanos privados .dxf que quedaran referenciados
+    huerfanos = frappe.db.get_all(
+        "File",
+        filters={"file_url": ["like", "/private/files/%.dxf"]},
+        fields=["name", "file_url"],
+    )
+    for f in huerfanos:
+        try:
+            frappe.delete_doc(
+                "File", f["name"],
+                force=True, delete_permanently=True, ignore_permissions=True,
+            )
+        except Exception as exc:
+            errors.append({"step": "delete_file", "name": f["name"], "error": str(exc)})
+
+    frappe.db.commit()
+    return {"borrados": borrados, "no_encontrados": no_encontrados, "errors": errors}
 
 
 def wipe_file_patterns():

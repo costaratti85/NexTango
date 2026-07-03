@@ -127,6 +127,9 @@ def compose_pattern(run_id, preset, selected_entity_ids, escala_display,
     doc.save(ignore_permissions=True)
     frappe.db.commit()
 
+    from sistema_industrial.api.patrones import _generate_and_save_thumbnail
+    _generate_and_save_thumbnail(nombre, dest_path)
+
     return {
         "ok": True,
         "name": doc.name,
