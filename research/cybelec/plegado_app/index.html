@@ -196,9 +196,16 @@ svg { width:100%; height:auto; display:block; background:#ffffff; border-radius:
     <div class="presup-title">Presupuesto</div>
     <div class="presup-row"><span class="presup-label">Desarrollo</span><span class="presup-val" id="pp-devel">—</span></div>
     <div class="presup-row"><span class="presup-label">Material</span><span class="presup-val" id="pp-mat-desc">—</span></div>
-    <div class="presup-row" style="padding-left:16px"><span class="presup-label">&nbsp;</span><span class="presup-val" id="pp-mat-cost">—</span></div>
-    <div class="presup-row"><span class="presup-label">Plegado (<span id="pp-nbends">?</span> pliegues)</span><span class="presup-val" id="pp-pleg-desc">—</span></div>
-    <div class="presup-row" style="padding-left:16px"><span class="presup-label">&nbsp;</span><span class="presup-val" id="pp-pleg-cost">—</span></div>
+    <div style="display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;gap:6px;margin:8px 0 4px;">
+      <div style="-webkit-flex:1 1 44px;flex:1 1 44px;"><div style="font-size:11px;color:#5b7390;">f. material</div><input id="f-kg" type="number" inputmode="decimal" step="0.05" value="1" min="0" style="padding:6px 4px;font-size:14px;"></div>
+      <div style="-webkit-flex:1 1 44px;flex:1 1 44px;"><div style="font-size:11px;color:#5b7390;">f. láser</div><input id="f-laser" type="number" inputmode="decimal" step="0.05" value="0" min="0" style="padding:6px 4px;font-size:14px;"></div>
+      <div style="-webkit-flex:1 1 44px;flex:1 1 44px;"><div style="font-size:11px;color:#5b7390;">f. plegar/kg</div><input id="f-plegar-kg" type="number" inputmode="decimal" step="0.05" value="0" min="0" style="padding:6px 4px;font-size:14px;"></div>
+      <div style="-webkit-flex:1 1 44px;flex:1 1 44px;"><div style="font-size:11px;color:#5b7390;">f. pliegue</div><input id="f-pliegue" type="number" inputmode="decimal" step="0.05" value="1" min="0" style="padding:6px 4px;font-size:14px;"></div>
+    </div>
+    <div class="presup-row" id="pp-row-kg"><span class="presup-label">Material (kg)</span><span class="presup-val" id="pp-mat-cost">—</span></div>
+    <div class="presup-row" id="pp-row-laser"><span class="presup-label">Láser (<span id="pp-laser-s">0</span>s)</span><span class="presup-val" id="pp-laser-cost">—</span></div>
+    <div class="presup-row" id="pp-row-plegarkg"><span class="presup-label">Plegado/kg</span><span class="presup-val" id="pp-plegarkg-cost">—</span></div>
+    <div class="presup-row"><span class="presup-label">Pliegues (<span id="pp-nbends">?</span>)</span><span class="presup-val" id="pp-pleg-cost">—</span></div>
     <div class="presup-total">
       <span>TOTAL (<span id="pp-cant">1</span> ud.)</span>
       <span class="presup-total-val" id="pp-total">—</span>
@@ -993,7 +1000,10 @@ function savePart(){
   var rec={ name:name, segs:segs, s:val('s'), V:val('V'), ri:val('ri'), sb:val('sb'), Rm:val('Rm'), L:val('L'),
             punchId:(curPunch?curPunch.id:null), dieId:(curDie?curDie.id:null), rot:curRot,
             angCorr:(state.angCorr&&Object.keys(state.angCorr).length?state.angCorr:null),
-            xCorr:(state.xCorr&&Object.keys(state.xCorr).length?state.xCorr:null), ts:(new Date()).getTime() };
+            xCorr:(state.xCorr&&Object.keys(state.xCorr).length?state.xCorr:null),
+            factKg:parseFloat(val('f-kg'))||0, factLaser:parseFloat(val('f-laser'))||0,
+            factPlegarKg:parseFloat(val('f-plegar-kg'))||0, factPliegue:parseFloat(val('f-pliegue'))||0,
+            ts:(new Date()).getTime() };
   var g=getGaleria(); g.unshift(rec);
   if(setGaleria(g)){ var m=document.getElementById('setupMsg'); m.innerHTML='<div class="warn" style="background:#e6f9f4;border-color:#a3e6dc;color:#0a6b57;">✓ Guardada «'+escapeHtml(name)+'» en la galería.</div>'; setTimeout(function(){ m.innerHTML=''; },2500); }
 }
@@ -1005,7 +1015,11 @@ function loadPart(idx){
   if(p.punchId!=null){ var pi=toolIndexById(TOOLS.punzones,p.punchId); if(pi>=0) setPunch(pi); }
   if(p.dieId!=null){ var di=toolIndexById(TOOLS.matrices,p.dieId); if(di>=0){ setDie(di); if(p.rot&&curDie&&curDie.rotations){ curRot=p.rot%curDie.rotations.length; var r=dieRot(); if(r) document.getElementById('V').value=r.V; updateToolBtns(); } } }
   ['s','V','ri','sb','Rm','L'].forEach(function(k){ if(p[k]!=null&&p[k]!=='') document.getElementById(k).value=p[k]; });
-  state.angCorr=p.angCorr||{}; state.xCorr=p.xCorr||{};   // la pieza guardada trae sus correcciones empíricas ya afinadas
+  state.angCorr=p.angCorr||{}; state.xCorr=p.xCorr||{};
+  document.getElementById('f-kg').value = p.factKg!=null ? p.factKg : 1;
+  document.getElementById('f-laser').value = p.factLaser!=null ? p.factLaser : 0;
+  document.getElementById('f-plegar-kg').value = p.factPlegarKg!=null ? p.factPlegarKg : 0;
+  document.getElementById('f-pliegue').value = p.factPliegue!=null ? p.factPliegue : 1;
   state.plan=null; state.manual=false; state.manSeq=null; state.step=0;
   renderSegs(); previewSetup();
   document.getElementById('partsModal').style.display='none'; show('setup');
@@ -1048,6 +1062,8 @@ var _matEspesores = {};    // {nombreMaterial: [{espesor_mm, familia, densidad_k
 
 var DENSIDADES = { hierro: 7850, galvanizada: 7850, inox304: 7900, inox430: 7750 };
 var PRECIO_KEY = { hierro: 'precio_kg_hierro', galvanizada: 'precio_kg_galvanizado', inox304: 'precio_kg_inoxidable_304', inox430: 'precio_kg_inoxidable_430' };
+var PRECIO_PLEGAR_KEY = { hierro: 'precio_plegar_kg_hierro', galvanizada: 'precio_plegar_kg_galvanizado', inox304: 'precio_plegar_kg_inox304', inox430: 'precio_plegar_kg_inox430' };
+var VEL_CORTE_KEY = { hierro: 'vel_corte_hierro', galvanizada: 'vel_corte_galvanizada', inox304: 'vel_corte_inox304', inox430: 'vel_corte_inox430' };
 
 function _fetchPrices() {
   try {
@@ -1103,6 +1119,8 @@ document.getElementById('ped-espesor').addEventListener('change', function(){
 });
 
 document.getElementById('ped-cant').addEventListener('input', _updatePresup);
+document.getElementById('L').addEventListener('input', _updatePresup);
+['f-kg','f-laser','f-plegar-kg','f-pliegue'].forEach(function(id){ document.getElementById(id).addEventListener('input',_updatePresup); });
 
 function _getFamilia(){
   var mat = document.getElementById('ped-material').value;
@@ -1123,32 +1141,56 @@ function _updatePresup(){
   var cant = parseInt(document.getElementById('ped-cant').value)||1;
   var familia = _getFamilia();
   var densidad = DENSIDADES[familia] || 0;
+  // precios globales
   var precioKg = _prices[PRECIO_KEY[familia]] || 0;
-  var precioDoblez = _prices['precio_doblez_plegadora'] || 0;
-
-  document.getElementById('pp-devel').textContent = devel ? devel.toFixed(1)+' mm' : '—';
+  var precioPlegarKg = _prices[PRECIO_PLEGAR_KEY[familia]] || 0;
+  var precioSegLaser = _prices['precio_segundo_laser'] || 0;
+  var precioPorPlegado = _prices['precio_doblez_plegadora'] || _prices['precio_por_plegado'] || 0;
+  var velCorte = _prices[VEL_CORTE_KEY[familia]] || 0;
+  // factores por pieza
+  var factKg = parseFloat(document.getElementById('f-kg').value) || 0;
+  var factLaser = parseFloat(document.getElementById('f-laser').value) || 0;
+  var factPlegarKg = parseFloat(document.getElementById('f-plegar-kg').value) || 0;
+  var factPliegue = parseFloat(document.getElementById('f-pliegue').value) || 0;
+  // recursos
+  var pesoUnit = (densidad && s && L && devel) ? (devel/1000)*(L/1000)*(s/1000)*densidad : 0;
+  var perimetroMm = (devel && L) ? 2*(devel+L) : 0;
+  var segLaser = (velCorte > 0 && perimetroMm > 0) ? perimetroMm/velCorte : 0;
+  // costos por componente
+  var costoKg = pesoUnit * precioKg * factKg;
+  var costoLaser = segLaser * precioSegLaser * factLaser;
+  var costoPlegarKg = pesoUnit * precioPlegarKg * factPlegarKg;
+  var costoPliegue = nbends * precioPorPlegado * factPliegue;
+  var totalUnit = costoKg + costoLaser + costoPlegarKg + costoPliegue;
+  var totalTotal = totalUnit * cant;
+  // display
+  var matLabel = familia ? (document.getElementById('ped-material').value||'') : '—';
+  document.getElementById('pp-devel').textContent = devel ? devel.toFixed(1)+' mm'+(pesoUnit?' · '+pesoUnit.toFixed(3)+' kg/ud':'') : '—';
+  document.getElementById('pp-mat-desc').textContent = matLabel+(s?' '+s+'mm':'');
   document.getElementById('pp-nbends').textContent = nbends;
   document.getElementById('pp-cant').textContent = cant;
-
-  var pesoUnit = (densidad && s && L && devel)
-    ? (devel/1000) * (L/1000) * (s/1000) * densidad : 0;
-  var costoMatUnit = pesoUnit * precioKg;
-  var costoPlegUnit = nbends * precioDoblez;
-  var totalUnit = costoMatUnit + costoPlegUnit;
-  var totalTotal = totalUnit * cant;
-
-  var matLabel = familia ? (document.getElementById('ped-material').value||'') : '—';
-  document.getElementById('pp-mat-desc').textContent = matLabel + (s ? ' '+s+'mm' : '') + (densidad ? ' · '+pesoUnit.toFixed(3)+' kg/ud' : '');
-  document.getElementById('pp-mat-cost').textContent = precioKg ? _fmt(costoMatUnit)+' / ud' : '— (sin precio)';
-  document.getElementById('pp-pleg-desc').textContent = precioDoblez ? ('× $'+Math.round(precioDoblez).toLocaleString('es-AR')+'/doblez') : '— (sin precio)';
-  document.getElementById('pp-pleg-cost').textContent = precioDoblez ? _fmt(costoPlegUnit)+' / ud' : '—';
+  // fila material
+  var rKg = document.getElementById('pp-row-kg');
+  if(factKg > 0 && precioKg > 0){ rKg.style.display=''; document.getElementById('pp-mat-cost').textContent=_fmt(costoKg)+' / ud'; }
+  else rKg.style.display='none';
+  // fila laser
+  var rLaser = document.getElementById('pp-row-laser');
+  if(factLaser > 0 && precioSegLaser > 0 && segLaser > 0){ rLaser.style.display=''; document.getElementById('pp-laser-s').textContent=segLaser.toFixed(0); document.getElementById('pp-laser-cost').textContent=_fmt(costoLaser)+' / ud'; }
+  else rLaser.style.display='none';
+  // fila plegar/kg
+  var rPlegKg = document.getElementById('pp-row-plegarkg');
+  if(factPlegarKg > 0 && precioPlegarKg > 0){ rPlegKg.style.display=''; document.getElementById('pp-plegarkg-cost').textContent=_fmt(costoPlegarKg)+' / ud'; }
+  else rPlegKg.style.display='none';
+  // fila pliegues
+  document.getElementById('pp-pleg-cost').textContent = (precioPorPlegado > 0 && factPliegue > 0) ? _fmt(costoPliegue)+' / ud' : '— (sin precio)';
   document.getElementById('pp-total').textContent = (totalTotal > 0) ? _fmt(totalTotal) : '—';
-
-  // Guardar en state para el save
-  state._presup = { devel_mm: devel, n_pliegues: nbends, L_mm: L, s_mm: s, familia: familia,
-    densidad_kg_m3: densidad, peso_unit_kg: pesoUnit, precio_kg: precioKg,
-    precio_doblez: precioDoblez, costo_mat_unit: costoMatUnit, costo_pleg_unit: costoPlegUnit,
-    total_unit: totalUnit, total: totalTotal, cantidad: cant };
+  // guardar en state
+  state._presup = { devel_mm:devel, n_pliegues:nbends, L_mm:L, s_mm:s, familia:familia,
+    densidad_kg_m3:densidad, peso_unit_kg:pesoUnit, seg_laser:segLaser,
+    precio_kg:precioKg, precio_plegar_kg:precioPlegarKg, precio_seg_laser:precioSegLaser, precio_por_plegado:precioPorPlegado,
+    factor_kg:factKg, factor_laser:factLaser, factor_plegar_kg:factPlegarKg, factor_pliegue:factPliegue,
+    costo_kg:costoKg, costo_laser:costoLaser, costo_plegar_kg:costoPlegarKg, costo_pliegue:costoPliegue,
+    total_unit:totalUnit, total:totalTotal, cantidad:cant };
 }
 
 // Hook en showResult para actualizar el panel de presupuesto
@@ -1169,10 +1211,19 @@ document.getElementById('btnSavePedido').addEventListener('click', function(){
     espesor_mm: p.s_mm || 0,
     densidad_kg_m3: p.densidad_kg_m3 || 0,
     desarrollo_mm: p.devel_mm || 0,
+    L_mm: p.L_mm || 0,
+    peso_unit_kg: p.peso_unit_kg || 0,
+    seg_laser: p.seg_laser || 0,
     n_pliegues: p.n_pliegues || 0,
     tonelaje_ton: state.plan ? state.plan.ton.ton : 0,
-    precio_material_unitario: p.costo_mat_unit || 0,
-    precio_plegado_unitario: p.costo_pleg_unit || 0,
+    factor_kg: p.factor_kg || 0,
+    factor_laser: p.factor_laser || 0,
+    factor_plegar_kg: p.factor_plegar_kg || 0,
+    factor_pliegue: p.factor_pliegue || 0,
+    costo_kg: p.costo_kg || 0,
+    costo_laser: p.costo_laser || 0,
+    costo_plegar_kg: p.costo_plegar_kg || 0,
+    costo_pliegue: p.costo_pliegue || 0,
     total_unitario: p.total_unit || 0,
     total: p.total || 0,
     segs: state.segs,
