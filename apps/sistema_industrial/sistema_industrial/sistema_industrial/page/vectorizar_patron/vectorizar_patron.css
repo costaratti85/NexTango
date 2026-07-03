@@ -4,10 +4,12 @@
 
 /* Paso 1: subir imagen */
 .si-page .vp-drop { border:2px dashed #c5dde8; border-radius:8px; padding:22px; text-align:center;
-                    background:#f8fbfd; cursor:pointer; transition:border-color .15s, background .15s; }
-.si-page .vp-drop:hover { border-color:var(--si-brand); background:#eef7fb; }
+                    background:#f8fbfd; cursor:pointer; transition:border-color .15s, background .15s; position:relative; }
+.si-page .vp-drop:hover, .si-page .vp-drop:focus { border-color:var(--si-brand); background:#eef7fb; outline:none; }
 .si-page .vp-drop.has-file { border-color:var(--si-green); background:#eef7f0; }
+.si-page .vp-drop.drag-over { border-color:var(--si-brand); background:#e8f4f8; }
 .si-page .vp-file-name { font-size:12px; color:var(--si-muted); margin-top:6px; word-break:break-all; }
+.si-page .vp-file-preview { max-width:220px; max-height:140px; margin-top:10px; border-radius:6px; border:1px solid var(--si-line); }
 .si-page .vp-status { font-size:13px; font-weight:600; min-height:18px; }
 
 /* Spinner honesto */
@@ -16,26 +18,35 @@
                     border-radius:50%; animation:vp-rot 0.8s linear infinite; }
 @keyframes vp-rot { to { transform:rotate(360deg); } }
 
-/* Grilla de figuras × variantes */
-.si-page .vp-fig { border:1px solid var(--si-line); border-radius:8px; margin-bottom:14px; padding:12px;
-                   background:#fff; transition:opacity .15s; }
-.si-page .vp-fig.descartada { opacity:.4; }
-.si-page .vp-fig-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-.si-page .vp-fig-title { font-size:13px; font-weight:700; color:var(--si-ink); }
-.si-page .vp-fig-bbox { font-size:11px; color:var(--si-muted); font-family:monospace; }
-.si-page .vp-variants { display:flex; flex-wrap:wrap; gap:10px; }
-.si-page .vp-var { width:130px; border:2px solid var(--si-line); border-radius:6px; padding:6px;
-                   text-align:center; cursor:pointer; transition:border-color .15s, box-shadow .15s; background:#fff; }
-.si-page .vp-var:hover { border-color:var(--si-brand); }
-.si-page .vp-var.selected { border-color:var(--si-brand); background:#e8f4f8; box-shadow:0 0 0 3px rgba(23,107,135,.15); }
-.si-page .vp-var.no-det { cursor:default; opacity:.5; }
-.si-page .vp-var.no-det:hover { border-color:var(--si-line); }
-.si-page .vp-var-svg { width:100%; height:90px; color:var(--si-brand); }
-.si-page .vp-var-svg svg { width:100%; height:100%; display:block; }
-.si-page .vp-var-name { font-size:11px; font-weight:600; color:var(--si-ink); margin-top:5px; }
-.si-page .vp-var-metrics { font-size:10px; color:var(--si-muted); margin-top:2px; }
-.si-page .vp-var-nodet { font-size:11px; color:var(--si-muted); padding:34px 0; }
+/* Paso 2: grilla de presets */
+.si-page .vp-preset-grid { display:flex; flex-wrap:wrap; gap:12px; }
+.si-page .vp-preset-card { width:160px; border:2px solid var(--si-line); border-radius:8px; background:#fff;
+                           padding:8px; text-align:center; cursor:pointer; transition:border-color .15s, box-shadow .15s; }
+.si-page .vp-preset-card:hover { border-color:var(--si-brand); }
+.si-page .vp-preset-card.selected { border-color:var(--si-brand); background:#e8f4f8; box-shadow:0 0 0 3px rgba(23,107,135,.15); }
+.si-page .vp-preset-thumb { width:100%; height:110px; background:#fafcfd; border-radius:5px; color:var(--si-brand); overflow:hidden; }
+.si-page .vp-preset-thumb svg { width:100%; height:100%; display:block; }
+.si-page .vp-preset-name { font-size:12px; font-weight:700; color:var(--si-ink); margin-top:6px; }
+.si-page .vp-preset-count { font-size:10px; color:var(--si-muted); margin-top:2px; }
 
-/* Form de confirmación */
+/* Paso 3: visor interactivo */
+.si-page .vp-toolbar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:10px; }
+.si-page .vp-toolbar-sep { width:1px; height:22px; background:var(--si-line); margin:0 4px; }
+.si-page .vp-tool.active { border-color:var(--si-brand); background:#e8f4f8; color:var(--si-brand); }
+.si-page .vp-hint { font-size:12px; color:var(--si-muted); margin-bottom:8px; }
+.si-page .vp-calib-panel { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:#fff8ec; border:1px solid #f0c95a; border-radius:6px; padding:10px 12px; margin-bottom:10px; }
+.si-page .vp-calib-line-btn.done { border-color:var(--si-green); color:var(--si-green); }
+.si-page .vp-calib-measure { display:flex; align-items:center; gap:8px; }
+.si-page .vp-viewer-wrap { border:1px solid var(--si-line); border-radius:8px; overflow:hidden; background:#fafcfd; }
+.si-page .vp-viewer { width:100%; height:520px; position:relative; touch-action:none; }
+.si-page .vp-viewer svg { width:100%; height:100%; display:block; cursor:crosshair; }
+.si-page .vp-viewer.mode-pan svg { cursor:grab; }
+.si-page .vp-viewer.panning svg { cursor:grabbing; }
+.si-page .vp-viewer svg path.vp-selected { stroke:#0066cc !important; stroke-width:3 !important; fill:rgba(0,102,204,.12) !important; }
+.si-page .vp-rubber-box { position:absolute; border:1px dashed var(--si-brand); background:rgba(23,107,135,.12); pointer-events:none; }
+.si-page .vp-calib-line { stroke:#e67e22; stroke-width:2; vector-effect:non-scaling-stroke; }
+.si-page .vp-calib-line.vertical { stroke:#c0392b; }
+.si-page .vp-status-row { display:flex; justify-content:space-between; font-size:12px; color:var(--si-muted); margin-top:8px; }
+
+/* Paso 4: confirmar */
 .si-page .vp-confirm-grid { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; }
-.si-page .vp-sel-count { font-size:12px; color:var(--si-muted); margin-bottom:10px; }

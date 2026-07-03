@@ -2,11 +2,12 @@
   <div class="page-wrapper">
 
     <!-- Paso 1: subir imagen -->
-    <div class="card">
+    <div class="card" id="vp-section-subir">
       <div class="card-title">1 — Subir imagen del panel</div>
-      <div class="vp-drop" id="vp-drop">
-        <div id="vp-drop-prompt">⤒ Elegir imagen (PNG / JPG)…</div>
+      <div class="vp-drop" id="vp-drop" tabindex="0">
+        <div id="vp-drop-prompt">⤒ Elegir imagen (PNG / JPG)… o pegar con Ctrl+V / arrastrar acá</div>
         <div class="vp-file-name hidden" id="vp-file-name"></div>
+        <img class="vp-file-preview hidden" id="vp-file-preview" alt="">
       </div>
       <div style="display:flex; gap:12px; align-items:center; margin-top:14px">
         <button class="btn btn-primary" id="vp-btn-vectorizar" style="padding:9px 28px" disabled>Vectorizar</button>
@@ -18,28 +19,67 @@
       </div>
     </div>
 
-    <!-- Paso 2: figuras detectadas -->
-    <div class="card hidden" id="vp-section-figuras">
-      <div class="card-title">2 — Elegí la mejor variante de cada figura</div>
-      <div class="vp-sel-count" id="vp-sel-count"></div>
-      <div id="vp-figuras"></div>
+    <!-- Paso 2: elegir preset -->
+    <div class="card hidden" id="vp-section-presets">
+      <div class="card-title">2 — Elegí el preset que mejor vectorizó</div>
+      <div class="vp-preset-grid" id="vp-preset-grid"></div>
     </div>
 
-    <!-- Paso 3: confirmar -->
+    <!-- Paso 3: visor interactivo — seleccionar tile + calibrar -->
+    <div class="card hidden" id="vp-section-visor">
+      <div class="card-title">3 — Seleccioná las entidades del tile y calibrá la escala</div>
+
+      <div class="vp-toolbar">
+        <button class="btn btn-default vp-tool" data-mode="select" id="vp-tool-select">🖱 Seleccionar</button>
+        <button class="btn btn-default vp-tool" data-mode="calibrate" id="vp-tool-calibrate">📏 Calibrar</button>
+        <button class="btn btn-default vp-tool" data-mode="pan" id="vp-tool-pan">✋ Mover vista</button>
+        <span class="vp-toolbar-sep"></span>
+        <button class="btn btn-default" id="vp-zoom-in">＋</button>
+        <button class="btn btn-default" id="vp-zoom-out">－</button>
+        <button class="btn btn-default" id="vp-zoom-reset">Reset vista</button>
+        <span class="vp-toolbar-sep"></span>
+        <button class="btn btn-default" id="vp-select-all">Seleccionar todo</button>
+        <button class="btn btn-default" id="vp-select-none">Deseleccionar todo</button>
+      </div>
+
+      <div class="vp-hint" id="vp-mode-hint">Modo Seleccionar: clic en una entidad para incluirla/excluirla. Arrastrá sobre el fondo para seleccionar varias (recuadro).</div>
+
+      <div class="vp-calib-panel hidden" id="vp-calib-panel">
+        <button class="btn btn-default vp-calib-line-btn" data-line="v" id="vp-calib-btn-v">📏 Dibujar línea VERTICAL</button>
+        <button class="btn btn-default vp-calib-line-btn" data-line="h" id="vp-calib-btn-h">📏 Dibujar línea HORIZONTAL</button>
+        <span id="vp-calib-lines-status" class="dimmed"></span>
+        <div class="vp-calib-measure hidden" id="vp-calib-measure">
+          <label style="display:inline;margin:0 8px 0 0">Medida real de la línea vertical (mm)</label>
+          <input type="number" id="vp-calib-vmm" step="0.1" min="0.1" placeholder="ej. 50" style="width:100px;display:inline-block">
+          <button class="btn btn-primary" id="vp-calib-apply">Aplicar calibración</button>
+        </div>
+      </div>
+
+      <div class="vp-viewer-wrap">
+        <div class="vp-viewer" id="vp-viewer"></div>
+      </div>
+
+      <div class="vp-status-row">
+        <span id="vp-sel-count">0 entidades seleccionadas</span>
+        <span id="vp-calib-status">Calibración: sin definir</span>
+      </div>
+    </div>
+
+    <!-- Paso 4: confirmar -->
     <div class="card hidden" id="vp-section-confirmar">
-      <div class="card-title">3 — Crear patrón</div>
+      <div class="card-title">4 — Crear patrón</div>
       <div class="vp-confirm-grid">
         <div class="form-group" style="flex:2 1 200px">
           <label for="vp-nombre">Nombre</label>
           <input type="text" id="vp-nombre" placeholder="ej. Panel Rombo">
         </div>
-        <div class="form-group" style="max-width:120px">
-          <label for="vp-stepx">Paso X mm</label>
-          <input type="number" id="vp-stepx" step="0.1" min="1" placeholder="ej. 50">
+        <div class="form-group" style="max-width:130px">
+          <label>Paso X mm</label>
+          <input type="text" id="vp-stepx" readonly placeholder="calibrar">
         </div>
-        <div class="form-group" style="max-width:120px">
-          <label for="vp-stepy">Paso Y mm</label>
-          <input type="number" id="vp-stepy" step="0.1" min="1" placeholder="ej. 50">
+        <div class="form-group" style="max-width:130px">
+          <label>Paso Y mm</label>
+          <input type="text" id="vp-stepy" readonly placeholder="calibrar">
         </div>
         <div class="form-group" style="max-width:190px">
           <label for="vp-visibilidad">Visibilidad</label>
@@ -53,8 +93,11 @@
           <div id="vp-customer-field"></div>
         </div>
       </div>
+      <div class="dimmed" style="margin:6px 0 14px">
+        El paso X/Y sale de la calibración del paso 3 — dibujá las dos líneas y medí la vertical antes de crear.
+      </div>
       <div style="display:flex; gap:12px; align-items:center; margin-top:14px">
-        <button class="btn btn-success" id="vp-btn-crear" style="padding:9px 28px; font-weight:700">✓ Crear patrón</button>
+        <button class="btn btn-success" id="vp-btn-crear" style="padding:9px 28px; font-weight:700" disabled>✓ Crear patrón</button>
         <span class="vp-status" id="vp-confirm-status"></span>
       </div>
     </div>
