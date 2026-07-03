@@ -31,9 +31,20 @@
       "task": "PUNTO_EXTRACCION_CONTORNOS_NO_REGIONES",
       "descripcion": "BUG grave posterior al fix de subpaths (083a031, ya deployado en e1725e1): Constantino probó una imagen de retícula conectada — los 5 presets muestran '29 entidades' cada uno, pero SOLO se dibujan las figuras del BORDE (fragmentos partidos por el recorte de la imagen); las figuras COMPLETAS del centro (conectadas entre sí formando una malla continua) NO aparecen en NINGÚN preset, ni antes ni después del fix de subpaths. No es el bug de granularidad ya resuelto — acá la malla central directamente no entra al entity_count (no es 'una entidad sin separar', es 'cero entidades'). Hipótesis: potrace traza la malla central como un <path> compound gigante que se pierde en algún punto ANTES de _split_subpaths (parser regex, filtro silencioso, límite de tamaño, o potrace mismo lo descarta por parámetros de turdsize/opttolerance con geometría muy conectada). Constantino reformuló el principio de diseño: el objetivo NO es una imagen vectorizada tipo impresora (área impresa/no impresa) sino CONTORNOS que el láser recorre cortando. Diagnosticar ANTES de tocar código: dumpear el SVG crudo de potrace antes de cualquier parser propio y contar paths de nivel superior + longitud de cada d. Ver MSG_033 de su canal.",
       "msg": "coordination/channel/Punto/MSG_033_nova_extraccion_contornos_no_regiones.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "alta",
+      "nota": "Punto commit a53ef40 (MSG_069): cambio de modelo en _binarize() — erosión morfológica (MinFilter 3x3) + diferencia extrae anillos de 1px en vez de regiones rellenas. Causa raíz: malla conectada → 1 blob → potrace no separa círculos individuales. Con anillos: cada círculo tiene su propio contorno trazable, incluso tocándose. Solo bench restart para deploy. Pendiente: Orbit despliega y Constantino verifica con la imagen original."
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_MSG033_CONTORNOS",
+      "descripcion": "Deploy del fix de extracción de contornos morfológicos (a53ef40). Solo bench restart — sin bench migrate (no hay DocTypes nuevos). Verificar con la imagen de la malla de Constantino: antes 29 entidades borde-only, esperado ahora N anillos individuales (uno por círculo visible). Ver MSG_069 de Nova.",
+      "msg": "coordination/channel/Nova/MSG_069_punto_msg033_fix.md",
       "status": "pendiente",
       "sprint": "001-rebanada",
-      "prioridad": "alta"
+      "prioridad": "alta",
+      "comando": "cd /home/costa/Nextango-erpnext && git pull && supervisorctl restart all"
     },
     {
       "agent": "Orbit",
