@@ -1,7 +1,9 @@
-"""Image-to-potrace multi-preset vectorizer — tile extraction model.
+"""Image-to-potrace multi-preset vectorizer — contour extraction model.
 
 Pipeline per preset:
-  1. Image (PNG/JPG) → threshold binarize (Pillow) → PBM tempfile
+  1. Image (PNG/JPG) → morphological edge extraction (Pillow) → PBM tempfile
+     Extracts 1px boundary rings instead of filled regions, so connected shapes
+     (e.g. a mesh of touching circles) produce individual per-shape contours.
   2. potrace --svg → raw SVG
   3. Parse SVG via regex (avoids xml.etree DOCTYPE issues with potrace output)
   4. Build display SVG: paths styled as outlines, each with id="e{i}" and
@@ -33,11 +35,31 @@ def _preset_slug(name):
 
 
 def _binarize(image_path: Path, threshold: int, pbm_path: Path) -> None:
-    """Convert image to 1-bit PBM for potrace input."""
-    from PIL import Image
+    """Convert image to 1-bit PBM using morphological edge extraction.
+
+    Instead of feeding filled dark regions to potrace, we extract 1px boundary
+    rings via erosion-difference. This makes every closed shape (circle, slot,
+    hexagon) into an individually traceable contour — critical for connected
+    meshes where touching shapes would otherwise merge into one filled blob.
+
+    Steps:
+      1. Grayscale + threshold → binary L-mode: dark shapes→255, background→0
+      2. MinFilter(3) erosion → shapes shrunk 1px on all sides
+      3. difference(bw, eroded) → 1px ring at each shape boundary
+      4. Invert → ring=0 (black = traced by potrace), background=255 (white)
+    """
+    from PIL import Image, ImageChops, ImageFilter, ImageOps
+
     img = Image.open(str(image_path)).convert("L")
-    bw = img.point(lambda p: 0 if p < threshold else 255, "1")
-    bw.save(str(pbm_path))
+    # dark pixels (shapes) → 255, light (background) → 0
+    bw = img.point(lambda p: 255 if p < threshold else 0)
+    # 1px morphological erosion
+    eroded = bw.filter(ImageFilter.MinFilter(3))
+    # ring = outer 1px shell of each shape
+    ring = ImageChops.difference(bw, eroded)
+    # invert: ring → black (traced), background → white
+    pbm = ImageOps.invert(ring).convert("1")
+    pbm.save(str(pbm_path))
 
 
 def _run_potrace(pbm_path: Path, svg_path: Path, preset: dict) -> None:
