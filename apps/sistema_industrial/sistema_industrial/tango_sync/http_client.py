@@ -10,6 +10,7 @@ For standalone use outside Frappe, install requests separately.
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import Any, Iterator
 
@@ -28,9 +29,16 @@ from sistema_industrial.tango_sync.schemas import (
 
 logger = logging.getLogger(__name__)
 
-# Known process IDs — update TANGO_PROCESS_CLIENTES once probe confirms it
+# Constante interna del nombre de la env var del token Tango.
+# En Ubuntu: TANGO_TOKEN="<token>" en /etc/environment.
+_ENV_TANGO_TOKEN = "TANGO_TOKEN"
+
+TANGO_DEFAULT_URL = "http://server-t:17000"
+TANGO_DEFAULT_COMPANY = "25"
+
+# Known process IDs
 PROCESS_ARTICULOS = 87
-PROCESS_CLIENTES: int | None = None  # set after probe
+PROCESS_CLIENTES = 2117  # confirmed by probe 2026-07-01
 
 
 @dataclass
@@ -41,7 +49,27 @@ class TangoHTTPClientConfig:
     page_size: int = 100
     timeout: int = 15
     process_articulos: int = PROCESS_ARTICULOS
-    process_clientes: int | None = None
+    process_clientes: int = PROCESS_CLIENTES
+
+
+def make_tango_config_from_env() -> TangoHTTPClientConfig:
+    """Construye TangoHTTPClientConfig leyendo variables de entorno estándar.
+
+    Variables leídas:
+      TANGO_TOKEN    — token ApiAuthorization (obligatorio en producción)
+      TANGO_URL      — URL base del servidor (default: http://server-t:17000)
+      TANGO_COMPANY  — número de empresa Tango (default: "25")
+    """
+    token = os.environ.get(_ENV_TANGO_TOKEN, "")
+    if not token:
+        logger.warning(
+            "TANGO_TOKEN no configurado — las requests a Tango no van a autenticarse"
+        )
+    return TangoHTTPClientConfig(
+        base_url=os.environ.get("TANGO_URL", TANGO_DEFAULT_URL),
+        token=token,
+        company=os.environ.get("TANGO_COMPANY", TANGO_DEFAULT_COMPANY),
+    )
 
 
 @dataclass
@@ -50,6 +78,14 @@ class TangoHTTPClient:
 
     config: TangoHTTPClientConfig
     _session: Any = field(default=None, init=False, repr=False)
+
+    @classmethod
+    def from_env(cls) -> "TangoHTTPClient":
+        """Crea un TangoHTTPClient con config leída de variables de entorno.
+
+        Usa TANGO_TOKEN como token, TANGO_URL y TANGO_COMPANY opcionalmente.
+        """
+        return cls(config=make_tango_config_from_env())
 
     def __post_init__(self) -> None:
         if requests is None:
@@ -80,6 +116,12 @@ class TangoHTTPClient:
     def _extract_records(data: Any) -> list[dict]:
         if isinstance(data, list):
             return data
+        # Tango API v16 wraps records in resultData.list
+        result_data = data.get("resultData") or data.get("ResultData")
+        if isinstance(result_data, dict):
+            lst = result_data.get("list") or result_data.get("List") or []
+            if isinstance(lst, list):
+                return lst
         for key in ("data", "Data", "items", "Items", "result", "Result"):
             if key in data and isinstance(data[key], list):
                 return data[key]
@@ -120,29 +162,25 @@ class TangoHTTPClient:
         return articles
 
     def get_customers(self) -> list[TangoCustomer]:
-        if not self.config.process_clientes:
-            raise RuntimeError(
-                "process_clientes not configured. "
-                "Run tools/probe_tango_clientes.py to find the correct process ID."
-            )
         customers = []
         for rec in self._iter_all(self.config.process_clientes):
             try:
                 customers.append(TangoCustomer(
-                    code=rec.get("COD_GVA14", rec.get("CODIGO", "")),
-                    name=rec.get("RAZON_SOCIAL", rec.get("NOMBRE", "")),
+                    code=rec["COD_GVA14"],
+                    name=" ".join((rec.get("RAZON_SOCI") or rec.get("NOM_COM") or "").split()),
                     cuit=rec.get("CUIT") or None,
                     address=rec.get("DOMICILIO") or None,
                     city=rec.get("LOCALIDAD") or None,
-                    province=rec.get("PROVINCIA") or None,
-                    postal_code=rec.get("COD_POST") or None,
-                    vat_condition=rec.get("CONDICION_IVA") or None,
-                    payment_condition=rec.get("COD_CPG") or rec.get("CONDICION_PAGO") or None,
-                    email=rec.get("EMAIL") or None,
-                    phone=rec.get("TELEFONO") or None,
+                    province=rec.get("GVA18_DESCRIPCION") or None,
+                    postal_code=rec.get("C_POSTAL") or None,
+                    vat_condition=rec.get("COD_CATEGORIA_IVA") or None,
+                    payment_condition=rec.get("GVA01_DESC_COND") or None,
+                    email=rec.get("E_MAIL") or None,
+                    phone=rec.get("TELEFONO_1") or None,
                     tango_id=rec.get("ID_GVA14"),
-                    credit_limit=rec.get("LIMITE_CRED"),
-                    is_active=rec.get("INHABILITADO", "N") != "S",
+                    credit_limit=rec.get("CUPO_CREDI"),
+                    is_active=bool(rec.get("HABILITADO", True)),
+                    discount=float(rec.get("PORC_DESC") or 0.0),
                 ))
             except KeyError as e:
                 logger.warning("Skipping customer record missing field %s: %r", e, rec)

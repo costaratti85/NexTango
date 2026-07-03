@@ -71,16 +71,18 @@ def fetch_process(base_url: str, token: str, company: str, process: int) -> dict
 
 def extract_fields(response: dict) -> list[str]:
     """Extract field names from the first record in a Tango API response."""
-    # Tango responses vary: sometimes {"data": [...]} or {"items": [...]} or bare list
+    if isinstance(response, list) and response:
+        return list(response[0].keys())
+    # Tango API v16: {"resultData": {"list": [...]}, "succeeded": true}
+    result_data = response.get("resultData") or response.get("ResultData")
+    if isinstance(result_data, dict):
+        lst = result_data.get("list") or result_data.get("List") or []
+        if lst and isinstance(lst[0], dict):
+            return list(lst[0].keys())
+    # Legacy fallback
     for key in ("data", "items", "Data", "Items", "result", "Result"):
         if key in response and isinstance(response[key], list) and response[key]:
             return list(response[key][0].keys())
-    if isinstance(response, list) and response:
-        return list(response[0].keys())
-    # Try any list value in the response
-    for v in response.values():
-        if isinstance(v, list) and v and isinstance(v[0], dict):
-            return list(v[0].keys())
     return []
 
 

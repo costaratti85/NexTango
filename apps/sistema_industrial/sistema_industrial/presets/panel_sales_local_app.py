@@ -59,7 +59,7 @@ def _browse_dxf_file() -> str:
         return ""
 
 from sistema_industrial.presets.legacy_panel_adapter import (
-    _generate_cuadriculado_square_dxf_files,
+    _write_cuadriculado_square_to_doc,
     add_pattern_to_library,
     calculate_consumed_resources,
     calculate_cut_length_mm,
@@ -92,6 +92,10 @@ PRESUPUESTOS_DIR = Path(__file__).resolve().parents[4] / "Programas_hechos" / "P
 PRESUPUESTO_COUNTER_FILE = Path(__file__).resolve().parents[4] / "Programas_hechos" / "Panel Decorativo" / "presupuesto_counter.json"
 LAST_GENERATE_FILE = Path(__file__).resolve().parents[4] / "Programas_hechos" / "Panel Decorativo" / "last_generate.json"
 PLEGADOS_DIR = Path(__file__).resolve().parents[4] / "Programas_hechos" / "Plegados"
+PLEGADOS_PEDIDOS_DIR = PLEGADOS_DIR / "pedidos"
+PLEGADOS_PERFILES_HTML = Path(__file__).resolve().parents[4] / "research" / "cybelec" / "plegado_app" / "index.html"
+CORTES_DIR = Path(__file__).resolve().parents[4] / "Programas_hechos" / "Cortes"
+LISTA_CORTE_FILE = CORTES_DIR / "lista_corte.json"
 
 
 # ---------------------------------------------------------------------------
@@ -1545,50 +1549,42 @@ def _run_all_batches(
         all_result_items.sort(key=lambda it: (it.thickness, -it.quantity))
         output_dir.mkdir(parents=True, exist_ok=True)
         dxf_path = output_dir / f"{order_id}_legacy_panel.dxf"
+        dxf_path.unlink(missing_ok=True)
 
         if all_result_items:
             arranged = layout_module.arrange_cad_result_items(all_result_items)
             exporter_module.MixedDXFExporter().save(arranged, str(dxf_path))
 
-        # Generate cuadriculado+square panels as zone-layered DXFs.
-        # Each hole goes to CypCut layer str(zona % 16) so flycut stays per-zone.
-        # When total_zones > 16 multiple files are produced and packed into a ZIP.
+        # Append cuadriculado+square panels into the combined DXF.
+        # All batches (legacy + cuad+square) always end up in the same .dxf file.
         if cuad_sq_batches_geo:
-            import zipfile as _zipfile
-            all_cuad_paths: list = []
-            for i, entry in enumerate(cuad_sq_batches_geo):
+            import ezdxf as _ezdxf
+            if dxf_path.exists():
+                combined_doc = _ezdxf.readfile(str(dxf_path))
+            else:
+                combined_doc = _ezdxf.new("R2010")
+            combined_msp = combined_doc.modelspace()
+
+            # Place cuad+square panels to the right of any legacy content
+            cuad_x = sum(float(it.occupied_width) + 200.0 for it in all_result_items)
+            for entry in cuad_sq_batches_geo:
                 b = entry["batch"]
                 sw, sh, _sq = [(float(w), float(h), int(q)) for w, h, q in b["sheet_sizes"]][0]
-                batch_stem = (
-                    f"{order_id}_cuad_sq" if len(cuad_sq_batches_geo) == 1
-                    else f"{order_id}_cuad_sq_b{i}"
-                )
-                geo = _generate_cuadriculado_square_dxf_files(
+                geo = _write_cuadriculado_square_to_doc(
+                    combined_doc, combined_msp,
                     hole_size_mm=float(b.get("hole_size_mm", 20)),
                     step_x_mm=float(b["offset_x_mm"]),
                     step_y_mm=float(b["offset_y_mm"]),
                     sheet_width_mm=sw,
                     sheet_height_mm=sh,
                     margin_mm=float(b["margin_mm"]),
-                    output_dir=output_dir,
-                    stem=batch_stem,
+                    offset_x=cuad_x,
+                    offset_y=0.0,
                 )
                 entry["geo"] = geo
-                all_cuad_paths.extend(geo["paths"])
+                cuad_x += sw + 200.0
 
-            needs_zip = dxf_path.exists() or len(all_cuad_paths) > 1
-            if needs_zip:
-                zip_path = output_dir / f"{order_id}_legacy_panel.zip"
-                with _zipfile.ZipFile(str(zip_path), "w", _zipfile.ZIP_DEFLATED) as zf:
-                    if dxf_path.exists():
-                        zf.write(str(dxf_path), dxf_path.name)
-                    for p in all_cuad_paths:
-                        zf.write(str(p), p.name)
-                dxf_path = zip_path
-            else:
-                # Single cuad+square file, no legacy content → rename to standard path
-                import shutil as _shutil
-                _shutil.move(str(all_cuad_paths[0]), str(dxf_path))
+            combined_doc.saveas(str(dxf_path))
 
     finally:
         os.chdir(prev_cwd)
@@ -1930,27 +1926,40 @@ _COMMON_CSS = """
 def _topbar_html(active: str = "") -> str:
     """Unified topbar for all pages.
 
-    active: 'home' | 'admin' | 'materiales' | 'precios' | 'presupuesto' | 'presupuestos'
+    active: 'landing' | 'paneles' | 'perfiles_plegados' | 'plegados_complejos' |
+            'admin' | 'materiales' | 'precios' | 'presupuesto' | 'presupuestos'
     """
-    home_cls = ' class="active"' if active == "home" else ""
+    is_landing = active == "landing"
     badge_cls = "admin-badge" + (" active" if active == "admin" else "")
 
     def _alink(href: str, label: str, page: str) -> str:
         extra = " active" if page == active else ""
         return f'<a href="{href}" class="admin-link{extra}">{label}</a>'
 
+    def _navlink(href: str, label: str, page: str) -> str:
+        cls = ' class="active"' if page == active else ""
+        return f'<a href="{href}"{cls}>{label}</a>'
+
+    back_html = '' if is_landing else '\n  <a href="/" class="back-link" style="order:-1;margin-right:0">← Inicio</a>'
+    nav_html = (
+        f'\n  <nav>'
+        f'{_navlink("/paneles", "Paneles Decorativos", "paneles")}'
+        f'  {_navlink("/plegados/perfiles", "Perfiles Plegados", "perfiles_plegados")}'
+        f'  {_navlink("/plegados/complejos", "Plegados Complejos", "plegados_complejos")}'
+        f'</nav>'
+    ) if not is_landing else ''
+
     return (
         '\n<header class="topbar">'
-        '\n  <div class="logo">SistemaIndustrial</div>'
-        f'\n  <nav><a href="/"{home_cls}>Paneles Decorativos</a>'
-        f'\n       {_alink("/plegados", "Plegados", "plegados")}</nav>'
-        '\n  <div class="spacer"></div>'
-        f'\n  {_alink("/presupuestos", "Presupuestos", "presupuestos")}'
-        f'\n  <a href="/admin" class="{badge_cls}">ADMIN</a>'
-        f'\n  <a href="/materiales" class="admin-link admin-link-secondary{"  active" if active == "materiales" else ""}">Tabla de materiales</a>'
-        f'\n  <a href="/precios" class="admin-link admin-link-secondary{"  active" if active == "precios" else ""}">Precios diarios</a>'
-        '\n  <a href="/" class="back-link">Volver al catálogo</a>'
-        '\n</header>\n'
+        + back_html
+        + '\n  <a href="/" class="logo" style="color:inherit;text-decoration:none">SistemaIndustrial</a>'
+        + nav_html
+        + '\n  <div class="spacer"></div>'
+        + f'\n  {_alink("/presupuestos", "Presupuestos", "presupuestos")}'
+        + f'\n  <a href="/admin" class="{badge_cls}">ADMIN</a>'
+        + f'\n  <a href="/materiales" class="admin-link admin-link-secondary{"  active" if active == "materiales" else ""}">Tabla de materiales</a>'
+        + f'\n  <a href="/precios" class="admin-link admin-link-secondary{"  active" if active == "precios" else ""}">Precios diarios</a>'
+        + '\n</header>\n'
     )
 
 
@@ -2030,6 +2039,70 @@ def _format_material_label(material_name: str, thickness_mm: float) -> str:
     if "430" in mn:
         return f"Inox 430 {espesor:g}mm"
     return f"N°{calibre}" if calibre and calibre != "-" else f"{espesor:g}mm"
+
+
+# ---------------------------------------------------------------------------
+# render_landing — hub page at /
+# ---------------------------------------------------------------------------
+
+def render_landing() -> str:
+    """Landing hub: navigation cards to product lines."""
+    return """<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SistemaIndustrial</title>
+  <style>
+""" + _COMMON_CSS + """
+    .hub-title { font-size:26px; font-weight:700; color:var(--brand); margin:32px 0 8px; }
+    .hub-sub { color:var(--muted); font-size:14px; margin-bottom:32px; }
+    .hub-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:20px; }
+    .hub-card { background:#fff; border:1.5px solid #c5dde8; border-radius:10px; padding:28px 22px;
+                text-decoration:none; color:inherit; display:block;
+                transition:border-color .15s, box-shadow .15s; }
+    .hub-card:hover { border-color:var(--brand); box-shadow:0 4px 16px rgba(23,107,135,.15); }
+    .hub-card-icon { font-size:30px; margin-bottom:12px; line-height:1; }
+    .hub-card-title { font-size:16px; font-weight:700; color:var(--brand); margin-bottom:6px; }
+    .hub-card-desc { font-size:13px; color:var(--muted); line-height:1.55; }
+    .hub-card.disabled { opacity:.5; cursor:default; pointer-events:none;
+                         border-color:#dde3ea; background:#f7f9fb; }
+    .badge-prox { display:inline-block; margin-top:10px; font-size:10px; font-weight:700;
+                  text-transform:uppercase; letter-spacing:.5px; background:#e0e6ed;
+                  color:#7a8fa0; padding:2px 8px; border-radius:4px; }
+  </style>
+</head>
+<body>
+""" + _topbar_html("landing") + """
+<div class="page-wrapper">
+  <h1 class="hub-title">Líneas de producto</h1>
+  <p class="hub-sub">Seleccioná la sección con la que querés trabajar.</p>
+  <div class="hub-grid">
+    <a href="/paneles" class="hub-card">
+      <div class="hub-card-icon">⬛</div>
+      <div class="hub-card-title">Paneles Decorativos</div>
+      <div class="hub-card-desc">Chapas perforadas con patrones. Cotización automática por lote.</div>
+    </a>
+    <a href="/plegados/perfiles" class="hub-card">
+      <div class="hub-card-icon">📐</div>
+      <div class="hub-card-title">Perfiles Plegados</div>
+      <div class="hub-card-desc">Perfiles L, U, Z, C y variantes. Simulación de secuencia de plegado.</div>
+    </a>
+    <a href="/plegados/complejos" class="hub-card">
+      <div class="hub-card-icon">📦</div>
+      <div class="hub-card-title">Plegados Complejos</div>
+      <div class="hub-card-desc">Bandejas, canales y formas compuestas. Cálculo de presets.</div>
+    </a>
+    <div class="hub-card disabled">
+      <div class="hub-card-icon">🔩</div>
+      <div class="hub-card-title">Perfiles y Caños</div>
+      <div class="hub-card-desc">Corte y preparación de perfiles y caños.</div>
+      <span class="badge-prox">Próximamente</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>"""
 
 
 # ---------------------------------------------------------------------------
@@ -2133,43 +2206,25 @@ def render_form(error: str = "", result: SalesRunResult | None = None, load: str
         _paste_ot_html = escape("\n".join(_paste_lines_ot))
         _paste_rows_count = max(2, min(len(_paste_lines_pres), 6))
 
-        _is_zip = data.dxf_path.suffix.lower() == ".zip"
-        _dxf_btn_label = "&#11015; Descargar ZIP (flycut)" if _is_zip else "&#11015; Descargar DXF"
-        # Flycut info: inspect ZIP to count DXF files
-        _flycut_info = ""
-        if _is_zip:
-            try:
-                import zipfile as _zf_info
-                with _zf_info.ZipFile(str(data.dxf_path)) as _z:
-                    _z_names = [n for n in _z.namelist() if n.lower().endswith(".dxf")]
-                _n_dxfs = len(_z_names)
-                if _n_dxfs > 1:
-                    _flycut_info = (
-                        f'<div style="margin:8px 0 12px;padding:8px 12px;background:#fff8e1;'
-                        f'border-left:4px solid #f0a500;border-radius:4px;font-size:12px;color:#7a5a00">'
-                        f'El panel fue dividido en zonas flycut distribuidas en <strong>{_n_dxfs} archivos DXF</strong> '
-                        f'dentro del ZIP. Cargar en CypCut en orden.'
-                        f'</div>'
-                    )
-            except Exception:
-                pass
+        _sug_raw = f"{_customer_gen}_{_job_name_gen}" if _job_name_gen else (_customer_gen or "panel")
+        _dxf_suggested_name = re.sub(r'[^A-Za-z0-9._\-]', '_', _sug_raw).strip('_') + ".dxf"
 
         result_section = f"""
   <div class="card" id="result-card">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <span>{_pres_label}</span>
       <div style="display:flex;gap:10px;align-items:center">
-        <a href="/outputs/{dxf_rel}" target="_blank"
-           style="padding:6px 14px;background:var(--accent2);color:#fff;border-radius:6px;text-decoration:none;font-weight:700;font-size:13px">
-          {_dxf_btn_label}
-        </a>
+        <button onclick="saveDxfAs('/outputs/{dxf_rel}', '{_dxf_suggested_name}')"
+                style="padding:6px 14px;background:var(--accent2);color:#fff;border-radius:6px;border:none;cursor:pointer;font-weight:700;font-size:13px">
+          &#11015; Descargar DXF
+        </button>
         <a href="{_pres_href}" target="_blank"
            style="padding:6px 14px;background:#eee;color:#333;border-radius:6px;text-decoration:none;font-size:13px">
           Imprimir ↗
         </a>
       </div>
     </div>
-    {_flycut_info}
+
     <div style="font-size:13px;color:#555;margin-bottom:16px">
       {escape(_fecha_display)}&nbsp;&nbsp;|&nbsp;&nbsp;{escape(_customer_gen)}&nbsp;&nbsp;|&nbsp;&nbsp;{escape(_job_name_gen)}
     </div>
@@ -2399,7 +2454,7 @@ def render_form(error: str = "", result: SalesRunResult | None = None, load: str
   </style>
 </head>
 <body>
-{_topbar_html("home")}
+{_topbar_html("paneles")}
 <div class="page-wrapper">
   <h1 class="page-title {_wizard_hidden}">Nuevo pedido — Paneles Decorativos</h1>
   {error_html}
@@ -3022,6 +3077,32 @@ function copyPasteBlock(btn, textareaId) {{
   }}).catch(function() {{
     alert('No se pudo copiar al portapapeles. Selectá el texto manualmente.');
   }});
+}}
+
+async function saveDxfAs(url, suggestedName) {{
+  if (window.showSaveFilePicker) {{
+    try {{
+      const handle = await window.showSaveFilePicker({{
+        suggestedName: suggestedName,
+        types: [{{ description: 'Archivo DXF', accept: {{ 'application/dxf': ['.dxf'] }} }}]
+      }});
+      const resp = await fetch(url);
+      const writable = await handle.createWritable();
+      await writable.write(await resp.blob());
+      await writable.close();
+      return;
+    }} catch (e) {{
+      if (e.name === 'AbortError') return;
+      // API falló — fallback a descarga normal
+    }}
+  }}
+  // Fallback para browsers sin showSaveFilePicker
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = suggestedName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }}
 
 
@@ -4625,7 +4706,7 @@ def render_plegados() -> str:
   </style>
 </head>
 <body>
-""" + _topbar_html("plegados") + """
+""" + _topbar_html("plegados_complejos") + """
 <div class="page-wrapper">
   <h1 class="page-title">Plegados Preseteados</h1>
 
@@ -4659,7 +4740,7 @@ def render_plegados() -> str:
         </select>
       </div>
       <div class="form-group">
-        <label for="f-espesor">Espesor (mm)</label>
+        <label for="f-espesor">Calibre / Espesor</label>
         <select id="f-espesor">
           <option value="">— elegí material —</option>
         </select>
@@ -4799,7 +4880,9 @@ function onMaterialChange() {
   rows.forEach(function(r) {
     var opt = document.createElement('option');
     opt.value = r.espesor_mm;
-    opt.textContent = r.espesor_mm + ' mm';
+    opt.textContent = (r.calibre && r.calibre !== '-')
+      ? ('N°' + r.calibre + ' (' + r.espesor_mm + ' mm)')
+      : (r.espesor_mm + ' mm');
     opt.dataset.densidad = r.densidad_kg_m2;
     opt.dataset.velocidad = r.velocidad_corte_mm_s;
     sel.appendChild(opt);
@@ -5588,6 +5671,16 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
 
         if parsed.path == "/":
+            if callable(globals().get("render_landing")):
+                self._send_html(render_landing())  # type: ignore[name-defined]
+            else:
+                # Placeholder until Vega implements render_landing()
+                self.send_response(302)
+                self.send_header("Location", "/paneles")
+                self.end_headers()
+            return
+
+        if parsed.path == "/paneles":
             self._send_html(render_form())
             return
 
@@ -5621,12 +5714,25 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
             self._send_html(render_presupuestos())
             return
 
-        if parsed.path == "/plegados":
+        if parsed.path in ("/plegados", "/plegados/complejos"):
             self._send_html(render_plegados())
+            return
+
+        if parsed.path == "/plegados/perfiles":
+            self._handle_plegados_perfiles()
             return
 
         if parsed.path == "/api/plegados/dxf":
             self._handle_plegados_dxf()
+            return
+
+        if parsed.path == "/api/plegados/pedidos":
+            self._handle_plegados_pedidos_list()
+            return
+
+        if parsed.path.startswith("/api/plegados/pedido/"):
+            _pid = parsed.path.removeprefix("/api/plegados/pedido/").strip("/")
+            self._handle_plegados_pedido_get(_pid)
             return
 
         if parsed.path == "/download_dxf":
@@ -5728,6 +5834,24 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
             self.wfile.write(payload)
             return
 
+        if parsed.path == "/api/cortes/items":
+            self._handle_cortes_items_list()
+            return
+
+        if parsed.path == "/api/cortes/dxf":
+            self._handle_cortes_dxf()
+            return
+
+        if parsed.path == "/api/presupuestos":
+            self._handle_presupuestos_list_json()
+            return
+
+        import re as _re
+        _pm = _re.match(r"^/api/presupuestos/((?:PRES_)?\d{4})$", parsed.path)
+        if _pm:
+            self._handle_presupuesto_get_json(_pm.group(1))
+            return
+
         self.send_error(404)
 
     def do_POST(self) -> None:
@@ -5779,6 +5903,14 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
             self._handle_plegados_calcular()
             return
 
+        if parsed.path == "/api/plegados/pedido":
+            self._handle_plegados_pedido_post()
+            return
+
+        if parsed.path == "/api/cortes/item":
+            self._handle_cortes_item_post()
+            return
+
         if parsed.path == "/api/patterns/finalize_edit":
             self._handle_finalize_edit()
             return
@@ -5799,8 +5931,18 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
             self._handle_material_delete()
             return
 
-        # DELETE /api/presupuestos/:id
+        if parsed.path == "/api/cortes/items":
+            self._handle_cortes_items_clear()
+            return
+
+        # DELETE /api/cortes/item/<id>
         import re as _re
+        mc = _re.match(r"^/api/cortes/item/(.+)$", parsed.path)
+        if mc:
+            self._handle_cortes_item_delete(mc.group(1))
+            return
+
+        # DELETE /api/presupuestos/:id
         m = _re.match(r"^/api/presupuestos/(\d{4})$", parsed.path)
         if m:
             self._handle_presupuesto_delete(m.group(1))
@@ -6277,6 +6419,112 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             _send_json(self, {"ok": False, "error": str(exc)}, 500)
 
+    def _handle_plegados_perfiles(self) -> None:
+        """GET /plegados/perfiles — serve the Cybelec plegado app."""
+        try:
+            html = PLEGADOS_PERFILES_HTML.read_text(encoding="utf-8")
+            self._send_html(html)
+        except FileNotFoundError:
+            self.send_error(404, "plegado_app/index.html not found")
+
+    # ------------------------------------------------------------------
+    # Plegados pedidos API
+    # ------------------------------------------------------------------
+
+    def _next_pedido_id(self) -> str:
+        """Generate next PL-YYYYMMDD-NNNN id (auto-incremental per day)."""
+        import datetime as _dt
+        today = _dt.date.today().strftime("%Y%m%d")
+        PLEGADOS_PEDIDOS_DIR.mkdir(parents=True, exist_ok=True)
+        existing = sorted(
+            p.stem for p in PLEGADOS_PEDIDOS_DIR.glob(f"PL-{today}-*.json")
+        )
+        if existing:
+            last_n = int(existing[-1].split("-")[-1])
+        else:
+            last_n = 0
+        return f"PL-{today}-{last_n + 1:04d}"
+
+    def _handle_plegados_pedido_post(self) -> None:
+        """POST /api/plegados/pedido — save a plegado order as JSON."""
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length)
+            payload = json.loads(body)
+            pedido_id = self._next_pedido_id()
+            payload["id"] = pedido_id
+            PLEGADOS_PEDIDOS_DIR.mkdir(parents=True, exist_ok=True)
+            pedido_path = PLEGADOS_PEDIDOS_DIR / f"{pedido_id}.json"
+            pedido_path.write_text(
+                json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+            )
+            _send_json(self, {"ok": True, "id": pedido_id})
+        except Exception as exc:
+            _send_json(self, {"ok": False, "error": str(exc)}, 500)
+
+    def _handle_plegados_pedidos_list(self) -> None:
+        """GET /api/plegados/pedidos — list saved orders, newest first (header fields only)."""
+        _HEADER_FIELDS = {
+            "id", "cliente", "ref", "cantidad", "material",
+            "espesor_mm", "desarrollo_mm", "n_pliegues", "total", "ts",
+        }
+        try:
+            PLEGADOS_PEDIDOS_DIR.mkdir(parents=True, exist_ok=True)
+            pedidos = []
+            for p in sorted(PLEGADOS_PEDIDOS_DIR.glob("PL-*.json"), reverse=True):
+                try:
+                    data = json.loads(p.read_text(encoding="utf-8"))
+                    pedidos.append({k: v for k, v in data.items() if k in _HEADER_FIELDS})
+                except Exception:
+                    pass
+            _send_json(self, pedidos)
+        except Exception as exc:
+            _send_json(self, {"ok": False, "error": str(exc)}, 500)
+
+    def _handle_plegados_pedido_get(self, pedido_id: str) -> None:
+        """GET /api/plegados/pedido/<id> — return full order JSON."""
+        try:
+            pedido_path = PLEGADOS_PEDIDOS_DIR / f"{pedido_id}.json"
+            if not pedido_path.exists():
+                _send_json(self, {"ok": False, "error": "not found"}, 404)
+                return
+            data = json.loads(pedido_path.read_text(encoding="utf-8"))
+            _send_json(self, data)
+        except Exception as exc:
+            _send_json(self, {"ok": False, "error": str(exc)}, 500)
+
+    def _handle_presupuestos_list_json(self) -> None:
+        """GET /api/presupuestos → JSON list of all presupuestos, newest first (header fields only)."""
+        _HEADER_FIELDS = {"numero", "fecha", "customer", "cliente", "job_name", "total"}
+        try:
+            PRESUPUESTOS_DIR.mkdir(parents=True, exist_ok=True)
+            presupuestos = []
+            for p in sorted(PRESUPUESTOS_DIR.glob("PRES_*.json"), reverse=True):
+                try:
+                    data = json.loads(p.read_text(encoding="utf-8"))
+                    presupuestos.append({k: v for k, v in data.items() if k in _HEADER_FIELDS})
+                except Exception:
+                    pass
+            _send_json(self, presupuestos)
+        except Exception as exc:
+            _send_json(self, {"ok": False, "error": str(exc)}, 500)
+
+    def _handle_presupuesto_get_json(self, name: str) -> None:
+        """GET /api/presupuestos/<name> → full JSON of a single presupuesto.
+
+        Accepts both bare IDs ("0029") and prefixed names ("PRES_0029").
+        """
+        try:
+            pres_id = name.removeprefix("PRES_").zfill(4)
+            pres_path = PRESUPUESTOS_DIR / f"PRES_{pres_id}.json"
+            if not pres_path.exists():
+                _send_json(self, {"ok": False, "error": f"PRES_{pres_id} no encontrado"}, 404)
+                return
+            data = json.loads(pres_path.read_text(encoding="utf-8"))
+            _send_json(self, data)
+        except Exception as exc:
+            _send_json(self, {"ok": False, "error": str(exc)}, 500)
+
     def _handle_plegados_calcular(self) -> None:
         """POST /api/plegados/calcular — calculates bandeja resources, returns JSON."""
         import sys as _sys
@@ -6341,7 +6589,7 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
         })
 
     def _handle_plegados_dxf(self) -> None:
-        """GET /api/plegados/dxf?ancho=&largo=&alto=&espesor=&material=&calibre="""
+        """GET /api/plegados/dxf?ancho=&largo=&alto=&espesor=&material=&calibre=&familia=&cantidad="""
         import sys as _sys
         import tempfile as _tempfile
         from urllib.parse import parse_qs, urlparse as _up
@@ -6356,6 +6604,9 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
         alto = _qf("alto")
         espesor = _qf("espesor")
         material = (qs.get("material") or [""])[0].strip()
+        calibre = (qs.get("calibre") or [""])[0].strip()
+        familia = (qs.get("familia") or [""])[0].strip()
+        cantidad = int((qs.get("cantidad") or ["1"])[0].strip() or "1")
 
         if any(v is None for v in [ancho_int, largo_int, alto, espesor]):
             self.send_error(400)
@@ -6373,7 +6624,11 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
             geom = calcular_bandeja(ancho_int, largo_int, alto, espesor)
             with _tempfile.NamedTemporaryFile(suffix=".dxf", delete=False) as tmp:
                 tmp_path = tmp.name
-            exportar_dxf_bandeja(geom, tmp_path)
+            exportar_dxf_bandeja(
+                geom, tmp_path,
+                material=material, calibre=calibre, familia=familia,
+                espesor_mm=espesor, cantidad=cantidad,
+            )
             payload = Path(tmp_path).read_bytes()
             Path(tmp_path).unlink(missing_ok=True)
         except Exception as exc:
@@ -6386,6 +6641,87 @@ class PanelSalesHandler(BaseHTTPRequestHandler):
 
         mat_safe = re.sub(r"[^A-Za-z0-9]", "_", material) if material else "mat"
         filename = f"Bandeja_{int(ancho_int)}x{int(largo_int)}x{int(alto)}_{mat_safe}_{espesor}mm.dxf"
+        self.send_response(200)
+        self.send_header("Content-Type", "application/dxf")
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    # ------------------------------------------------------------------
+    # Lista de cortes unificada
+    # ------------------------------------------------------------------
+
+    def _read_lista_corte(self) -> list[dict]:
+        f = LISTA_CORTE_FILE
+        if not f.exists():
+            return []
+        try:
+            return json.loads(f.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+
+    def _write_lista_corte(self, items: list[dict]) -> None:
+        LISTA_CORTE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        LISTA_CORTE_FILE.write_text(json.dumps(items, ensure_ascii=False), encoding="utf-8")
+
+    def _handle_cortes_item_post(self) -> None:
+        import uuid as _uuid
+        import time as _time
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            item = json.loads(body.decode("utf-8"))
+        except Exception:
+            self.send_error(400)
+            return
+        item["id"] = str(_uuid.uuid4())
+        item.setdefault("ts", int(_time.time() * 1000))
+        items = self._read_lista_corte()
+        items.append(item)
+        self._write_lista_corte(items)
+        _send_json(self, {"ok": True, "id": item["id"]})
+
+    def _handle_cortes_items_list(self) -> None:
+        items = self._read_lista_corte()
+        items_sorted = sorted(items, key=lambda it: it.get("ts", 0), reverse=True)
+        _send_json(self, items_sorted)
+
+    def _handle_cortes_items_clear(self) -> None:
+        items = self._read_lista_corte()
+        count = len(items)
+        self._write_lista_corte([])
+        _send_json(self, {"ok": True, "cleared": count})
+
+    def _handle_cortes_item_delete(self, item_id: str) -> None:
+        items = self._read_lista_corte()
+        new_items = [it for it in items if it.get("id") != item_id]
+        if len(new_items) == len(items):
+            _send_json(self, {"ok": False, "error": "not found"}, 404)
+            return
+        self._write_lista_corte(new_items)
+        _send_json(self, {"ok": True})
+
+    def _handle_cortes_dxf(self) -> None:
+        import tempfile as _tempfile
+        import datetime as _dt
+        items = self._read_lista_corte()
+        if not items:
+            _send_json(self, {"error": "lista vacía"}, 400)
+            return
+        try:
+            from sistema_industrial.cutting.dxf_batch_compiler import compile_unified_batch
+            with _tempfile.NamedTemporaryFile(suffix=".dxf", delete=False) as tmp:
+                tmp_path = Path(tmp.name)
+            compile_unified_batch(items, tmp_path)
+            payload = tmp_path.read_bytes()
+            tmp_path.unlink(missing_ok=True)
+        except Exception as exc:
+            logger.error("cortes_dxf error: %s", exc)
+            self.send_error(500)
+            return
+        today = _dt.date.today().strftime("%Y%m%d")
+        filename = f"Cortes_unificados_{today}.dxf"
         self.send_response(200)
         self.send_header("Content-Type", "application/dxf")
         self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
