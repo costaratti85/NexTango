@@ -30,8 +30,8 @@ from sistema_industrial.tango_sync.schemas import (
 logger = logging.getLogger(__name__)
 
 # Constante interna del nombre de la env var del token Tango.
-# En Ubuntu: TANGO_TOKEN="<token>" en /etc/environment.
-_ENV_TANGO_TOKEN = "TANGO_TOKEN"
+# En Ubuntu: SI_NEXUS_KEY="<token>" en /etc/environment.
+_ENV_NEXUS_KEY = "SI_NEXUS_KEY"
 
 TANGO_DEFAULT_URL = "http://server-t:17000"
 TANGO_DEFAULT_COMPANY = "25"
@@ -56,14 +56,14 @@ def make_tango_config_from_env() -> TangoHTTPClientConfig:
     """Construye TangoHTTPClientConfig leyendo variables de entorno estándar.
 
     Variables leídas:
-      TANGO_TOKEN    — token ApiAuthorization (obligatorio en producción)
+      SI_NEXUS_KEY   — token ApiAuthorization (obligatorio en producción)
       TANGO_URL      — URL base del servidor (default: http://server-t:17000)
       TANGO_COMPANY  — número de empresa Tango (default: "25")
     """
-    token = os.environ.get(_ENV_TANGO_TOKEN, "")
+    token = os.environ.get(_ENV_NEXUS_KEY, "")
     if not token:
         logger.warning(
-            "TANGO_TOKEN no configurado — las requests a Tango no van a autenticarse"
+            "SI_NEXUS_KEY no configurado — las requests a Tango no van a autenticarse"
         )
     return TangoHTTPClientConfig(
         base_url=os.environ.get("TANGO_URL", TANGO_DEFAULT_URL),
@@ -83,7 +83,7 @@ class TangoHTTPClient:
     def from_env(cls) -> "TangoHTTPClient":
         """Crea un TangoHTTPClient con config leída de variables de entorno.
 
-        Usa TANGO_TOKEN como token, TANGO_URL y TANGO_COMPANY opcionalmente.
+        Usa SI_NEXUS_KEY como token, TANGO_URL y TANGO_COMPANY opcionalmente.
         """
         return cls(config=make_tango_config_from_env())
 

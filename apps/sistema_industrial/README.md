@@ -9,7 +9,7 @@ App Frappe/ERPNext para SistemaIndustrial Nextango.
 | `ERPNEXT_URL` | URL base del servidor ERPNext | `http://190.190.190.20` |
 | `ERPNEXT_API_KEY` | API key del usuario de integración (provisto por Forge) | — |
 | `ERPNEXT_API_SECRET` | API secret del usuario de integración (provisto por Forge) | — |
-| `TANGO_TOKEN` | Token ApiAuthorization del servidor Tango (configurado en `/etc/environment` por Forge) | — |
+| `SI_NEXUS_KEY` | Token ApiAuthorization del servidor Tango (configurado en `/etc/environment` por Forge) | — |
 | `TANGO_URL` | URL base del servidor Tango | `http://server-t:17000` |
 | `TANGO_COMPANY` | Número de empresa en Tango | `25` |
 
@@ -25,7 +25,7 @@ export ERPNEXT_API_SECRET=<api_secret>
 
 ### Sync Tango → ERPNext
 
-Requiere `TANGO_TOKEN` configurado. Uso más simple:
+Requiere `SI_NEXUS_KEY` configurado. Uso más simple:
 
 ```python
 from sistema_industrial.tango_sync.http_client import TangoHTTPClient
