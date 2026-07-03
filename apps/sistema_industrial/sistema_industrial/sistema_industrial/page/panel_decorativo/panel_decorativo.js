@@ -120,6 +120,7 @@ class PanelDecorativo {
 				options: 'Customer',
 				fieldname: 'customer',
 				placeholder: __('Nombre o código de cliente'),
+				onchange: () => this.on_customer_change(),
 			},
 			parent: $('#pd-customer-field'),
 			render_input: true,
@@ -128,6 +129,18 @@ class PanelDecorativo {
 
 	get_customer() {
 		return (this.customer_control && this.customer_control.get_value()) || '';
+	}
+
+	// Descuento default del cliente (si_tango_discount, sincronizado desde Tango)
+	// pre-cargado al elegir cliente. Queda editable — es un default, no un candado.
+	on_customer_change() {
+		const customer = this.get_customer();
+		if (!customer) return;
+		frappe.db.get_value('Customer', customer, 'si_tango_discount').then((r) => {
+			const v = parseFloat(r.message && r.message.si_tango_discount);
+			$('#pd-descuento').val(isNaN(v) ? 0 : v);
+			this.refresh_costos();
+		});
 	}
 
 	// ------------------------------------------------------------------
@@ -226,6 +239,7 @@ class PanelDecorativo {
 		$('#pd-btn-calcular').on('click', () => this.calcular());
 		$('#pd-btn-dxf').on('click', () => this.descargar_dxf());
 		$('#pd-btn-guardar').on('click', () => this.guardar_presupuesto());
+		$('#pd-descuento').on('input', () => this.refresh_costos());
 	}
 
 	set_dist_mode(mode) {
@@ -459,13 +473,23 @@ class PanelDecorativo {
 	}
 
 	refresh_costos() {
-		let total = 0;
+		let subtotal = 0;
 		this.lineas.forEach((ln, i) => {
 			const c = this.costo_linea(ln);
-			total += c;
+			subtotal += c;
 			$('.pd-costo[data-i=' + i + ']').text(format_currency(c, 'ARS'));
 		});
-		$('#pd-presu-total').text(format_currency(total, 'ARS'));
+		const descuentoPct = parseFloat($('#pd-descuento').val()) || 0;
+		const descuentoMonto = subtotal * (descuentoPct / 100);
+		this.total_con_descuento = subtotal - descuentoMonto;
+		this.descuento_pct = descuentoPct;
+		$('#pd-presu-subtotal').text(format_currency(subtotal, 'ARS'));
+		$('#pd-presu-descuento').text(
+			descuentoPct > 0
+				? '- ' + format_currency(descuentoMonto, 'ARS') + ' (' + descuentoPct + '%)'
+				: '—'
+		);
+		$('#pd-presu-total').text(format_currency(this.total_con_descuento, 'ARS'));
 	}
 
 	// ------------------------------------------------------------------
@@ -547,6 +571,7 @@ class PanelDecorativo {
 			doctype: 'SI Presupuesto Panel',
 			customer: customer,
 			job_name: $('#pd-job').val() || '',
+			descuento_pct: parseFloat($('#pd-descuento').val()) || 0,
 			lineas: this.lineas.map((ln) => {
 				const mrow = this.material_row(ln.material, ln.espesor_mm);
 				return {

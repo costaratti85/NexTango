@@ -13,6 +13,10 @@
           <label for="pd-job">Trabajo</label>
           <input type="text" id="pd-job" placeholder="ej. Panel lobby edificio Norte">
         </div>
+        <div class="form-group">
+          <label for="pd-descuento">Descuento cliente (%)</label>
+          <input type="number" id="pd-descuento" min="0" max="100" step="0.1" value="0">
+        </div>
       </div>
     </div>
 
@@ -137,6 +141,14 @@
           </thead>
           <tbody id="pd-presu-tbody"></tbody>
           <tfoot>
+            <tr>
+              <td colspan="9" style="text-align:right">Subtotal</td>
+              <td style="text-align:right" id="pd-presu-subtotal">—</td>
+            </tr>
+            <tr>
+              <td colspan="9" style="text-align:right">Descuento cliente</td>
+              <td style="text-align:right" id="pd-presu-descuento">—</td>
+            </tr>
             <tr style="font-weight:700;background:#e8f4f8">
               <td colspan="9" style="text-align:right">TOTAL</td>
               <td style="text-align:right" id="pd-presu-total">—</td>
