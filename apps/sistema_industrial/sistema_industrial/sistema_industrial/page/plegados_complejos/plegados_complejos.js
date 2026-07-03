@@ -279,7 +279,7 @@ class PlegadosComplejos {
 	}
 
 	// ------------------------------------------------------------------
-	// DXF — URL directa + showSaveFilePicker con fallback
+	// DXF — fetch del binario y descarga automática del blob
 	// ------------------------------------------------------------------
 
 	async descargar_dxf() {
@@ -307,10 +307,15 @@ class PlegadosComplejos {
 		const orig = btn.text();
 		btn.prop('disabled', true).text(__('Generando DXF…'));
 		try {
-			const resp = await fetch(url, { headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token } });
+			// cache:'no-store' → cada generación empieza de cero, sin respuesta cacheada.
+			const resp = await fetch(url, {
+				cache: 'no-store',
+				headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token },
+			});
 			if (!resp.ok) throw new Error('HTTP ' + resp.status);
 			const blob = await resp.blob();
-			await this.save_blob(blob, filename);
+			this.auto_download(blob, filename);   // paso 4: descarga automática
+			frappe.show_alert({ message: __('DXF descargado'), indicator: 'green' });
 		} catch (e) {
 			err.text(__('Error al descargar el DXF. Reintentá.')).removeClass('hidden');
 		} finally {
@@ -318,31 +323,16 @@ class PlegadosComplejos {
 		}
 	}
 
-	// Guarda un blob YA generado (sin re-pegarle al endpoint).
-	async save_blob(blob, filename) {
-		if (window.showSaveFilePicker) {
-			try {
-				const handle = await window.showSaveFilePicker({
-					suggestedName: filename,
-					types: [{ description: 'DXF', accept: { 'application/dxf': ['.dxf'] } }],
-				});
-				const writable = await handle.createWritable();
-				await writable.write(blob);
-				await writable.close();
-				frappe.show_alert({ message: __('DXF guardado'), indicator: 'green' });
-				return;
-			} catch (e) {
-				if (e && e.name === 'AbortError') return; // usuario canceló
-				// caer al fallback
-			}
-		}
-		const objUrl = URL.createObjectURL(blob);
+	// Descarga automática del blob recién generado (sin diálogo). Revoca el
+	// object-URL anterior — no queda ningún DXF previo retenido en memoria.
+	auto_download(blob, filename) {
+		if (this._lastObjUrl) URL.revokeObjectURL(this._lastObjUrl);
+		this._lastObjUrl = URL.createObjectURL(blob);
 		const a = document.createElement('a');
-		a.href = objUrl;
+		a.href = this._lastObjUrl;
 		a.download = filename;
 		document.body.appendChild(a);
 		a.click();
 		a.remove();
-		setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
 	}
 }

@@ -467,7 +467,7 @@ class PanelDecorativo {
 	}
 
 	// ------------------------------------------------------------------
-	// DXF — opción B: URL binaria directa + showSaveFilePicker
+	// DXF — POST con todos los lotes en el body, descarga automática del blob
 	// ------------------------------------------------------------------
 
 	async descargar_dxf() {
@@ -491,14 +491,18 @@ class PanelDecorativo {
 		const orig = btn.text();
 		btn.prop('disabled', true).text(__('Generando DXF…'));
 		try {
+			// cache:'no-store' → cada generación pega al backend y empieza de cero;
+			// nunca sirve una respuesta previa cacheada.
 			const resp = await fetch('/api/method/sistema_industrial.api.paneles.descargar_dxf', {
 				method: 'POST',
+				cache: 'no-store',
 				headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token },
 				body: body,
 			});
 			if (!resp.ok) throw new Error('HTTP ' + resp.status);
-			const blob = await resp.blob();   // generación completa antes de guardar
-			await this.save_blob(blob, filename);
+			const blob = await resp.blob();   // generación completa antes de descargar
+			this.auto_download(blob, filename);   // paso 4: arranca la descarga sola
+			frappe.show_alert({ message: __('DXF descargado'), indicator: 'green' });
 		} catch (e) {
 			frappe.show_alert({ message: __('Error al descargar el DXF. Reintentá.'), indicator: 'red' });
 		} finally {
@@ -506,33 +510,18 @@ class PanelDecorativo {
 		}
 	}
 
-	// Guarda un blob YA generado (sin re-pegarle al endpoint): showSaveFilePicker
-	// donde exista, fallback a <a download> sobre una object-URL local.
-	async save_blob(blob, filename) {
-		if (window.showSaveFilePicker) {
-			try {
-				const handle = await window.showSaveFilePicker({
-					suggestedName: filename,
-					types: [{ description: 'DXF', accept: { 'application/dxf': ['.dxf'] } }],
-				});
-				const writable = await handle.createWritable();
-				await writable.write(blob);
-				await writable.close();
-				frappe.show_alert({ message: __('DXF guardado'), indicator: 'green' });
-				return;
-			} catch (e) {
-				if (e && e.name === 'AbortError') return; // usuario canceló el diálogo
-				// caer al fallback
-			}
-		}
-		const objUrl = URL.createObjectURL(blob);
+	// Descarga automática del blob recién generado (sin diálogo "dónde guardar").
+	// Cada llamada crea un object-URL nuevo y revoca el anterior — no queda ningún
+	// DXF previo retenido en memoria.
+	auto_download(blob, filename) {
+		if (this._lastObjUrl) URL.revokeObjectURL(this._lastObjUrl);
+		this._lastObjUrl = URL.createObjectURL(blob);
 		const a = document.createElement('a');
-		a.href = objUrl;
+		a.href = this._lastObjUrl;
 		a.download = filename;
 		document.body.appendChild(a);
 		a.click();
 		a.remove();
-		setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
 	}
 
 	// ------------------------------------------------------------------
