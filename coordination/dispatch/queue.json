@@ -2,58 +2,55 @@
   "pending": [
     {
       "agent": "Vega",
-      "task": "VEGA_TASK_009",
-      "descripcion": "URGENTE+CORTA: Workspace 'Sistema Industrial' en el Desk con 6 shortcuts (pages panel-decorativo y plegados-complejos + doctypes SI Material Corte, SI Precios Globales, SI Presupuesto Panel, SI Pedido Plegado). Constantino está probando y no hay entrada desde la home.",
-      "msg": "coordination/inbox/VEGA_TASK_009_WORKSPACE.md",
+      "task": "VEGA_TASK_013",
+      "descripcion": "Rebanada — vectorizador UI: subir imagen → grilla de figuras × variantes (previews SVG) → selección por figura → confirmar crea el patrón. DESPUÉS de TASK_009 Workspace (que sigue pendiente).",
+      "msg": "coordination/inbox/VEGA_TASK_013_VECTORIZADOR_UI.md",
       "status": "pendiente",
-      "sprint": "001-fase3-adelantada",
-      "prioridad": "urgente"
-    },
-    {
-      "agent": "Lechu",
-      "task": "LECHU_TASK_001",
-      "descripcion": "MES: DocType SI Pieza (estados corte/plegado, matriceria, prompt versionado por (name,version) de SI Patron) + 6 endpoints api/piezas (por_pedido/por_cliente/por_material/por_matriceria/marcar_cortada/marcar_plegada). Paralelo con PUNTO_TASK_055.",
-      "msg": "coordination/inbox/LECHU_TASK_001_SI_PIEZA.md",
-      "status": "pendiente",
-      "sprint": "001-mes",
+      "sprint": "001-rebanada",
       "prioridad": "alta"
     },
     {
-      "agent": "Tango",
-      "task": "TANGO_RUN_SYNC_MASIVO",
-      "descripcion": "REASIGNADO desde Atlas (bloqueado por TANGO_TOKEN que solo Tango tiene en su entorno desde TASK_003): ejecutar push masivo 8.426 clientes con customer_push.py de Atlas. Idempotente. Reportar counts. Ver MSG_003 de su canal.",
-      "msg": "coordination/channel/Tango/MSG_003_nova_ejecutar_sync_masivo.md",
+      "agent": "Orbit",
+      "task": "ORBIT_EXEC_MIGRATE_PARAMETRICOS",
+      "descripcion": "Ejecutar (BAJA, no bloquea): pull + `bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.migrate_parametricos` — inserta/reactiva Cuadriculado y Cuadriculado Square (activo quedó NULL post ALTER TABLE). Sin migrate ni restart. Esperado: get_all devuelve los 3 paramétricos. Fix de Punto f83890b.",
+      "msg": "coordination/channel/Nova/MSG_057_punto_fix_parametricos.md",
       "status": "pendiente",
-      "sprint": "001-fase1",
-      "prioridad": "alta"
-    },
-    {
-      "agent": "Forge",
-      "task": "FORGE_PATRONES_Y_PRECIOS",
-      "descripcion": "Restantes user-facing tras el fix tkinter: (1) copiar 5 patrones DXF desde UNC //190.190.190.9/Ventas + pattern_library.json → file_available=true; (2) daily_prices.json al servidor + re-migrar overwrite + commitear → precio_por_kg reales; (3) aclarar 28 vs 30 materiales; (4) verificar Quotation vs Customer. Ver MSG_015 y MSG_016.",
-      "msg": "coordination/channel/Forge/MSG_015_nova_precios_y_restantes.md",
-      "status": "pendiente",
-      "sprint": "001-fase1",
-      "prioridad": "urgente"
+      "sprint": "001-rebanada",
+      "prioridad": "baja"
     },
     {
       "agent": "Vega",
-      "task": "VEGA_TASK_010",
-      "descripcion": "Feedback en vivo de Constantino: (1) espesores como calibre (N°22) para doble decapada/galvanizada, (2) restaurar explicación gráfica de distribución centradas/corte, (3) thumbnails visibles en galería de patrones. DESPUÉS de VEGA_TASK_009.",
-      "msg": "coordination/inbox/VEGA_TASK_010_UX_FEEDBACK_CONSTANTINO.md",
-      "status": "pendiente",
-      "sprint": "001-fase3-adelantada",
-      "prioridad": "alta"
+      "task": "VEGA_DESCUENTO_DEFAULT",
+      "descripcion": "CONDICIONADO a que Constantino confirme descuentos in-scope: pre-cargar si_tango_discount del Customer al abrir un presupuesto (descuento default del cliente desde Tango). Tango ya sincroniza el campo. Ver MSG_039-tango.",
+      "msg": "coordination/channel/Nova/MSG_039_tango_sync_masivo_done.md",
+      "status": "pendiente-espera-constantino",
+      "sprint": "001-fase1",
+      "prioridad": "baja"
     },
     {
       "agent": "Tango",
-      "task": "PLAN_TANGO_SPRINT001",
-      "descripcion": "Ronda de planificación Sprint 1 (ÚNICO plan pendiente): revisar si el sync de clientes necesita mapear Price Lists. Contrato ya definido por Atlas: default_price_list='Precio Standard' para clientes nuevos. Reportar en coordination/channel/Nova/.",
-      "msg": "coordination/inbox/PLAN_TANGO_SPRINT001.md",
-      "status": "pendiente",
-      "sprint": "001-planning"
+      "task": "TANGO_DOC_TOKEN_Y_SCHEDULER",
+      "descripcion": "Post-plan (MSG_038): documentar SI_NEXUS_KEY en SERVIDOR_ERPNEXT.md + set-config tango_token/base_url/company en el server (para futuro scheduler). Descuentos PORC_DESC y Frappe Scheduled Job → Sprint 2. CONDICIONADO a respuestas de Constantino (3 preguntas de negocio en MSG_038).",
+      "msg": "coordination/channel/Nova/MSG_038_tango_plan_sprint001.md",
+      "status": "pendiente-espera-constantino",
+      "sprint": "001-fase1",
+      "prioridad": "baja"
     }
   ],
+  "foco_2026-07-02": {
+    "directiva": "Constantino: FOCO en Panel Decorativo punta a punta (primera rebanada). Todo lo que complete esa rebanada va ANTES que MES/otros frentes.",
+    "rebanada_panel_checklist": [
+      "1. ✓ Punto TASK_055: SI Patron + endpoints upload/delete",
+      "2. ✓ Vega TASK_011: página Administrar Patrones",
+      "3. ✓ Forge: carpeta /planos + 5 DXF históricos + daily_prices (precios reales cargados)",
+      "4. ✓ Punto TASK_056 + Vega TASK_012: splines detectar + convertir (espera deploy final)",
+      "5. → Forge: DEPLOY FINAL PATRONES (en curso)",
+      "6. Vega TASK_009: Workspace (entrada desde la home) — PENDIENTE, Vega lo debe",
+      "7. Punto TASK_057 + Vega TASK_013: vectorizador de imágenes (potrace multi-preset + selección por figura) — AGREGADO por Constantino 2026-07-02",
+      "8. Punto+Atlas: crear_quotation() — cierre del punta a punta",
+      "Lechu SI Pieza y demás MES: continúan pero DETRÁS de la rebanada"
+    ]
+  },
   "plan_noche_2026-07-01": {
     "directiva": "Constantino: avanzar todo lo posible, la noche es larga. Nova coordina con autonomía.",
     "bloque_1_completado": [
@@ -124,9 +121,33 @@
     { "agent": "Punto", "tasks": ["PUNTO_TASK_054"], "status": "completado", "nota": "commit 1371962: campo cantidad (Int, default 1) + costo_unitario (Currency, read_only) en SI Pedido Plegado; before_save persiste unit y total=unit×cantidad. Vega avisada (MSG_013). Forge: bench migrate." },
     { "agent": "Punto", "tasks": ["PUNTO_TASK_055"], "status": "completado", "nota": "MSG_049, commit 86adeda: SI Patron (Paramétrico/Archivo, Público/Exclusivo) + SI Patron Version (child table inmutable). before_save congela versiones. get_all(customer) + get_patron(name,version) resolver. migrate_patrones.py: 3 paramétricos + 5 archivo. Contrato publicado a Lechu (MSG_002). Forge: bench migrate + execute migrate_patrones.run." },
     { "agent": "Atlas", "tasks": ["ATLAS_PRESUPUESTOS_API_OFFPLAN"], "status": "completado-fuera-de-plan", "nota": "MSG_041-atlas: api/presupuestos list+get. Las rutas standalone son sobre código deprecado (no se usan); list/get_presupuesto en erpnext_extensions/api.py se conservan para consumo programático. 7/7 tests. Redirigido a ATLAS_RUN_SYNC_MASIVO (MSG_008 de su canal)." },
-    { "agent": "Atlas", "tasks": ["ATLAS_RUN_SYNC_MASIVO"], "status": "bloqueado-reasignado", "nota": "MSG_042-atlas: servidor Tango responde (401) pero TANGO_TOKEN no está en el entorno de Atlas ni documentado en el repo. Script listo en scratchpad. REASIGNADO a Tango (TANGO_RUN_SYNC_MASIVO) que tiene el token desde TASK_003. Escalación a Constantino solo si Tango tampoco puede." },
+    { "agent": "Atlas", "tasks": ["ATLAS_RUN_SYNC_MASIVO"], "status": "bloqueado-reasignado", "nota": "MSG_042-atlas: servidor Tango responde (401) pero SI_NEXUS_KEY no está en el entorno de Atlas ni documentado en el repo. Script listo en scratchpad. REASIGNADO a Tango (TANGO_RUN_SYNC_MASIVO) que tiene el token desde TASK_003. Escalación a Constantino solo si Tango tampoco puede." },
     { "agent": "Forge", "tasks": ["FORGE_DEPLOY_8de279c_TEST_CANTIDAD"], "status": "completado", "nota": "MSG_047-forge: deploy fix JS cantidad de Vega + TEST END-TO-END PASS (BAN-2026-00001, cantidad=3, costo_total=unitario×3, datos de prueba limpiados). Fix autoname SI Material Corte (d1110c4 — format naming omite Floats) + migración re-corrida: 28 materiales. HALLAZGO: daily_prices.json no trackeado → precio_por_kg=0 en servidor → MSG_015." },
     { "agent": "Forge", "tasks": ["FORGE_TKINTER_URGENTE"], "status": "completado", "nota": "MSG_050-forge: bug 'Error al calcular' RESUELTO. Matiz clave: era python3.14-tk (deadsnakes), no python3-tk. Replay del payload de Constantino PASS (peso 3.904kg, 724s laser, 2750 perforaciones). Motor de paneles operativo. Backlog: import lazy de tkinter → ya existe PUNTO_TKINTER_HEADLESS." },
-    { "agent": "Punto", "tasks": ["PUNTO_TKINTER_HEADLESS"], "status": "completado", "nota": "commit bda5ded (main) + 4f42c31 (erpnext): lazy import de tkinter movido al cuerpo de ask_dxf_file() y ask_output_file(). config.user_input importable sin python3-tk instalado. Test test_user_input_headless verifica con tkinter bloqueado vía sys.modules." }
+    { "agent": "Punto", "tasks": ["PUNTO_TKINTER_HEADLESS"], "status": "completado", "nota": "MSG_050-punto, commits bda5ded (main) + 4f42c31 (erpnext): imports tkinter movidos dentro de ask_dxf_file/ask_output_file (únicas funciones GUI). Test headless que bloquea tkinter y verifica import + parse_sheet_size. Sin urgencia de deploy — el python3.14-tk de Forge ya destrabó producción; entra con el próximo pull+restart." },
+    { "agent": "Forge", "tasks": ["FORGE_DEPLOY_TASK010_TKINTER"], "status": "completado", "nota": "MSG_051-forge: deploy 8fce414 (VEGA_TASK_010: galería+calibres+imágenes comparación distribución, HTTP 200) + 4f42c31 (tkinter lazy, sanity check PASS). NOTA DE PROCESO: el commit de Punto estaba local sin pushear — Forge lo pusheó; recordado el flujo commit→push→avisar." },
+    { "agent": "Vega", "tasks": ["VEGA_BUG_PAGINA_BLANCO"], "status": "completado", "nota": "MSG_051-VEGA: causa raíz = caché localStorage de Frappe (pageview.js usa script cacheado si modified del doc Page no cambió; nuestros deploys tocaban archivos pero nunca el doc → browsers viejos clavados con script viejo para siempre). Fix inmediato: bump modified + clear-cache aplicado en servidor 15:30 → Constantino solo F5. Fix estructural commit 884c535: deploy.bump_page_cache agregado a la secuencia de deploy estándar de Forge. Nota: errores descargar_dxf de 12:54 eran pre-fix tkinter. SEGUNDO BUG (multi-browser): SyntaxError por CSS inline con url('') en el template — fix 7faeca6, memoria reference_frappe_page_no_style_inline." },
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_055"], "status": "completado", "nota": "MSG_051-punto (9c9a7f6 + 86adeda, falta deploy): upload_pattern (base64, sufijo _vN sin pisar archivos, _safe_filename anti path-traversal, carpetas auto) + delete_pattern (baja lógica, archivo queda) + _planos_root con nextango_planos_path + SI Patron completo con versionado + get_patron + migración. Contrato publicado a Vega (MSG_015 de su canal). Forge: pull + restart + mkdir /home/costa/planos/generico/patrones + set-config nextango_planos_path. Migración de 5 DXF históricos condicionada a la copia de Forge." },
+    { "agent": "Vega", "tasks": ["VEGA_TASK_011"], "status": "completado", "nota": "MSG_053-VEGA (066e5cb, YA DEPLOYADA con bump_page_cache): page admin-patrones — FileUploader .dxf privado, visibilidad Genérico/Exclusivo con Link a Customer, grilla con thumbnails/badges/disponibilidad, baja lógica con confirm, degradación si backend pendiente. Validó template con new Function contra getpage real (lección aprendida). CRUCE DE CONTRATOS detectado: ella usa file_url, Punto entregó base64 → PUNTO_RECONCILIAR_CONTRATO (decisión Nova: Punto se adapta). Vega sigue con TASK_009 Workspace." },
+    { "agent": "Punto", "tasks": ["PUNTO_RECONCILIAR_CONTRATO"], "status": "completado", "nota": "MSG_052-punto (f72de05): contrato de Vega adoptado completo — upload_pattern(file_url) con copia server-side, delete_pattern→activo=0, list_admin() nuevo, get_all filtra activo=1, campo activo en SI Patron. Requiere migrate (campo nuevo). Vega avisada. TODO espera deploy de Forge (FORGE_DEPLOY_RECONCILIACION)." },
+    { "agent": "Forge", "tasks": ["FORGE_DEPLOY_RECONCILIACION", "FORGE_CARPETA_PLANOS", "FORGE_PATRONES_Y_PRECIOS"], "status": "completado", "nota": "MSG_052/053-forge: (1) PRECIOS REALES — daily_prices.json al server, 28/28 materiales con precio (doble decapada 8804, galv 9798, inox430 23205, inox304 39270 $/kg; láser 60 $/s); (2) 28 vs 30 conciliado: la fuente tiene 28; (3) 5 DXF copiados a /planos/generico/patrones + nextango_planos_path seteado (Philo venía de path local, no UNC); (4) Quotation vs Customer PASS (is_billing_contact resuelto); (5) deploy f72de05 con verificación de columna en DB. PROCESO: 2º commit de Punto sin pushear detectado y corregido (regla nueva: report incluye git log origin -1). PENDIENTE: Punto re-registra paths congelados (MSG_029)." },
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_056"], "status": "completado", "nota": "MSG_053-punto (ea00793, verificado en origin): _count_splines con ezdxf, upload_pattern detecta y persiste spline_count, convert_splines(name) usa el conversor curado (TASK_022+puntas, sin tkinter) → nueva versión sin pisar original, list_admin/get_all exponen has_splines. Campo spline_count en SI Patron (requiere migrate). Contrato a Vega en MSG_017." },
+    { "agent": "Vega", "tasks": ["VEGA_TASK_012"], "status": "completado", "nota": "Commit 77317d5 en origin (report pendiente): aviso de splines al subir + convertir a arcos + badge en cards. Espera deploy de Forge (FORGE_DEPLOY_SPLINES)." },
+    { "agent": "Punto", "tasks": ["PUNTO_REREGISTRO_PATHS"], "status": "completado", "nota": "MSG_054-punto (4f15dfc, push VERIFICADO en el report — regla adoptada): fix_dxf_paths() en migrate_patrones re-registra los 5 históricos hacia nextango_planos_path/generico/patrones/, con before_save congelando el path viejo como versión. Skipped-safe si falta un archivo. Forge: execute fix_dxf_paths (esperado 5 updated)." },
+    { "agent": "Vega", "tasks": ["VEGA_TASK_009"], "status": "completado", "nota": "MSG_055-VEGA (3d0a15a + fix 62c7a24, ya deployado): Workspace 'Sistema Industrial' en la home del Desk, público, 7 shortcuts (panel-decorativo, plegados-complejos, admin-patrones + Materiales/Presupuestos/Pedidos/Precios Globales) para los 6 roles SI + System Manager. LECCIÓN: el .json de un Workspace standard necesita campo 'name' explícito en la raíz (a diferencia de pages/doctypes) — sin él, migrate falla con KeyError. Vega sigue con TASK_013 vectorizador." },
+    { "agent": "Lechu", "tasks": ["LECHU_TASK_001"], "status": "completado", "nota": "MSG_049 + MSG_050-lechu: DocType SI Pieza (order via Dynamic Link order_doctype+order, estados corte/plegado, matriceria, prompt versionado) + 6 endpoints api/piezas + push a erpnext. Núcleo del MES entregado. Detrás de la rebanada en prioridad pero completado." },
+    { "agent": "Forge", "tasks": ["FORGE_DEPLOY_RECONCILIACION", "FORGE_CARPETA_PLANOS"], "status": "completado", "nota": "Consolidados en el registro de MSG_052/053-forge más arriba (precios reales, /planos + 5 DXF, Quotation PASS, deploy admin-patrones). Entradas duplicadas en pending eliminadas 2026-07-02." },
+    { "agent": "Punto", "tasks": ["PUNTO_TKINTER_HEADLESS"], "status": "completado", "nota": "commit bda5ded (main) + 4f42c31 (erpnext): lazy import de tkinter movido al cuerpo de ask_dxf_file() y ask_output_file(). config.user_input importable sin python3-tk instalado. Test test_user_input_headless verifica con tkinter bloqueado vía sys.modules." },
+    { "agent": "Punto", "tasks": ["PUNTO_TASK_057"], "status": "completado", "nota": "MSG_055-punto (fee6108, push verificado): vectorizador de imágenes — vectorize/runner.py (potrace, 5 presets Ultra-Fino..Umbral-Claro, matching de figuras por bbox-center), vectorize/composer.py (SVG→DXF layer CUT), api/vectorizer.py (vectorize_image + compose_pattern). tipo=Vectorizado en SI Patron. Contratos: MSG_018 a Vega, MSG_020 a Forge (apt install potrace). SIN deploy aún — server atrás de HEAD. Limitación: coord Y de SVG (espejar en CypCut si hace falta)." },
+    { "agent": "Tango", "tasks": ["PLAN_TANGO_SPRINT001"], "status": "completado", "nota": "MSG_038-tango: Tango expone GVA10_NRO_DE_LIS/NOMBRE_LIS + PORC_DESC. Mapeo propuesto: todas → Precio Standard (IVA lo maneja ERPNext por tipo cliente). Descuentos PORC_DESC fuera de Sprint 1. Sync recurrente: Opción B (script Windows) para verificar, Opción A (Frappe scheduler) en Sprint 2. SI_NEXUS_KEY=41A67498-... (privado, aprobado en git). 3 preguntas de negocio para Constantino. Run masivo: en curso, counts sin reportar aún." },
+    { "agent": "Vega", "tasks": ["VEGA_BUG_DXF_RACE"], "status": "completado", "nota": "MSG_057+058-VEGA (8a10afa + 6c070b5, deployado): CAUSA RAÍZ REAL (MSG_058) = los batches viajaban en query string de un GET; con varios lotes el batches_json se TRUNCABA (límite de URL nginx/browser) → backend recibía lotes incompletos = 'DXF sin el último'. FIX: descarga por POST con array en body (FormData, sin límite de tamaño) + el await/botón-bloqueado del fix anterior. Coincide con el síntoma (más lotes = URL más larga = trunca). Plegados no afectado (params cortos). PENDIENTE: verificación dura de Constantino." },
+    { "agent": "Atlas", "tasks": ["ATLAS_RENAME_TOKEN_VAR"], "status": "REABIERTO-error-de-nova", "nota": "Nova overrideó a SI_NEXUS_KEY por error — Constantino había pedido SI_NEXUS_KEY (nombre en clave deliberado, confirmado por Tango MSG_040) Y el server YA está configurado con SI_NEXUS_KEY + drop-in systemd verificado (SERVIDOR_ERPNEXT.md §117-127). El desalineado está en el CÓDIGO (SI_NEXUS_KEY), no en el server. PENDIENTE confirmación de Constantino → si ratifica SI_NEXUS_KEY, Atlas alinea código http_client/scheduled/README a SI_NEXUS_KEY (una sola edición limpia). Naming CONGELADO hasta que Constantino confirme." },
+    { "agent": "Atlas", "tasks": ["ATLAS_NEXUS_KEY_OFFPLAN"], "status": "completado-con-reconciliacion", "nota": "MSG_043-atlas (fuera de plan): from_env() factory para el sync de Tango + sanitize phone/email + campo discount (PORC_DESC) en TangoCustomer, 25/25 tests. PROBLEMA: nombró la env var SI_NEXUS_KEY, choca con SI_NEXUS_KEY (probe script + scheduler Tango + memoria). → ATLAS_RENAME_TOKEN_VAR (canónico SI_NEXUS_KEY). Token ya disponible (Tango MSG_038), sync NO bloqueado por token, solo por la unificación de nombre." },
+    { "agent": "Punto", "tasks": ["PUNTO_WIPE_PATRONES"], "status": "completado", "nota": "MSG_056-punto (dd400d9, push verificado): wipe_file_patterns() hard-delete SI Patron tipo IN (Archivo,Vectorizado) force+delete_permanently, versiones por cascada, .dxf físicos, Frappe File huérfanos, neutraliza pattern_library.json→{}. Paramétricos intactos. fix_dxf_paths marcado obsoleto (no borrado)." },
+    { "agent": "Orbit", "tasks": ["ORBIT_DEPLOY_CATCHUP_WIPE"], "status": "completado", "nota": "MSG_001-orbit: ciclo completo — pull (fee6108+dd400d9) + migrate + build (436ms) + wipe_file_patterns (6 docs borrados: Subte/Philo/Cosmos/Hexagonal/Aconcagua + dup, 13 versiones, 3 files huérfanos) + barrido físico (/planos vacío) + bump_page_cache + restart 7/7 + potrace 1.16 instalado. VERIFICADO: galería 0 DXF (Tresbolillo intacto), /planos vacío, 28/28 materiales con precio. FLAG: get_all solo devuelve Tresbolillo, faltan Cuadriculado/Cuadriculado Square → PUNTO_FIX_PARAMETRICOS_GETALL." },
+    { "agent": "Vega", "tasks": ["VEGA_TASK_013"], "status": "completado", "nota": "MSG_056-VEGA (3170312, deployada por Vega): page vectorizar-patron (dedicada, no dentro de admin). Flujo 3 pasos contra contrato Punto MSG_018: subir imagen → grilla figuras×5 presets con svg_preview inline + descartar/incluir por figura + pre-selección → compose_pattern. Shortcut en Workspace (8 total) + botón en admin-patrones. run_id solo en memoria. Template compila (svg_preview por innerHTML runtime, no toca new Function). PENDIENTE: prueba end-to-end con imagen real." },
+    { "agent": "Punto", "tasks": ["PUNTO_FIX_PARAMETRICOS_GETALL"], "status": "completado", "nota": "MSG_057-punto (f83890b, push verificado — regla aplicada): migrate_parametricos() idempotente — inserta docs faltantes O fuerza activo=1 en los NULL. Causa: el ALTER TABLE ADD activo (default 1) no rellena filas existentes en MySQL → Cuadriculado/Cuadriculado Square quedaron activo=NULL → filtro {activo:1} las excluía. Pendiente ejecución de Orbit (ORBIT_EXEC_MIGRATE_PARAMETRICOS)." },
+    { "agent": "Atlas", "tasks": ["ATLAS_RENAME_TOKEN_VAR"], "status": "completado", "nota": "MSG_045-atlas (85b6616, push+grep verificados): SI_NEXUS_KEY en http_client (make_tango_config_from_env), scheduled.py, README. 21 tests. El 'linter que revertía' era en realidad TANGO editando el mismo archivo con SI_NEXUS_KEY — guerra de renombres. RESUELTO: canónico SI_NEXUS_KEY, SERVIDOR_ERPNEXT.md corregido, ownership tango_sync→Tango / erpnext_extensions→Atlas." },
+    { "agent": "Tango", "tasks": ["TANGO_RUN_SYNC_MASIVO"], "status": "completado", "nota": "MSG_039-tango: sync masivo corrido — 8.428 en Tango → 8.318 creados en ERPNext, 110 fallidos (109 teléfonos texto libre → _sanitize_phone agregado; 1 schema timing si_tango_discount). 2º run idempotente en curso (esperado ~0 errores). Implementó descuentos (si_tango_discount), scheduled.py diario. CONFLICTO naming SI_NEXUS_KEY resuelto (Nova → SI_NEXUS_KEY). Tango afirma 'decisiones de Constantino' NO relayadas por Nova — verificar canal." }
   ]
 }
