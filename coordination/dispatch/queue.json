@@ -1,38 +1,117 @@
 {
   "pending": [
     {
-      "agent": "Vega",
-      "task": "VEGA_TASK_013",
-      "descripcion": "Rebanada — vectorizador UI: subir imagen → grilla de figuras × variantes (previews SVG) → selección por figura → confirmar crea el patrón. DESPUÉS de TASK_009 Workspace (que sigue pendiente).",
-      "msg": "coordination/inbox/VEGA_TASK_013_VECTORIZADOR_UI.md",
+      "agent": "Nova",
+      "session_id": "local_c9d7e577-8e15-45d7-bc7c-1184aa2b0428",
+      "message": "Gemu: motor entregado (TASK_001, kerf=2mm, 14 tests). ACK de tu mensaje en MSG_004. Esperando verde tuyo para el scope de la página. Ver coordination/channel/Gemu/MSG_004_gemu_ack_nova.md",
+      "queued_at": "2026-07-03T01:30:00"
+    },
+    {
+      "agent": "Punto",
+      "task": "PUNTO_BUG_NO_FIGURAS",
+      "descripcion": "BUG vectorizador: 'No se detectaron figuras' en imagen de alto contraste (retícula navy/blanco, JPG b10be2d0). No es contraste — es detección. Hipótesis: el filtro de figuras discretas rechaza retículas conectadas (una sola forma continua con huecos). Fix: si potrace trazó geometría, exponerla (no devolver cero); idealmente resolver COMO PARTE de la reforma VECTORIZADOR_TILE (el visor SVG muestra todo el trazado, el usuario selecciona). Reproducir con la imagen real. Ver MSG_022 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_022_nova_bug_no_figuras.md",
       "status": "pendiente",
       "sprint": "001-rebanada",
       "prioridad": "alta"
     },
     {
+      "agent": "Punto",
+      "task": "PUNTO_THUMBNAIL_AUTO",
+      "descripcion": "subte (y todo patrón subido/vectorizado) sin thumbnail — solo los 5 migrados traían PNG. Fix: generar thumbnail del DXF al crear el patrón (upload_pattern + compose_pattern) → campo thumbnail/thumbnail_url. Backfill de los activos sin thumbnail (ojo case-sensitivity subte vs Subte.png en Linux). get_all resuelve thumbnail_url correcto. Orbit ejecuta backfill. Ver MSG_020 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_020_nova_thumbnail_auto.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "media"
+    },
+    {
+      "agent": "Punto",
+      "task": "PUNTO_VECTORIZADOR_TILE",
+      "descripcion": "APROBADO por Constantino (VECTORIZADOR_TILE_SELECTION.md): P1 fix bug previews svg invisibles + vectorize_image expone entity IDs estables + compose_pattern(run_id,preset,selected_entity_ids,escala,step_x_mm,step_y_mm,...) aplica escala px→mm y emite DXF solo de lo seleccionado. Publicar contrato a Vega. Ver MSG_019 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_019_nova_vectorizador_tile.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_VECTORIZADOR_TILE",
+      "descripcion": "APROBADO por Constantino (VECTORIZADOR_TILE_SELECTION.md): P1 fix previews + visor SVG interactivo (selección clic+recuadro de entidades del tile, calibración por líneas H/V con UNA sola medida=vertical → escala uniforme → step_x/step_y) + Ctrl+V paste del portapapeles. Contrato entity-IDs lo publica Punto. Ver MSG_016 de su canal.",
+      "msg": "coordination/channel/Vega/MSG_016_nova_vectorizador_tile.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_LIMPIAR_PANEL_UI",
+      "descripcion": "Dos limpiezas en panel-decorativo (mismo deploy): (1) sacar el modo 'Sin perforar' del selector (nadie lo pidió, probable builtin JS; si fuera doc → Punto); (2) sacar los inputs PASO X MM / PASO Y MM — el paso es propiedad del patrón (se hereda, se manda transparente desde el dato de get_all, no desde inputs). Coordinar con Punto solo si el backend exige step en el request. Ver MSG_015 + MSG_017 de su canal.",
+      "msg": "coordination/channel/Vega/MSG_017_nova_borrar_paso_xy.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "media"
+    },
+    {
+      "agent": "Punto",
+      "task": "PUNTO_BAJA_DEFINITIVA_INACTIVOS",
+      "descripcion": "hard_delete_inactivos() en migrate_patrones: hard-delete de los SI Patron con activo=0 (los 2 que Constantino dio de baja provisoria) — doc+versiones+.dxf+File huérfano. NO tocar activo=1 ni paramétricos. Reportar nombres borrados para confirmación. Orbit ejecuta. Ver MSG_018 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_018_nova_baja_definitiva.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "media"
+    },
+    {
+      "agent": "Punto",
+      "task": "PUNTO_BORRAR_CUADRICULADOS",
+      "descripcion": "Hard-delete por nombre de los SI Patron 'Cuadriculado' y 'Cuadriculado Square' (activos, sin usar) + SACARLOS de _PARAMETRICOS en migrate_patrones para que no se re-seedeen. NO tocar los builtin 'Cuadriculado redondo'/'Cuadriculado cuadrado'. Reportar nombres. Orbit ejecuta. Reemplaza/obsoleta ORBIT_EXEC_MIGRATE_PARAMETRICOS (que los reactivaba). Ver MSG_021 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_021_nova_borrar_cuadriculados.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "media"
+    },
+    {
+      "agent": "Tango",
+      "task": "TANGO_INVESTIGAR_ARTICULOS",
+      "descripcion": "Investigación (previo a implementar, PRERREQUISITO de la página 1DNest de Gemu): endpoint/process de artículos en Tango API (¿STA11 process 87?), campos que trae (código, desc, precio, UoM, familia), confirmar prefijos 01-=perfiles/02-=caños, complicaciones de mapeo a Item ERPNext, estrategia de sync (patrón customer_push). NO implementar hasta aprobación. Reportar a Nova. Instrucción: MSG_004 de su canal.",
+      "msg": "coordination/channel/Tango/MSG_004_nova_investigar_articulos.md",
+      "status": "pendiente",
+      "sprint": "002-corte-barras",
+      "prioridad": "media"
+    },
+    {
+      "agent": "Vega+Cybelec",
+      "task": "MIGRAR_PERFILES_PLEGADOS",
+      "descripcion": "Migrar la página 'perfiles plegados' (pliegues paralelos, separada de plegados_complejos) al app Frappe siguiendo el patrón de panel_decorativo/plegados_complejos. Cybelec (lógica del cálculo) + Vega (frontend). Tarea nueva de Constantino 2026-07-03.",
+      "msg": "coordination/inbox/MIGRAR_PERFILES_PLEGADOS.md",
+      "status": "completado",
+      "nota": "Cybelec commit 2d24ac2 (erpnext): page/perfiles_plegados/ (js/html/css/json) + api/perfiles.py (JSON PL-YYYYMMDD-NNNN) + 5 tests. Vega commit 375ac7e (erpnext): Customer Link + armonización visual + Workspace shortcut. Deployado y verificado. Ver MSG_062_CYBELEC y MSG_062_VEGA en Nova.",
+      "sprint": "001-rebanada",
+      "prioridad": "media"
+    },
+    {
       "agent": "Orbit",
       "task": "ORBIT_EXEC_MIGRATE_PARAMETRICOS",
-      "descripcion": "Ejecutar (BAJA, no bloquea): pull + `bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.migrate_parametricos` — inserta/reactiva Cuadriculado y Cuadriculado Square (activo quedó NULL post ALTER TABLE). Sin migrate ni restart. Esperado: get_all devuelve los 3 paramétricos. Fix de Punto f83890b.",
+      "descripcion": "CANCELADA (2026-07-03): reactivaba Cuadriculado y Cuadriculado Square, que Constantino ahora manda a BORRAR definitivamente (PUNTO_BORRAR_CUADRICULADOS). Ejecutarla resucitaría lo que se borra. NO ejecutar.",
       "msg": "coordination/channel/Nova/MSG_057_punto_fix_parametricos.md",
-      "status": "pendiente",
+      "status": "cancelada",
       "sprint": "001-rebanada",
       "prioridad": "baja"
     },
     {
       "agent": "Vega",
       "task": "VEGA_DESCUENTO_DEFAULT",
-      "descripcion": "CONDICIONADO a que Constantino confirme descuentos in-scope: pre-cargar si_tango_discount del Customer al abrir un presupuesto (descuento default del cliente desde Tango). Tango ya sincroniza el campo. Ver MSG_039-tango.",
+      "descripcion": "CONFIRMADO por Constantino (2026-07-02): pre-cargar si_tango_discount del Customer al abrir un presupuesto (descuento default del cliente desde Tango). Tango ya sincroniza el campo. Ver MSG_039-tango.",
       "msg": "coordination/channel/Nova/MSG_039_tango_sync_masivo_done.md",
-      "status": "pendiente-espera-constantino",
+      "status": "pendiente",
       "sprint": "001-fase1",
-      "prioridad": "baja"
+      "prioridad": "media"
     },
     {
       "agent": "Tango",
       "task": "TANGO_DOC_TOKEN_Y_SCHEDULER",
-      "descripcion": "Post-plan (MSG_038): documentar SI_NEXUS_KEY en SERVIDOR_ERPNEXT.md + set-config tango_token/base_url/company en el server (para futuro scheduler). Descuentos PORC_DESC y Frappe Scheduled Job → Sprint 2. CONDICIONADO a respuestas de Constantino (3 preguntas de negocio en MSG_038).",
+      "descripcion": "CONFIRMADO por Constantino: SI_NEXUS_KEY (nombre final, ya documentado en SERVIDOR_ERPNEXT.md) + sync diario aprobado (scheduled.py). NO tocar http_client (Atlas alinea el código a SI_NEXUS_KEY). Descuentos → in-scope (VEGA_DESCUENTO_DEFAULT). Coordinar naming solo con Atlas.",
       "msg": "coordination/channel/Nova/MSG_038_tango_plan_sprint001.md",
-      "status": "pendiente-espera-constantino",
+      "status": "pendiente",
       "sprint": "001-fase1",
       "prioridad": "baja"
     }
@@ -148,6 +227,7 @@
     { "agent": "Vega", "tasks": ["VEGA_TASK_013"], "status": "completado", "nota": "MSG_056-VEGA (3170312, deployada por Vega): page vectorizar-patron (dedicada, no dentro de admin). Flujo 3 pasos contra contrato Punto MSG_018: subir imagen → grilla figuras×5 presets con svg_preview inline + descartar/incluir por figura + pre-selección → compose_pattern. Shortcut en Workspace (8 total) + botón en admin-patrones. run_id solo en memoria. Template compila (svg_preview por innerHTML runtime, no toca new Function). PENDIENTE: prueba end-to-end con imagen real." },
     { "agent": "Punto", "tasks": ["PUNTO_FIX_PARAMETRICOS_GETALL"], "status": "completado", "nota": "MSG_057-punto (f83890b, push verificado — regla aplicada): migrate_parametricos() idempotente — inserta docs faltantes O fuerza activo=1 en los NULL. Causa: el ALTER TABLE ADD activo (default 1) no rellena filas existentes en MySQL → Cuadriculado/Cuadriculado Square quedaron activo=NULL → filtro {activo:1} las excluía. Pendiente ejecución de Orbit (ORBIT_EXEC_MIGRATE_PARAMETRICOS)." },
     { "agent": "Atlas", "tasks": ["ATLAS_RENAME_TOKEN_VAR"], "status": "completado", "nota": "MSG_045-atlas (85b6616, push+grep verificados): SI_NEXUS_KEY en http_client (make_tango_config_from_env), scheduled.py, README. 21 tests. El 'linter que revertía' era en realidad TANGO editando el mismo archivo con SI_NEXUS_KEY — guerra de renombres. RESUELTO: canónico SI_NEXUS_KEY, SERVIDOR_ERPNEXT.md corregido, ownership tango_sync→Tango / erpnext_extensions→Atlas." },
-    { "agent": "Tango", "tasks": ["TANGO_RUN_SYNC_MASIVO"], "status": "completado", "nota": "MSG_039-tango: sync masivo corrido — 8.428 en Tango → 8.318 creados en ERPNext, 110 fallidos (109 teléfonos texto libre → _sanitize_phone agregado; 1 schema timing si_tango_discount). 2º run idempotente en curso (esperado ~0 errores). Implementó descuentos (si_tango_discount), scheduled.py diario. CONFLICTO naming SI_NEXUS_KEY resuelto (Nova → SI_NEXUS_KEY). Tango afirma 'decisiones de Constantino' NO relayadas por Nova — verificar canal." }
+    { "agent": "Tango", "tasks": ["TANGO_RUN_SYNC_MASIVO"], "status": "completado", "nota": "MSG_039-tango: sync masivo corrido — 8.428 en Tango → 8.318 creados en ERPNext, 110 fallidos (109 teléfonos texto libre → _sanitize_phone agregado; 1 schema timing si_tango_discount). 2º run idempotente en curso (esperado ~0 errores). Implementó descuentos (si_tango_discount), scheduled.py diario. CONFLICTO naming SI_NEXUS_KEY resuelto (Nova → SI_NEXUS_KEY). Tango afirma 'decisiones de Constantino' NO relayadas por Nova — verificar canal." },
+    { "agent": "Gemu", "tasks": ["GEMU_NEST1D_ENGINE"], "status": "completado", "nota": "cutting/nest_1d.py: calculate_plan(bar_len, cuts, kerf_mm=2.0) → CuttingPlanResult. Kerf modelo n-1 cortes internos. 14 tests. 131 total pasando. Pendiente: página Frappe espera Q3+Q4 de Nova." }
   ]
 }

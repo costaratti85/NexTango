@@ -143,12 +143,28 @@ App de 3 pantallas (Datos → Resumen/Secuencia → Operación paso a paso) + mo
 
 ## 6. Otra info importante que no se debe perder
 
-**Mejoras pendientes priorizadas (del manual, aún NO en la app):**
-1. **Corrección de ángulo empírica** (medir ángulo real → ajustar Y). El mayor salto en precisión. ⭐⭐
-2. **Corrección X** global (≈ espesor) + por pliegue. ⭐
-3. Permitir **tipear el ángulo con signo** (−90) para igualar el hábito Cybelec (hoy funciona por signo pero conviene reforzar la UX).
-4. **CY / copiar pliegue** para piezas repetitivas.
-5. Relabel σ a **Kg/mm²** y usar ×9.81 en tonelaje (hoy /9.81 ya está; revisar coef).
+**Mejoras pendientes priorizadas (del manual):**
+1. ~~**Corrección de ángulo empírica**~~ ✅ HECHA 2026-07-01 (ver abajo).
+2. ~~**Corrección X** global + por pliegue~~ ✅ HECHA 2026-07-01 (ver abajo).
+3. Permitir **tipear el ángulo con signo** (−90) para igualar el hábito Cybelec (hoy funciona por signo pero conviene reforzar la UX — falta criterio de Constantino sobre qué mejorar).
+4. ~~**CY / copiar pliegue**~~ ✅ HECHA 2026-07-01 (botón ⧉ por fila).
+5. ~~Relabel σ a **Kg/mm²** y revisar coef~~ ✅ HECHA 2026-07-01 (label kg/mm², conversión ×9.81; la fórmula 1.33·Rm·L·s²/V y el /9.81 a ton ya estaban bien).
+
+**Hecho 2026-07-01 (sesión integrada al equipo, CYBELEC_TASK_001 + pedidos directos):**
+- **Bug de sentido en `machineGeom` corregido**: en pasos con `mx`+`my` combinados, el dibujo animado invertía el giro de un brazo (pliegues "para lados opuestos"). Ahora el ángulo con signo sale de comparar `place()` con `done[bi]` false/true (misma geometría que valida el resto). El resaltado rojo de choque en el dibujo también quedó bien.
+- **Zoom centrado en el pliegue** (TASK_001 Fix 1): vista de Operación por defecto = clip `MACHINE_CLIP=160`mm a cada lado del vértice activo; botón "🔍 Zoom pliegue" (default ON) alterna con vista pieza-completa. Botón "⬇ Bajar punzón" dibuja el punzón a fondo (PMI) en vez de en reposo.
+- **"Guardar DXF como..."** (TASK_001 Fix 2): `showSaveFilePicker` en navegadores modernos, `prompt` como fallback iOS 12. Nombre sugerido: ref del pedido > `partDefaultName` > "pieza_corte".
+- **Corrección de ángulo empírica ⭐⭐**: botón "📐 Plegué y medí el ángulo…" en Operación. Acumulativa (repetir hasta clavar), corrige Y por `penetracion()`, aplica a todos los pliegues del mismo ángulo objetivo, "R" borra, `state.angCorr` viaja con la pieza en la galería (`savePart`/`loadPart`). Decisión: por pieza, NO global por útiles (evita correcciones viejas silenciosas); cambiar si Constantino prefiere lo otro.
+- **Análisis omega 15-15-300-15-15**: la secuencia "patitas primero" choca de verdad (geométrico, ambas orientaciones); "pliegues internos primero" (la automática) sale limpia.
+- **Corrección X global + por pliegue ⭐**: global en modal Calibración (`cal.xg` en `plegado_cal`, offset de máquina); fina con botón "📏 Medí el ala…" en Operación (acumulativa, `state.xCorr` por bendIndex, "R" borra, viaja con la pieza en galería). X final = `Xraw + cal.xg + xCorr[bi]`; el secuenciador/choques/dibujo siguen con la X cruda. `enrich()` ahora expone `Xraw` y `X`.
+- **CY / copiar pliegue**: botón ⧉ por fila en la tabla de medidas, duplica el ala a continuación; si se duplica la última, la original pasa a intermedia con 90°.
+- **σ en kg/mm²**: label cambiado y conversión exacta ×9.81 (antes ×10 como daN).
+- Reportes: `coordination/reports/CYBELEC_TASK_001_REPORT.md` + `coordination/channel/Nova/MSG_040_CYBELEC_task001_done.md`.
+
+**Hecho 2026-07-02 — Port a Frappe (tarea de Constantino):**
+- **Page `perfiles-plegados`** en la rama erpnext (`Nextango-erpnext/`, commit `2d24ac2`): `page/perfiles_plegados/` (json/html/css/js) portada de esta app con script mecánico (ids → prefijo `pp-`, CSS scopeado `#pp-root`, JS envuelto en `on_page_load`). Datos: `SI Material Corte` (`precio_por_kg`, `densidad_kg_m2`) + `SI Precios Globales` (`precio_por_plegado`) via `frappe.call`. Pedidos: `api/perfiles.py` (JSON files `PL-YYYYMMDD-NNNN`, DocType pendiente de definición). Tests: `tests/test_perfiles_pedidos.py`.
+- **REGLA DE SINCRONÍA**: el motor vive acá (`plegado_app/index.html`, main) y se portea a la page Frappe — no editar el motor en la page directamente. El script de porteo quedó en el scratchpad de la sesión 2026-07-02 (re-crear si hace falta: extrae style/body/script, renombra ids, reescribe el bloque de integración).
+- Coordinación: Vega hace armonización visual/navegación del desk (MSG_019 en su canal); deploy en el server pendiente (bench migrate + build).
 
 **Lo que falta para "secuencias óptimas":** implementados los **criterios** documentados, pero afinar los pesos hasta óptimo necesita **casos reales**. **Pedido abierto a Constantino:** que mande **1-2 piezas concretas** que hace seguido (medidas de tramos, ángulos con signo, espesor) **y en qué orden las pliega él / el Cybelec**, para calibrar contra datos reales en vez de adivinar pesos. El caso **sombrero/omega** es el más difícil (canal profundo con pestañas) y puede requerir setup especial.
 
