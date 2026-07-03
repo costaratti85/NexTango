@@ -1,0 +1,177 @@
+<div id="pp-root">
+<!-- ============ PANTALLA 1: DATOS ============ -->
+<div id="pp-setup" class="screen active">
+  <div class="toprow">
+    <h1>Asistente de Plegado</h1>
+    <button class="ghost" id="pp-btnCal" style="flex:0 0 auto;padding:8px 12px;font-size:14px;">⚙︎ Calibración</button>
+  </div>
+
+  <!-- Cabecera de pedido -->
+  <div class="pedido-header">
+    <div class="form-group">
+      <label>Cliente</label>
+      <input type="text" id="pp-ped-cliente" placeholder="Nombre del cliente">
+    </div>
+    <div class="form-group">
+      <label>Referencia / Pieza</label>
+      <input type="text" id="pp-ped-ref" placeholder="ej. Marco ventana 1200x600">
+    </div>
+    <div class="form-group" style="max-width:100px">
+      <label>Cantidad</label>
+      <input type="number" id="pp-ped-cant" value="1" min="1">
+    </div>
+    <div class="form-group">
+      <label>Material</label>
+      <select id="pp-ped-material"><option value="">Cargando...</option></select>
+    </div>
+    <div class="form-group" style="max-width:100px">
+      <label>Espesor mm</label>
+      <select id="pp-ped-espesor" disabled><option value="">—</option></select>
+    </div>
+  </div>
+
+  <h2>Material y útiles</h2>
+  <div class="row">
+    <div class="col" style="flex:1 1 46%;padding:6px 3px;"><label>Punzón (tocá para elegir)</label><button class="toolbtn" id="pp-btnPunchSel" type="button"></button></div>
+    <div class="col" style="flex:1 1 46%;padding:6px 3px;"><label>Matriz (tocá para elegir)</label><button class="toolbtn" id="pp-btnDieSel" type="button"></button></div>
+  </div>
+  <div class="row" id="pp-rotRow" style="display:none;"><div class="col" style="flex:1 1 100%;padding:0 3px 4px;"><button class="secondary" id="pp-btnRotate" type="button" style="font-size:16px;">Girar dado 90° ↻</button></div></div>
+  <div class="row compact">
+    <div class="col"><label>Espesor (mm)</label><input id="pp-s" type="number" step="0.1" value="2"></div>
+    <div class="col"><label>Largo (mm)</label><input id="pp-L" type="number" step="1" value="500"></div>
+    <div class="col"><label>σ (kg/mm²)</label><input id="pp-Rm" type="number" step="1" value="45"></div>
+    <div class="col"><label>V (mm)</label><input id="pp-V" type="number" step="1" value="20"></div>
+    <div class="col"><label>ri (mm)</label><input id="pp-ri" type="number" step="0.1" value="2.4"></div>
+    <div class="col"><label>Retorno (°)</label><input id="pp-sb" type="number" step="0.1" value="1.5"></div>
+  </div>
+
+  <div class="svglabel">Vista de la pieza (corte):</div>
+  <svg id="pp-previewPart" viewBox="0 0 460 190" preserveAspectRatio="xMidYMid meet"></svg>
+  <div class="btnbar" style="margin-top:6px;flex-wrap:wrap;">
+    <button class="ghost" id="pp-btnDxf" type="button" style="flex:1 1 auto;padding:10px 12px;">⤓ Exportar DXF</button>
+    <button class="ghost" id="pp-btnSavePart" type="button" style="flex:1 1 auto;padding:10px 12px;">💾 Guardar</button>
+    <button class="ghost" id="pp-btnGallery" type="button" style="flex:1 1 auto;padding:10px 12px;">📁 Galería</button>
+  </div>
+
+  <h2>Medidas de la pieza</h2>
+  <div class="muted">Escribí cada <b>medida externa</b> y apretá <b>Enter</b> (salta abajo y agrega ala sola, sugiriendo 90°). El <b>signo del ángulo</b> define el sentido del pliegue: <b>−90</b> dobla para el lado contrario que <b>90</b> (la elección de qué lado es positivo es libre, pero constante en toda la pieza).</div>
+  <table id="pp-segTable"><thead>
+    <tr><th>#</th><th>Medida ext. (mm)</th><th>Ángulo ± (°)</th><th></th></tr>
+  </thead><tbody id="pp-segBody"></tbody></table>
+  <div class="btnbar" style="margin-top:6px;"><button class="secondary" id="pp-addSeg">+ Agregar ala</button></div>
+
+  <div class="card" id="pp-devCard" style="margin-top:12px;text-align:center;background:#e6f9f4;border-color:#a3e6dc;">
+    <div class="kbig">Largo a cortar (desarrollo)</div>
+    <div id="pp-devVal" style="font-size:34px;font-weight:800;margin-top:2px;color:#0a8294;">—</div>
+    <div class="hint" id="pp-devSub" style="text-align:center;"></div>
+  </div>
+
+  <div class="btnbar" style="margin-top:16px;"><button id="pp-calc">Calcular secuencia ▸</button></div>
+  <div id="pp-setupMsg"></div>
+  <p class="hint" style="margin-top:18px;">En el iPad: abrí esta página en Safari y tocá Compartir → "Agregar a inicio".</p>
+</div>
+
+<!-- ============ PANTALLA 2: RESUMEN ============ -->
+<div id="pp-result" class="screen">
+  <h1>Plan de plegado</h1>
+  <div class="card" id="pp-resumen"></div>
+  <div class="svglabel">Pieza definida (corte):</div>
+  <svg id="pp-resultPart" viewBox="0 0 460 200" preserveAspectRatio="xMidYMid meet"></svg>
+  <div id="pp-warnings"></div>
+
+  <!-- Panel de presupuesto -->
+  <div class="presup-panel" id="pp-presupPanel">
+    <div class="presup-title">Presupuesto</div>
+    <div class="presup-row"><span class="presup-label">Desarrollo</span><span class="presup-val" id="pp-devel">—</span></div>
+    <div class="presup-row"><span class="presup-label">Material</span><span class="presup-val" id="pp-mat-desc">—</span></div>
+    <div class="presup-row" style="padding-left:16px"><span class="presup-label">&nbsp;</span><span class="presup-val" id="pp-mat-cost">—</span></div>
+    <div class="presup-row"><span class="presup-label">Plegado (<span id="pp-nbends">?</span> pliegues)</span><span class="presup-val" id="pp-pleg-desc">—</span></div>
+    <div class="presup-row" style="padding-left:16px"><span class="presup-label">&nbsp;</span><span class="presup-val" id="pp-pleg-cost">—</span></div>
+    <div class="presup-total">
+      <span>TOTAL (<span id="pp-cant">1</span> ud.)</span>
+      <span class="presup-total-val" id="pp-total">—</span>
+    </div>
+    <div class="presup-actions">
+      <button class="btn-save-pedido" id="pp-btnSavePedido" type="button">💾 Guardar pedido</button>
+      <button class="btn-print-pedido ghost" id="pp-btnPrintPedido" type="button" onclick="window.print()">🖨 Imprimir</button>
+    </div>
+    <div class="presup-status" id="pp-presupStatus"></div>
+  </div>
+
+  <div class="toprow" style="margin-top:14px;"><h2 id="pp-seqTitle" style="margin:0;">Secuencia</h2><button class="ghost" id="pp-btnManual" type="button" style="flex:0 0 auto;padding:9px 14px;font-size:14px;">✏️ Editar a mano</button></div>
+  <div class="hint" id="pp-manualHint" style="display:none;">Elegí el <b>pliegue</b> y el <b>nodo de apoyo</b> de cada paso. La app recalcula X, Y y avisa si choca.</div>
+  <table><thead><tr><th>Paso</th><th>Pliegue</th><th>Ángulo</th><th>Apoyo</th><th>X (mm)</th><th>Y (mm)</th><th>Estado</th></tr></thead><tbody id="pp-seqBody"></tbody></table>
+  <div class="btnbar" style="margin-top:18px;">
+    <button class="secondary" id="pp-back1">◂ Editar datos</button>
+    <button id="pp-goRun">Empezar a plegar ▸</button>
+  </div>
+</div>
+
+<!-- ============ PANTALLA 3: OPERACIÓN ============ -->
+<div id="pp-run" class="screen">
+  <div class="step-head">
+    <div class="step-title" id="pp-stepTitle">Pliegue 1</div>
+    <button class="ghost" id="pp-exitRun" style="flex:0 0 auto;padding:8px 12px;font-size:14px;">Salir</button>
+  </div>
+  <div class="dots" id="pp-dots"></div>
+  <div class="angle-line" id="pp-angleLine"></div>
+
+  <div class="svglabel">En la máquina (corte):</div>
+  <div class="legend"><b>━ gris: como está ahora</b> &nbsp;·&nbsp; <i>━ azul: después del pliegue</i></div>
+  <div class="viewrow">
+    <button class="viewbtn on" id="pp-btnZoom" type="button">🔍 Zoom pliegue</button>
+    <button class="viewbtn" id="pp-btnPunchDown" type="button">⬇ Bajar punzón</button>
+  </div>
+  <svg id="pp-machine" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid meet"></svg>
+
+  <div class="xy">
+    <div><div class="k">Tope X</div><div class="v" id="pp-valX">–</div><div class="u" id="pp-uX">mm</div></div>
+    <div><div class="k">Cota Y</div><div class="v" id="pp-valY">–</div><div class="u">mm</div></div>
+  </div>
+  <div class="viewrow" style="margin:2px 0 6px;">
+    <button class="viewbtn" id="pp-btnAngCorr" type="button">📐 Medí el ángulo…</button>
+    <button class="viewbtn" id="pp-btnXCorr" type="button">📏 Medí el ala…</button>
+  </div>
+  <div id="pp-stepWarn"></div>
+  <div class="muted" id="pp-stepHelp" style="text-align:center;"></div>
+  <div class="nav">
+    <button class="prev secondary" id="pp-prev">◂</button>
+    <button class="next" id="pp-next">Siguiente ▸</button>
+  </div>
+</div>
+
+<!-- ============ MODAL CALIBRACIÓN ============ -->
+<div id="pp-calModal" class="screen" style="position:fixed;top:0;left:0;right:0;bottom:0;overflow:auto;z-index:10;background:#e8f1fb;">
+  <h1>Calibración de la máquina</h1>
+  <div class="card">
+    <p class="muted">El Estun E21 toma la Y como una cota en mm. Calibrá una vez por juego de útiles: plegá una prueba a 90°, ajustá hasta que dé 90° real, y anotá acá esa cota Y del E21. El programa calcula las demás por geometría.</p>
+    <div class="row">
+      <div class="col"><label>Cota Y del E21 que da 90° (mm)</label><input id="pp-calY90" type="number" step="0.01" value="0"></div>
+      <div class="col"><label>Sentido del eje</label>
+        <select id="pp-calSign"><option value="1">Más profundo = número MAYOR</option><option value="-1">Más profundo = número MENOR</option></select>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <p class="muted">Corrección X global: si el tope tiene un corrimiento fijo (el cero real no coincide con el del E21), todas las alas salen corridas lo mismo. Anotá acá ese corrimiento y se suma a todas las X. El ajuste fino por pliegue se hace desde la pantalla de plegado con 📏.</p>
+    <div class="row">
+      <div class="col"><label>Corrección X global (mm, + aleja el tope)</label><input id="pp-calXg" type="number" step="0.1" value="0"></div>
+    </div>
+  </div>
+  <div class="btnbar"><button class="secondary" id="pp-calClose">Listo</button></div>
+</div>
+
+<!-- ============ GALERÍA DE ÚTILES ============ -->
+<div id="pp-galleryModal" class="screen" style="position:fixed;top:0;left:0;right:0;bottom:0;overflow:auto;z-index:20;background:#e8f1fb;display:none;">
+  <div class="toprow"><h1 id="pp-galTitle">Elegí el útil</h1><button class="ghost" id="pp-galClose" type="button" style="flex:0 0 auto;padding:8px 14px;font-size:15px;">Cerrar</button></div>
+  <div id="pp-galGrid"></div>
+  <p class="hint" style="margin-top:14px;">El dado cuadrado tiene 4 V (una por cara). Elegilo y después usá "Girar dado 90°" para pasar de una V a otra. Si la V no coincide con tu dado, ajustá el valor en el campo V.</p>
+</div>
+
+<!-- ============ GALERÍA DE PIEZAS ============ -->
+<div id="pp-partsModal" class="screen" style="position:fixed;top:0;left:0;right:0;bottom:0;overflow:auto;z-index:20;background:#e8f1fb;display:none;">
+  <div class="toprow"><h1>Galería de piezas</h1><button class="ghost" id="pp-partsClose" type="button" style="flex:0 0 auto;padding:8px 14px;font-size:15px;">Cerrar</button></div>
+  <div id="pp-partsGrid"></div>
+  <p class="hint" style="margin-top:14px;">Tocá una pieza para volver a levantarla con sus medidas, ángulos y útiles. El ✕ la borra.</p>
+</div>
+</div>

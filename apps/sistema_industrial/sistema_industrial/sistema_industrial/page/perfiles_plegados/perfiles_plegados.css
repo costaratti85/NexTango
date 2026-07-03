@@ -1,0 +1,93 @@
+#pp-root * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+#pp-root { margin:0; padding:0; height:100%; }
+#pp-root { font-family:-apple-system,"Helvetica Neue",Arial,sans-serif; background:#e8f1fb; color:#16314f; font-size:17px; -webkit-text-size-adjust:100%; }
+#pp-root .screen { display:none; padding:14px; max-width:920px; margin:0 auto; }
+#pp-root .screen.active { display:block; }
+#pp-root h1 { font-size:22px; margin:6px 0 14px; font-weight:800; color:#0e3a66; }
+#pp-root h2 { font-size:15px; margin:18px 0 8px; color:#0a9aae; text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+#pp-root .row { display:flex; flex-wrap:wrap; margin:0 -6px; }
+#pp-root .col { padding:6px; flex:1 1 130px; }
+#pp-root .row.compact { margin:0 -3px; }
+#pp-root .row.compact .col { flex:1 1 60px; padding:3px; }
+#pp-root .row.compact label { font-size:11px; margin-bottom:2px; white-space:nowrap; }
+#pp-root .row.compact input { padding:8px 3px; font-size:15px; text-align:center; }
+#pp-root label { display:block; font-size:13px; color:#5b7390; margin-bottom:4px; }
+#pp-root input, #pp-root select { width:100%; padding:11px 10px; font-size:17px; border-radius:10px; border:1.5px solid #bcd4ee; background:#ffffff; color:#16314f; -webkit-appearance:none; }
+#pp-root input:focus, #pp-root select:focus { outline:none; border-color:#10b6cc; background:#f0fbfd; box-shadow:0 0 0 3px rgba(16,182,204,.22); }
+#pp-root button { -webkit-appearance:none; border:none; border-radius:12px; font-size:17px; padding:14px 16px; font-weight:700; color:#ffffff; background:#10b6cc; cursor:pointer; box-shadow:0 3px 0 #0a8294; }
+#pp-root button.secondary { background:#5b8def; color:#ffffff; box-shadow:0 3px 0 #3567c4; }
+#pp-root button.ghost { background:#ffffff; border:1.5px solid #bcd4ee; color:#2f6ab0; box-shadow:none; }
+#pp-root .viewrow { display:flex; gap:8px; margin:8px 0 2px; }
+#pp-root .viewbtn { flex:1; background:#ffffff; border:1.5px solid #bcd4ee; color:#2f6ab0; border-radius:10px; padding:9px 6px; font-size:13px; font-weight:700; box-shadow:none; }
+#pp-root .viewbtn.on { background:#10b6cc; color:#ffffff; border-color:#0a8294; }
+#pp-root button:active { transform:translateY(2px); box-shadow:none; }
+#pp-root .btnbar { display:flex; margin:0 -5px; }
+#pp-root .btnbar > * { margin:5px; flex:1; }
+#pp-root table { width:100%; border-collapse:collapse; margin-top:8px; }
+#pp-root th, #pp-root td { padding:6px 4px; text-align:center; font-size:15px; }
+#pp-root th { color:#5b7390; font-weight:700; border-bottom:2px solid #d4e3f5; font-size:12px; text-transform:uppercase; }
+#pp-root td input { padding:11px 5px; text-align:center; font-size:18px; }
+#pp-root td input.len { font-weight:800; color:#0a8294; }
+#pp-root .seg-num { color:#8aa0bd; font-size:14px; font-weight:700; }
+#pp-root .dirbtn { background:#eaf3ff; border:1.5px solid #bcd4ee; color:#2f6ab0; border-radius:9px; padding:10px 0; width:100%; font-size:16px; font-weight:700; }
+#pp-root .card { background:#ffffff; border:1.5px solid #d8e6f6; border-radius:16px; padding:16px; margin:12px 0; box-shadow:0 4px 14px rgba(20,60,110,.06); }
+#pp-root .muted { color:#5b7390; font-size:14px; }
+#pp-root .big { font-size:15px; color:#16314f; font-weight:600; }
+#pp-root .step-head { display:flex; justify-content:space-between; align-items:center; }
+#pp-root .step-title { font-size:20px; font-weight:800; color:#0e3a66; }
+#pp-root .dots { text-align:center; margin:6px 0 2px; }
+#pp-root .dot { display:inline-block; width:11px; height:11px; border-radius:50%; background:#c2d6ee; margin:3px; }
+#pp-root .dot.done { background:#19b877; }
+#pp-root .dot.cur { background:#10b6cc; }
+#pp-root .dot.bad { background:#f06c92; }
+#pp-root .xy { display:flex; margin:10px -6px; }
+#pp-root .xy > div { flex:1; margin:0 6px; border-radius:16px; padding:14px; text-align:center; }
+#pp-root .xy > div:first-child { background:#e2f7f4; border:1.5px solid #9fe3da; }
+#pp-root .xy > div:last-child { background:#e6f0ff; border:1.5px solid #aecdf6; }
+#pp-root .xy .k { font-size:13px; color:#5b7390; text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+#pp-root .xy .v { font-size:44px; font-weight:800; line-height:1.1; margin-top:2px; color:#0a8294; }
+#pp-root .xy > div:last-child .v { color:#2f6ad6; }
+#pp-root .xy .u { font-size:15px; color:#5b7390; }
+#pp-root .angle-line { text-align:center; font-size:17px; margin:6px 0 2px; }
+#pp-root .legend { text-align:center; font-size:13px; color:#5b7390; margin:6px 0; }
+#pp-root .legend b { color:#5b7a9e; }
+#pp-root .legend i { color:#2f8ef7; font-style:normal; font-weight:700; }
+#pp-root .warn { background:#fff3d4; border:1.5px solid #f0c95a; color:#8a6516; padding:10px 12px; border-radius:12px; margin:10px 0; font-size:14px; }
+#pp-root .bad { background:#ffe3ec; border:1.5px solid #f3a3bd; color:#b23560; }
+#pp-root .ok-pill { color:#19a86c; font-weight:800; }
+#pp-root svg { width:100%; height:auto; display:block; background:#ffffff; border-radius:14px; border:1.5px solid #d8e6f6; }
+#pp-root .nav { display:flex; margin:14px -6px 0; }
+#pp-root .nav > * { margin:0 6px; }
+#pp-root .nav .prev { flex:0 0 84px; }
+#pp-root .nav .next { flex:1; }
+#pp-root .summary-line { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #e6eef8; font-size:15px; }
+#pp-root .hint { font-size:13px; color:#8aa0bd; margin-top:4px; }
+#pp-root .toprow { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+#pp-root .svglabel { font-size:13px; color:#5b7390; margin:14px 0 4px; font-weight:600; }
+#pp-root .simrow { display:flex; margin:8px 0 0; }
+#pp-root .kbig { font-size:13px;color:#5b7390;text-transform:uppercase;letter-spacing:.5px;font-weight:700; }
+#pp-root .toolbtn { width:100%; background:#fff; border:1.5px solid #bcd4ee; border-radius:12px; padding:6px 6px 8px; color:#16314f; box-shadow:none; }
+#pp-root .toolbtn:active { transform:none; background:#eaf3ff; }
+#pp-root .toolname { font-size:13px; font-weight:700; color:#2f6ab0; margin-top:3px; }
+#pp-root .galcard { position:relative; flex:1 1 140px; margin:6px; padding:8px; background:#fff; border:1.5px solid #d8e6f6; border-radius:12px; text-align:center; cursor:pointer; box-shadow:0 3px 10px rgba(20,60,110,.05); }
+#pp-root .delpart { position:absolute; top:4px; right:4px; padding:2px 9px !important; font-size:14px !important; box-shadow:none !important; color:#b23560 !important; z-index:2; }
+#pp-root .galcard:active { background:#eaf3ff; }
+#pp-root .galsub { font-size:12px; color:#5b7390; margin-top:2px; }
+#pp-root /* Cabecera de pedido */
+.pedido-header { background:#ffffff; border:1.5px solid #d8e6f6; border-radius:14px; padding:14px 16px; margin-bottom:14px; display:flex; flex-wrap:wrap; gap:10px; }
+#pp-root .pedido-header .form-group { flex:1 1 130px; }
+#pp-root /* Panel de presupuesto */
+.presup-panel { background:#eaf6ff; border:1.5px solid #9fd3f0; border-radius:14px; padding:16px; margin:14px 0; }
+#pp-root .presup-title { font-size:13px; font-weight:700; color:#0e3a66; text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; }
+#pp-root .presup-row { display:flex; justify-content:space-between; padding:4px 0; font-size:14px; border-bottom:1px solid #c8e4f5; }
+#pp-root .presup-row:last-of-type { border-bottom:none; }
+#pp-root .presup-label { color:#5b7390; }
+#pp-root .presup-val { font-weight:600; color:#0e3a66; font-family:monospace; }
+#pp-root .presup-total { display:flex; justify-content:space-between; margin-top:10px; padding-top:8px; border-top:2px solid #9fd3f0; font-size:17px; font-weight:800; color:#0e3a66; }
+#pp-root .presup-total-val { color:#10b6cc; }
+#pp-root .presup-actions { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+#pp-root .presup-actions button { flex:1 1 130px; font-size:15px; padding:12px; border-radius:10px; }
+#pp-root .btn-save-pedido { background:#19b877; box-shadow:0 3px 0 #10855a; }
+#pp-root .btn-print-pedido { background:#5b8def; box-shadow:0 3px 0 #3567c4; }
+#pp-root .presup-status { font-size:13px; margin-top:8px; min-height:18px; color:#19a86c; font-weight:600; }
+#pp-root .presup-status.err { color:#b23560; }

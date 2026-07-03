@@ -1,0 +1,22 @@
+{
+ "content": null,
+ "doctype": "Page",
+ "icon": "tool",
+ "idx": 0,
+ "module": "Sistema Industrial",
+ "name": "perfiles-plegados",
+ "owner": "Administrator",
+ "page_name": "perfiles-plegados",
+ "roles": [
+  {"role": "SI Operador Plegado"},
+  {"role": "SI Vendedor"},
+  {"role": "SI Admin Produccion"},
+  {"role": "SI Gerencia"},
+  {"role": "System Manager"}
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Perfiles Plegados"
+}
