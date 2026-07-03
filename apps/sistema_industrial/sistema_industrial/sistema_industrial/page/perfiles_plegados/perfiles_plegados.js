@@ -1,3 +1,6 @@
+// Control Link a Customer (montado en on_page_load, leído al guardar el pedido).
+var _ppCustomerControl = null;
+
 frappe.pages['perfiles-plegados'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
@@ -5,6 +8,16 @@ frappe.pages['perfiles-plegados'].on_page_load = function (wrapper) {
 		single_column: true,
 	});
 	$(wrapper).find('.page-content').html(frappe.render_template('perfiles_plegados'));
+	_ppCustomerControl = frappe.ui.form.make_control({
+		df: {
+			fieldtype: 'Link',
+			options: 'Customer',
+			fieldname: 'cliente',
+			placeholder: __('Nombre o código de cliente'),
+		},
+		parent: $(wrapper).find('#pp-customer-field'),
+		render_input: true,
+	});
 	perfiles_plegados_init();
 };
 
@@ -880,7 +893,7 @@ function perfiles_plegados_init() {
 	document.getElementById('pp-btnSavePedido').addEventListener('click', function(){
 	  var p = state._presup || {};
 	  var payload = {
-	    cliente: document.getElementById('pp-ped-cliente').value,
+	    cliente: (_ppCustomerControl && _ppCustomerControl.get_value()) || '',
 	    ref: document.getElementById('pp-ped-ref').value,
 	    cantidad: p.cantidad || 1,
 	    material: document.getElementById('pp-ped-material').value,
