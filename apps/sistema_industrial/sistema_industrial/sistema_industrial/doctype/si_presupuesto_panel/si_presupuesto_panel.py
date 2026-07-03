@@ -32,4 +32,7 @@ class SIPresupuestoPanel(Document):
             linea.costo_total = round(costo, 2)
             total += costo
 
+        descuento = float(self.descuento_pct or 0)
+        if descuento:
+            total = total * (1 - descuento / 100)
         self.total_ars = round(total, 2)

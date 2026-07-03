@@ -55,13 +55,26 @@ def _run_potrace(pbm_path: Path, svg_path: Path, preset: dict) -> None:
         raise RuntimeError(f"potrace falló: {result.stderr.decode()}")
 
 
+def _split_subpaths(d: str) -> list:
+    """Split a compound SVG path d into individual closed subpaths (each M…Z).
+
+    potrace emits compound paths for connected geometry: one <path> whose d
+    attribute contains N subpaths joined as "M…Z M…Z M…Z" — the outer contour
+    plus each hole. We split at every Z→M boundary so each contour becomes its
+    own selectable entity.
+    """
+    parts = re.split(r'(?<=[Zz])\s*(?=[Mm])', d.strip())
+    result = [p.strip() for p in parts if p.strip()]
+    return result or [d.strip()]
+
+
 def _parse_potrace_svg(svg_text: str) -> tuple:
     """Extract entities and metadata from potrace SVG text via regex.
 
     Returns (transform_scale, viewbox, path_ds):
       transform_scale: |sx| from group transform — typically 0.1 (path units × 0.1 = display units)
       viewbox: viewBox attribute string, e.g. "0 0 4800 4320"
-      path_ds: list of closed-path d attribute strings
+      path_ds: list of individual subpath d strings (compound paths are split)
     """
     # viewBox
     m = re.search(r'viewBox="([^"]+)"', svg_text)
@@ -74,8 +87,8 @@ def _parse_potrace_svg(svg_text: str) -> tuple:
     )
     transform_scale = abs(float(m.group(1))) if m else 1.0
 
-    # Extract all path d attributes — include every path potrace traced,
-    # even if not explicitly closed (si potrace trazó algo, mostralo)
+    # Extract all path d attributes; split compound paths into individual subpaths
+    # so each closed contour (outer boundary or hole) is a separate selectable entity.
     path_ds = []
     for pm in re.finditer(r'<path\b[^>]*/>', svg_text):
         elem = pm.group(0)
@@ -84,7 +97,7 @@ def _parse_potrace_svg(svg_text: str) -> tuple:
             continue
         d = dm.group(1).strip()
         if d:
-            path_ds.append(d)
+            path_ds.extend(_split_subpaths(d))
 
     return transform_scale, viewbox, path_ds
 
@@ -109,10 +122,12 @@ def _build_display_svg(svg_text: str) -> str:
 
     Changes made:
     - <g fill="#000000" stroke="none"> → fill="none" stroke="#555555"
-    - Each <path>: add id="e{i}", vector-effect="non-scaling-stroke", stroke-width="2"
+    - Each compound <path d="M…Z M…Z …"/> is split into N individual <path> elements,
+      one per subpath, each with id="e{i}" and vector-effect="non-scaling-stroke".
 
-    vector-effect="non-scaling-stroke" makes stroke always 2px on screen regardless
-    of the SVG viewBox coordinates or any CSS scaling — solving the invisible-stroke bug.
+    Splitting compound paths ensures each contour (outer boundary or hole) is an
+    independent hit-target — the user can select individual lines, not filled regions.
+    IDs are assigned in the same order as _parse_potrace_svg / _split_subpaths.
     """
     # Change group fill/stroke (handles both #000000 and #000 forms)
     result = re.sub(
@@ -123,15 +138,24 @@ def _build_display_svg(svg_text: str) -> str:
 
     idx = [0]
 
-    def _stamp_entity(m):
+    def _expand_path(m):
+        """Replace one <path .../> (possibly compound) with N individual <path> elements."""
         elem = m.group(0)
-        i = idx[0]
-        idx[0] += 1
-        attrs = f' id="e{i}" vector-effect="non-scaling-stroke" stroke-width="2"'
-        # Insert before self-closing />
-        return re.sub(r'\s*/>$', attrs + '/>', elem)
+        dm = re.search(r'\bd="([^"]*)"', elem)
+        if not dm or not dm.group(1).strip():
+            return elem
+        subpaths = _split_subpaths(dm.group(1).strip())
+        parts = []
+        for sub_d in subpaths:
+            i = idx[0]
+            idx[0] += 1
+            parts.append(
+                f'<path id="e{i}" d="{sub_d}" fill="none" stroke="#555555"'
+                f' vector-effect="non-scaling-stroke" stroke-width="2"/>'
+            )
+        return "\n".join(parts)
 
-    result = re.sub(r'<path\b[^>]*/>', _stamp_entity, result)
+    result = re.sub(r'<path\b[^>]*/>', _expand_path, result)
     return result
 
 

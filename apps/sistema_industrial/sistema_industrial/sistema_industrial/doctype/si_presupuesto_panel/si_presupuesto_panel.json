@@ -42,6 +42,13 @@
       "in_list_view": 1
     },
     {
+      "fieldname": "descuento_pct",
+      "fieldtype": "Percent",
+      "label": "Descuento (%)",
+      "default": "0",
+      "description": "Descuento aplicado sobre el subtotal de líneas"
+    },
+    {
       "fieldname": "quotation",
       "fieldtype": "Link",
       "label": "Cotización ERPNext",
