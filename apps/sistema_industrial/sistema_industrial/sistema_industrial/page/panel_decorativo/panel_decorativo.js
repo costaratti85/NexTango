@@ -47,8 +47,13 @@ class PanelDecorativo {
 			{ val: 'tresbolillo', label: __('Tresbolillo'), svg: wrap(tres) },
 			{ val: 'cuadriculado_circle', label: __('Cuadriculado redondo'), svg: wrap(cuadC) },
 			{ val: 'cuadriculado_square', label: __('Cuadriculado cuadrado'), svg: wrap(cuadS) },
-			{ val: 'none', label: __('Sin perforar'), svg: wrap('<rect x="10" y="10" width="110" height="70" fill="none" stroke="#176b87" stroke-width="2"/>') },
 		];
+	}
+
+	// SVG genérico de fallback para patrones DXF sin thumbnail_url.
+	static get FALLBACK_THUMB_SVG() {
+		return '<svg class="pd-pat-thumb-svg" viewBox="0 0 130 90" xmlns="http://www.w3.org/2000/svg">'
+			+ '<rect x="10" y="10" width="110" height="70" fill="none" stroke="#176b87" stroke-width="2"/></svg>';
 	}
 
 	render_pattern_gallery() {
@@ -75,7 +80,7 @@ class PanelDecorativo {
 						.attr('alt', p.label || p.name)
 				);
 			} else {
-				card.append($(PanelDecorativo.NATIVE_PATTERNS[3].svg));
+				card.append($(PanelDecorativo.FALLBACK_THUMB_SVG));
 			}
 			card.append($('<div class="pd-pat-name">').text(p.label || p.name));
 			if (!available) card.append($('<span class="pd-pat-badge">').text(__('No disponible')));
@@ -99,14 +104,9 @@ class PanelDecorativo {
 			'hidden',
 			val !== 'cuadriculado_circle' && val !== 'cuadriculado_square'
 		);
-		const is_dxf = val.startsWith('dxf:');
-		$('#pd-params-dxf').toggleClass('hidden', !is_dxf);
-		if (is_dxf) {
-			// Pre-cargar paso X/Y sugerido del patrón
-			const row = this.patterns[parseInt(val.slice(4))];
-			if (row && row.step_x) $('#pd-dxf-step-x').val(row.step_x);
-			if (row && row.step_y) $('#pd-dxf-step-y').val(row.step_y);
-		}
+		// El paso X/Y de un patrón DXF/vectorizado es una propiedad DEL PATRÓN
+		// (se fija al cargarlo/calibrarlo) — no se reingresa acá. add_batch lo
+		// toma directo de dxf_row.step_x/step_y.
 	}
 
 	// ------------------------------------------------------------------
@@ -311,10 +311,12 @@ class PanelDecorativo {
 				if (!dxf_row.file_path)
 					throw new Error(__('El patrón DXF no tiene ruta de archivo.'));
 				batch.pattern_dxf_path = dxf_row.file_path;
-				batch.step_x_mm = parseFloat($('#pd-dxf-step-x').val());
-				batch.step_y_mm = parseFloat($('#pd-dxf-step-y').val());
+				// Paso X/Y heredado del patrón (fijado al cargarlo/calibrarlo) — no es un
+				// input del panel.
+				batch.step_x_mm = parseFloat(dxf_row.step_x);
+				batch.step_y_mm = parseFloat(dxf_row.step_y);
 				if (!(batch.step_x_mm > 0) || !(batch.step_y_mm > 0))
-					throw new Error(__('Paso X/Y inválido.'));
+					throw new Error(__('El patrón "{0}" no tiene un paso X/Y válido cargado.', [dxf_row.name]));
 			} else if (patron === 'tresbolillo') {
 				batch.hole_diameter_mm = parseFloat($('#pd-diam').val());
 				batch.hole_distance_mm = parseFloat($('#pd-dist').val());
