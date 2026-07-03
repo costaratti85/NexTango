@@ -124,6 +124,16 @@ def descargar_dxf(batches_json, customer="", job_name=""):
     if not batches:
         frappe.throw("Lista de lotes vacía.")
 
+    # --- TRACE TEMPORAL (bug DXF stale, VEGA_BUG_DXF_RACE) ---
+    # Loguea qué recibió el endpoint vs qué generó, con PID+timestamp, para
+    # trazar el origen de los bytes. QUITAR cuando el bug esté cerrado.
+    import os as _os
+    import time as _time
+    import hashlib as _hl
+    _t0 = _time.time()
+    _in_sizes = [sz for b in batches for sz in b.get("sheet_sizes", [])]
+    _in_widths = [str(s[0]) for s in _in_sizes]
+
     from sistema_industrial.presets.panel_sales_local_app import _run_all_batches
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -146,6 +156,21 @@ def descargar_dxf(batches_json, customer="", job_name=""):
         if not Path(dxf_path).exists():
             frappe.throw("El motor no generó un archivo DXF.")
         content = Path(dxf_path).read_bytes()
+
+    # --- TRACE: pid, worker, batches IN, bytes/hash del DXF OUT, duración ---
+    try:
+        _md5 = _hl.md5(content).hexdigest()[:8]
+        # ¿el DXF generado contiene cada ancho de entrada? (proxy de completitud)
+        _txt = content.decode("latin-1", "ignore")
+        _present = [w for w in set(_in_widths) if ("\n" + w + "\n") in _txt or ("\n" + str(int(float(w))) + ".0\n") in _txt]
+        frappe.logger("dxf_trace").warning(
+            f"pid={_os.getpid()} t={_t0:.3f} dur={_time.time()-_t0:.2f}s "
+            f"n_batches={len(batches)} anchos_in={_in_widths} "
+            f"bytes={len(content)} md5={_md5} anchos_en_dxf={sorted(_present)} "
+            f"customer={customer!r} job={job_name!r}"
+        )
+    except Exception:
+        pass
 
     nombre_trabajo = (job_name or "panel").replace(" ", "_")[:40]
     frappe.response.filename = f"{nombre_trabajo}.dxf"
