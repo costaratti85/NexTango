@@ -1,11 +1,15 @@
-"""Compose DXF from vectorizer run output.
+"""Compose DXF from selected vectorizer entities.
 
-Converts selected SVG paths (cubic bezier curves from potrace) into
-LINE entities in a single DXF file with layer CUT (CypCut-compatible).
+Converts SVG path data (cubic bezier curves from potrace) into LINE entities
+in a DXF file with layer CUT (CypCut-compatible).
 
-Y-axis note: SVG has Y pointing down; DXF Y points up. For decorative
-hole patterns the orientation rarely matters, so we keep SVG coordinates
-as-is. The operator can mirror in CypCut if needed.
+Coordinate conversion:
+  path units → display units: multiply by transform_scale (typically 0.1)
+  display units → mm: multiply by escala_display (mm/display_unit, from calibration)
+  Combined: mm = path_coord × transform_scale × escala_display
+
+Y-axis: SVG Y points down, DXF Y points up. For hole patterns that tile
+uniformly this rarely matters; operators can mirror in CypCut if needed.
 """
 import re
 from pathlib import Path
@@ -33,16 +37,16 @@ def _quadratic_bezier_pts(p0, p1, p2, steps=20):
     return pts
 
 
-def _path_d_to_segments(d: str, steps: int = 20):
-    """Convert SVG path d attribute to list of (x0, y0, x1, y1) line segments.
+def _path_d_to_segments(d: str, scale: float = 1.0, steps: int = 20):
+    """Convert SVG path d to list of (x0, y0, x1, y1) segments scaled to mm.
 
     Handles M, L, H, V, C, Q, Z and their lowercase (relative) variants.
-    potrace SVG output uses primarily M, C, Z — others included for robustness.
+    potrace output uses primarily M, C, Z.
     """
-    tok_pattern = re.compile(
+    tok_re = re.compile(
         r"[MmLlCcQqZzHhVv]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
     )
-    tokens = tok_pattern.findall(d)
+    tokens = tok_re.findall(d)
 
     segs = []
     cx = cy = sx = sy = 0.0
@@ -60,7 +64,6 @@ def _path_d_to_segments(d: str, steps: int = 20):
         if re.match(r"[a-zA-Z]", tok):
             cmd = tok
             i += 1
-        # Implicit repeat if still numeric — cmd stays
 
         if cmd == "M":
             x, y = consume(2)
@@ -74,102 +77,110 @@ def _path_d_to_segments(d: str, steps: int = 20):
             cmd = "l"
         elif cmd == "L":
             x, y = consume(2)
-            segs.append((cx, cy, x, y))
+            segs.append((cx * scale, cy * scale, x * scale, y * scale))
             cx, cy = x, y
         elif cmd == "l":
             dx, dy = consume(2)
-            segs.append((cx, cy, cx + dx, cy + dy))
+            segs.append((cx * scale, cy * scale, (cx + dx) * scale, (cy + dy) * scale))
             cx, cy = cx + dx, cy + dy
         elif cmd == "H":
             x, = consume(1)
-            segs.append((cx, cy, x, cy))
+            segs.append((cx * scale, cy * scale, x * scale, cy * scale))
             cx = x
         elif cmd == "h":
             dx, = consume(1)
-            segs.append((cx, cy, cx + dx, cy))
+            segs.append((cx * scale, cy * scale, (cx + dx) * scale, cy * scale))
             cx += dx
         elif cmd == "V":
             y, = consume(1)
-            segs.append((cx, cy, cx, y))
+            segs.append((cx * scale, cy * scale, cx * scale, y * scale))
             cy = y
         elif cmd == "v":
             dy, = consume(1)
-            segs.append((cx, cy, cx, cy + dy))
+            segs.append((cx * scale, cy * scale, cx * scale, (cy + dy) * scale))
             cy += dy
         elif cmd == "C":
             x1, y1, x2, y2, x, y = consume(6)
             pts = _cubic_bezier_pts((cx, cy), (x1, y1), (x2, y2), (x, y), steps)
             for j in range(len(pts) - 1):
-                segs.append((*pts[j], *pts[j + 1]))
+                segs.append((pts[j][0] * scale, pts[j][1] * scale,
+                              pts[j+1][0] * scale, pts[j+1][1] * scale))
             cx, cy = x, y
         elif cmd == "c":
             dx1, dy1, dx2, dy2, dx, dy = consume(6)
             pts = _cubic_bezier_pts(
-                (cx, cy),
-                (cx + dx1, cy + dy1),
-                (cx + dx2, cy + dy2),
-                (cx + dx, cy + dy),
-                steps,
+                (cx, cy), (cx+dx1, cy+dy1), (cx+dx2, cy+dy2), (cx+dx, cy+dy), steps
             )
             for j in range(len(pts) - 1):
-                segs.append((*pts[j], *pts[j + 1]))
+                segs.append((pts[j][0] * scale, pts[j][1] * scale,
+                              pts[j+1][0] * scale, pts[j+1][1] * scale))
             cx, cy = cx + dx, cy + dy
         elif cmd == "Q":
             x1, y1, x, y = consume(4)
             pts = _quadratic_bezier_pts((cx, cy), (x1, y1), (x, y), steps)
             for j in range(len(pts) - 1):
-                segs.append((*pts[j], *pts[j + 1]))
+                segs.append((pts[j][0] * scale, pts[j][1] * scale,
+                              pts[j+1][0] * scale, pts[j+1][1] * scale))
             cx, cy = x, y
         elif cmd == "q":
             dx1, dy1, dx, dy = consume(4)
             pts = _quadratic_bezier_pts(
-                (cx, cy), (cx + dx1, cy + dy1), (cx + dx, cy + dy), steps
+                (cx, cy), (cx+dx1, cy+dy1), (cx+dx, cy+dy), steps
             )
             for j in range(len(pts) - 1):
-                segs.append((*pts[j], *pts[j + 1]))
+                segs.append((pts[j][0] * scale, pts[j][1] * scale,
+                              pts[j+1][0] * scale, pts[j+1][1] * scale))
             cx, cy = cx + dx, cy + dy
         elif cmd in ("Z", "z"):
             if abs(cx - sx) > 1e-6 or abs(cy - sy) > 1e-6:
-                segs.append((cx, cy, sx, sy))
+                segs.append((cx * scale, cy * scale, sx * scale, sy * scale))
             cx, cy = sx, sy
         else:
-            # Unknown command — skip until next letter
             while i < len(tokens) and not re.match(r"[a-zA-Z]", tokens[i]):
                 i += 1
 
     return segs
 
 
-def compose_dxf(manifest: dict, selecciones: list, output_path: Path) -> None:
-    """Write a DXF composed from selected figura/variante combinations.
+def compose_dxf(
+    manifest: dict,
+    preset_name: str,
+    selected_ids: list,
+    escala_display: float,
+    output_path: Path,
+) -> None:
+    """Compose DXF from selected entities of one preset.
 
-    selecciones: [{"figura_id": "fig_0", "preset": "Fino"}, ...]
+    Args:
+        manifest: dict loaded from manifest.json
+        preset_name: e.g. "Fino"
+        selected_ids: list of entity IDs, e.g. ["e0", "e3", "e7"]
+        escala_display: mm per SVG display unit (from calibration line)
+        output_path: destination .dxf path
     """
     import ezdxf
 
-    sel_map = {s["figura_id"]: s["preset"] for s in selecciones}
+    preset = next((p for p in manifest.get("presets", []) if p["name"] == preset_name), None)
+    if preset is None:
+        raise ValueError(f"Preset '{preset_name}' no encontrado en el manifest")
+
+    # path units → display units → mm
+    transform_scale = preset.get("transform_scale", 0.1)
+    mm_factor = transform_scale * escala_display
+
+    selected = set(selected_ids)
 
     doc = ezdxf.new("R2010")
     msp = doc.modelspace()
     doc.layers.new("CUT", dxfattribs={"color": 1})
 
-    for figura in manifest.get("figuras", []):
-        fid = figura["figura_id"]
-        if fid not in sel_map:
+    for entity in preset.get("entities", []):
+        if entity["id"] not in selected:
             continue
-        preset_name = sel_map[fid]
-        variante = next(
-            (v for v in figura.get("variantes", []) if v["preset"] == preset_name),
-            None,
-        )
-        if not variante or not variante.get("d"):
-            continue
-
         try:
-            segs = _path_d_to_segments(variante["d"])
+            segs = _path_d_to_segments(entity["d"], scale=mm_factor)
         except Exception:
             continue
-
         for x0, y0, x1, y1 in segs:
             msp.add_line((x0, y0), (x1, y1), dxfattribs={"layer": "CUT"})
 

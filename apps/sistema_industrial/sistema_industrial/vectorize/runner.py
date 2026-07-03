@@ -1,22 +1,21 @@
-"""Image-to-potrace multi-preset vectorizer.
+"""Image-to-potrace multi-preset vectorizer — tile extraction model.
 
-Pipeline:
-  1. Image (PNG/JPG) → binarize with threshold (Pillow) → PBM tempfile
-  2. potrace --svg → SVG per preset
-  3. Parse SVG: extract closed <path> elements → compute bbox
-  4. Match figures across presets by bbox-center proximity
-  5. Return manifest dict (also saved to run_dir/manifest.json)
+Pipeline per preset:
+  1. Image (PNG/JPG) → threshold binarize (Pillow) → PBM tempfile
+  2. potrace --svg → raw SVG
+  3. Parse SVG via regex (avoids xml.etree DOCTYPE issues with potrace output)
+  4. Build display SVG: paths styled as outlines, each with id="e{i}" and
+     vector-effect="non-scaling-stroke" so strokes are always 2px on screen.
+  5. Return manifest {run_id, presets: [{name, svg_full, entities, ...}]}
 
-Run state stored in:
-  <site>/private/vectorize_runs/{run_id}/
-    manifest.json         — full result
-    {preset_slug}.svg     — raw SVG from potrace
+Run state: <site>/private/vectorize_runs/{run_id}/
+  manifest.json       — full result including svg_full per preset
+  {slug}.svg          — raw potrace SVG
 """
 import json
 import re
 import subprocess
 import tempfile
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -34,7 +33,7 @@ def _preset_slug(name):
 
 
 def _binarize(image_path: Path, threshold: int, pbm_path: Path) -> None:
-    """Convert image to 1-bit PBM using Pillow (potrace native input)."""
+    """Convert image to 1-bit PBM for potrace input."""
     from PIL import Image
     img = Image.open(str(image_path)).convert("L")
     bw = img.point(lambda p: 0 if p < threshold else 255, "1")
@@ -56,163 +55,144 @@ def _run_potrace(pbm_path: Path, svg_path: Path, preset: dict) -> None:
         raise RuntimeError(f"potrace falló: {result.stderr.decode()}")
 
 
-def _parse_svg_paths(svg_path: Path):
-    """Extract closed path elements from potrace SVG.
+def _parse_potrace_svg(svg_text: str) -> tuple:
+    """Extract entities and metadata from potrace SVG text via regex.
 
-    Returns list of dicts: {d, bbox, nodes}.
-    Numbers are extracted from d to approximate bbox (adequate for figure matching).
+    Returns (transform_scale, viewbox, path_ds):
+      transform_scale: |sx| from group transform — typically 0.1 (path units × 0.1 = display units)
+      viewbox: viewBox attribute string, e.g. "0 0 4800 4320"
+      path_ds: list of closed-path d attribute strings
     """
-    tree = ET.parse(str(svg_path))
-    root = tree.getroot()
+    # viewBox
+    m = re.search(r'viewBox="([^"]+)"', svg_text)
+    viewbox = m.group(1) if m else "0 0 100 100"
 
-    paths = []
-    for elem in root.iter("{http://www.w3.org/2000/svg}path"):
-        d = elem.get("d", "").strip()
-        if not d or "z" not in d.lower():
-            continue  # only closed paths
-
-        nums = [float(n) for n in re.findall(
-            r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", d
-        )]
-        if len(nums) < 4:
-            continue
-
-        xs = nums[0::2]
-        ys = nums[1::2]
-        min_x, max_x = min(xs), max(xs)
-        min_y, max_y = min(ys), max(ys)
-        w, h = max_x - min_x, max_y - min_y
-        if w < 1 or h < 1:
-            continue
-
-        bbox = {"x": round(min_x, 2), "y": round(min_y, 2),
-                "w": round(w, 2), "h": round(h, 2)}
-        nodes = len(re.findall(r"[MLCQmlcq]", d))
-        paths.append({"d": d, "bbox": bbox, "nodes": nodes})
-
-    return paths
-
-
-def _bbox_center(bbox):
-    return bbox["x"] + bbox["w"] / 2, bbox["y"] + bbox["h"] / 2
-
-
-def _bboxes_match(b1, b2, tol_factor=0.35):
-    """True if bboxes are likely the same figure across presets."""
-    cx1, cy1 = _bbox_center(b1)
-    cx2, cy2 = _bbox_center(b2)
-    dist = ((cx1 - cx2) ** 2 + (cy1 - cy2) ** 2) ** 0.5
-    diag1 = (b1["w"] ** 2 + b1["h"] ** 2) ** 0.5
-    diag2 = (b2["w"] ** 2 + b2["h"] ** 2) ** 0.5
-    tol = tol_factor * (diag1 + diag2) / 2
-    return dist < tol
-
-
-def _make_svg_preview(d: str, bbox: dict) -> str:
-    pad = max(bbox["w"], bbox["h"]) * 0.08
-    vb = (
-        f"{bbox['x'] - pad:.1f} {bbox['y'] - pad:.1f} "
-        f"{bbox['w'] + 2*pad:.1f} {bbox['h'] + 2*pad:.1f}"
+    # Group transform: potrace uses translate(0,H) scale(sx,-sy)
+    m = re.search(
+        r'<g\b[^>]*transform="translate\([^,]+,[^)]+\)\s+scale\(([^,]+),([^)]+)\)',
+        svg_text,
     )
-    d_safe = d.replace('"', "&quot;")
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vb}" '
-        f'width="100" height="100">'
-        f'<path d="{d_safe}" fill="none" stroke="currentColor" stroke-width="1"/>'
-        f'</svg>'
-    )
+    transform_scale = abs(float(m.group(1))) if m else 1.0
+
+    # Extract closed path d attributes
+    path_ds = []
+    for pm in re.finditer(r'<path\b[^>]*/>', svg_text):
+        elem = pm.group(0)
+        dm = re.search(r'\bd="([^"]*)"', elem)
+        if not dm:
+            continue
+        d = dm.group(1).strip()
+        if d and "z" in d.lower():
+            path_ds.append(d)
+
+    return transform_scale, viewbox, path_ds
 
 
-def _match_figures(preset_results: list) -> list:
-    """Group path results across presets into figures with per-preset variantes.
+def _bbox_from_d(d: str) -> dict:
+    """Approximate bbox from raw numbers in path d — adequate for rubber-band hints."""
+    nums = [float(n) for n in re.findall(
+        r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", d
+    )]
+    if len(nums) < 4:
+        return {"x": 0.0, "y": 0.0, "w": 0.0, "h": 0.0}
+    xs = nums[0::2]
+    ys = nums[1::2]
+    return {
+        "x": round(min(xs), 1), "y": round(min(ys), 1),
+        "w": round(max(xs) - min(xs), 1), "h": round(max(ys) - min(ys), 1),
+    }
 
-    preset_results: [(preset_name, [path_dicts]), ...]
-    Returns: [{figura_id, bbox, variantes: [{preset, svg_preview, d, metrics}]}]
+
+def _build_display_svg(svg_text: str) -> str:
+    """Modify potrace SVG for interactive entity display.
+
+    Changes made:
+    - <g fill="#000000" stroke="none"> → fill="none" stroke="#555555"
+    - Each <path>: add id="e{i}", vector-effect="non-scaling-stroke", stroke-width="2"
+
+    vector-effect="non-scaling-stroke" makes stroke always 2px on screen regardless
+    of the SVG viewBox coordinates or any CSS scaling — solving the invisible-stroke bug.
     """
-    preset_names = [p for p, _ in preset_results]
-    groups = []  # [{bbox, members: {preset_name: path_dict}}]
+    # Change group fill/stroke (handles both #000000 and #000 forms)
+    result = re.sub(
+        r'(<g\b[^>]*?)\bfill="#(?:000000|000)"\s+stroke="none"',
+        r'\1fill="none" stroke="#555555"',
+        svg_text,
+    )
 
-    for preset_name, paths in preset_results:
-        for path in paths:
-            best_g = None
-            best_dist = float("inf")
-            for g in groups:
-                if preset_name in g["members"]:
-                    continue
-                if _bboxes_match(path["bbox"], g["bbox"]):
-                    cx1, cy1 = _bbox_center(path["bbox"])
-                    cx2, cy2 = _bbox_center(g["bbox"])
-                    d = ((cx1 - cx2) ** 2 + (cy1 - cy2) ** 2) ** 0.5
-                    if d < best_dist:
-                        best_g, best_dist = g, d
-            if best_g is not None:
-                best_g["members"][preset_name] = path
-            else:
-                groups.append({"bbox": path["bbox"], "members": {preset_name: path}})
+    idx = [0]
 
-    figuras = []
-    for i, g in enumerate(groups):
-        variantes = []
-        for preset_name in preset_names:
-            if preset_name in g["members"]:
-                p = g["members"][preset_name]
-                variantes.append({
-                    "preset": preset_name,
-                    "d": p["d"],
-                    "svg_preview": _make_svg_preview(p["d"], p["bbox"]),
-                    "metrics": {
-                        "nodes": p["nodes"],
-                        "area_approx": round(p["bbox"]["w"] * p["bbox"]["h"], 1),
-                    },
-                })
-            else:
-                variantes.append({
-                    "preset": preset_name,
-                    "d": None,
-                    "svg_preview": None,
-                    "metrics": None,
-                })
-        figuras.append({
-            "figura_id": f"fig_{i}",
-            "bbox": g["bbox"],
-            "variantes": variantes,
-        })
+    def _stamp_entity(m):
+        elem = m.group(0)
+        i = idx[0]
+        idx[0] += 1
+        attrs = f' id="e{i}" vector-effect="non-scaling-stroke" stroke-width="2"'
+        # Insert before self-closing />
+        return re.sub(r'\s*/>$', attrs + '/>', elem)
 
-    return figuras
+    result = re.sub(r'<path\b[^>]*/>', _stamp_entity, result)
+    return result
+
+
+def _vectorize_preset(image_path: Path, run_dir: Path, preset: dict) -> dict:
+    """Run one preset and return its manifest entry."""
+    slug = _preset_slug(preset["name"])
+    svg_path = run_dir / f"{slug}.svg"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        pbm_path = Path(tmp) / "input.pbm"
+        _binarize(image_path, preset["threshold"], pbm_path)
+        _run_potrace(pbm_path, svg_path, preset)
+
+    svg_text = svg_path.read_text(encoding="utf-8", errors="replace")
+    transform_scale, viewbox, path_ds = _parse_potrace_svg(svg_text)
+
+    entities = [
+        {
+            "id": f"e{i}",
+            "d": d,
+            "bbox_approx": _bbox_from_d(d),
+            "nodes": len(re.findall(r"[MLCQmlcq]", d)),
+        }
+        for i, d in enumerate(path_ds)
+    ]
+
+    return {
+        "name": preset["name"],
+        "slug": slug,
+        "transform_scale": transform_scale,
+        "viewbox": viewbox,
+        "entity_count": len(entities),
+        "entities": entities,
+        "svg_full": _build_display_svg(svg_text),
+    }
 
 
 def vectorize(image_path: Path, run_dir: Path, presets: list = None) -> dict:
-    """Run multi-preset potrace vectorization and save manifest.
-
-    Returns the manifest dict.
-    """
+    """Run multi-preset potrace vectorization. Saves manifest, returns it."""
     if presets is None:
         presets = PRESETS
 
     preset_results = []
-
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_dir = Path(tmp)
-        for preset in presets:
-            slug = _preset_slug(preset["name"])
-            pbm_path = tmp_dir / f"{slug}.pbm"
-            svg_path = run_dir / f"{slug}.svg"
-            try:
-                _binarize(image_path, preset["threshold"], pbm_path)
-                _run_potrace(pbm_path, svg_path, preset)
-                paths = _parse_svg_paths(svg_path)
-            except Exception:
-                paths = []
-            preset_results.append((preset["name"], paths))
-
-    figuras = _match_figures(preset_results)
+    for preset in presets:
+        try:
+            preset_results.append(_vectorize_preset(image_path, run_dir, preset))
+        except Exception as exc:
+            preset_results.append({
+                "name": preset["name"],
+                "slug": _preset_slug(preset["name"]),
+                "transform_scale": 0.1,
+                "viewbox": "0 0 100 100",
+                "entity_count": 0,
+                "entities": [],
+                "svg_full": "",
+                "error": str(exc),
+            })
 
     manifest = {
         "run_id": run_dir.name,
         "image_path": str(image_path),
-        "preset_names": [p["name"] for p in presets],
-        "figura_count": len(figuras),
-        "figuras": figuras,
+        "presets": preset_results,
     }
     (run_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"

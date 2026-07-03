@@ -1,13 +1,15 @@
 """Endpoints del vectorizador de imágenes.
 
-vectorize_image(file_url, presets=None)
-    → {run_id, preset_names, figura_count, figuras: [...]}
+vectorize_image(file_url)
+    → {run_id, presets: [{name, slug, transform_scale, viewbox, entity_count,
+                          svg_full, entities: [{id, bbox_approx, nodes}]}]}
 
-compose_pattern(run_id, selecciones, nombre, step_x, step_y, visibilidad,
+compose_pattern(run_id, preset, selected_entity_ids, escala_display,
+                step_x_mm, step_y_mm, nombre, visibilidad,
                 customer=None, descripcion=None)
     → {ok, name, version, has_splines, spline_count}
 
-Runs se almacenan en <site>/private/vectorize_runs/{run_id}/ (efímeros, sin doctype).
+Runs almacenados en <site>/private/vectorize_runs/{run_id}/ (efímeros, sin doctype).
 """
 import json
 import re
@@ -43,7 +45,7 @@ def _patron_dest_dir(visibilidad, customer=None) -> Path:
 
 @frappe.whitelist(allow_guest=False)
 def vectorize_image(file_url, presets=None):
-    """Corre potrace con 5 presets y devuelve figuras con previews SVG por variante."""
+    """Vectoriza imagen con potrace (5 presets). Devuelve SVG interactivo por preset."""
     from sistema_industrial.vectorize.runner import vectorize, PRESETS
 
     image_path = _resolve_frappe_file(file_url)
@@ -61,15 +63,17 @@ def vectorize_image(file_url, presets=None):
 
 
 @frappe.whitelist(allow_guest=False)
-def compose_pattern(run_id, selecciones, nombre, step_x, step_y, visibilidad,
+def compose_pattern(run_id, preset, selected_entity_ids, escala_display,
+                    step_x_mm, step_y_mm, nombre, visibilidad,
                     customer=None, descripcion=None):
-    """Compone DXF con las figuras/variantes elegidas y registra SI Patron."""
+    """Compone DXF con las entidades seleccionadas y registra SI Patron."""
     from sistema_industrial.vectorize.composer import compose_dxf
 
-    if isinstance(selecciones, str):
-        selecciones = json.loads(selecciones)
-    step_x = float(step_x)
-    step_y = float(step_y)
+    if isinstance(selected_entity_ids, str):
+        selected_entity_ids = json.loads(selected_entity_ids)
+    escala_display = float(escala_display)
+    step_x_mm = float(step_x_mm)
+    step_y_mm = float(step_y_mm)
 
     run_dir = _runs_root() / run_id
     manifest_path = run_dir / "manifest.json"
@@ -78,12 +82,10 @@ def compose_pattern(run_id, selecciones, nombre, step_x, step_y, visibilidad,
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
-    # Compose DXF in run_dir (temp)
     safe_stem = re.sub(r"[^\w\-]", "_", nombre)
     tmp_dxf = run_dir / f"{safe_stem}_composed.dxf"
-    compose_dxf(manifest, selecciones, tmp_dxf)
+    compose_dxf(manifest, preset, selected_entity_ids, escala_display, tmp_dxf)
 
-    # Determine destination and version suffix
     dest_dir = _patron_dest_dir(visibilidad, customer)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
@@ -97,12 +99,19 @@ def compose_pattern(run_id, selecciones, nombre, step_x, step_y, visibilidad,
     dest_path = dest_dir / dxf_filename
     shutil.copy2(str(tmp_dxf), str(dest_path))
 
-    parametros = json.dumps({"step_x": step_x, "step_y": step_y, "origen": "vectorizado"})
+    parametros = json.dumps({
+        "step_x": step_x_mm,
+        "step_y": step_y_mm,
+        "origen": "vectorizado",
+        "preset": preset,
+        "escala_display": escala_display,
+    })
 
     if frappe.db.exists("SI Patron", nombre):
         doc = frappe.get_doc("SI Patron", nombre)
         doc.archivo_dxf = str(dest_path)
         doc.activo = 1
+        doc.parametros = parametros
     else:
         doc = frappe.new_doc("SI Patron")
         doc.name = nombre
