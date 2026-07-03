@@ -137,3 +137,85 @@ def compose_pattern(run_id, preset, selected_entity_ids, escala_display,
         "has_splines": False,
         "spline_count": 0,
     }
+
+
+@frappe.whitelist(allow_guest=False)
+def diagnose_svg_run(run_id=None):
+    """Diagnóstico del pipeline vectorizador: analiza SVGs crudos de potrace.
+
+    Sin run_id: usa el run más reciente en vectorize_runs/.
+    Con run_id: usa ese directorio específico.
+
+    Por cada preset reporta:
+      raw_path_count      — cuántos <path> tiene el SVG crudo
+      raw_d_summary       — largo del d de cada path + count de subpaths M…Z
+      parsed_entity_count — entidades que produce _parse_potrace_svg + _split_subpaths
+      svg_file_size_bytes — tamaño del .svg para detectar SVGs truncados/vacíos
+
+    Permite comparar lo que potrace generó vs. lo que el parser captura.
+
+    Uso:
+        bench --site erp.local execute sistema_industrial.api.vectorizer.diagnose_svg_run
+        bench --site erp.local execute sistema_industrial.api.vectorizer.diagnose_svg_run \\
+            --kwargs '{"run_id": "vr_1234567890_abcd"}'
+    """
+    from sistema_industrial.vectorize.runner import _parse_potrace_svg, _split_subpaths
+
+    runs_root = _runs_root()
+
+    if run_id:
+        run_dir = runs_root / run_id
+    else:
+        dirs = [d for d in runs_root.iterdir() if d.is_dir()] if runs_root.exists() else []
+        if not dirs:
+            return {"error": "No hay runs en vectorize_runs/"}
+        run_dir = max(dirs, key=lambda d: d.stat().st_mtime)
+        run_id = run_dir.name
+
+    if not run_dir.exists():
+        return {"error": f"Run no encontrado: {run_id}"}
+
+    svg_files = sorted(run_dir.glob("*.svg"))
+    if not svg_files:
+        return {"error": f"No hay archivos .svg en {run_dir}", "run_id": run_id}
+
+    preset_reports = []
+
+    for svg_file in svg_files:
+        svg_text = svg_file.read_text(encoding="utf-8", errors="replace")
+        svg_size = len(svg_text)
+
+        # Analyze raw <path> elements from potrace output
+        raw_paths = list(re.finditer(r'<path\b[^>]*/>', svg_text))
+        raw_path_count = len(raw_paths)
+
+        d_summary = []
+        for pm in raw_paths:
+            elem = pm.group(0)
+            dm = re.search(r'\bd="([^"]*)"', elem)
+            d_val = dm.group(1).strip() if dm else ""
+            m_count = len(re.findall(r'[Mm]', d_val))
+            d_summary.append({
+                "d_len": len(d_val),
+                "M_count": m_count,         # number of subpaths (each M starts one)
+                "is_compound": m_count > 1,
+            })
+
+        # What the parser actually extracts after splitting
+        _, _, path_ds = _parse_potrace_svg(svg_text)
+        parsed_entity_count = len(path_ds)
+
+        preset_reports.append({
+            "slug": svg_file.stem,
+            "svg_file_size_bytes": svg_size,
+            "raw_path_count": raw_path_count,
+            "raw_d_summary": d_summary,
+            "parsed_entity_count": parsed_entity_count,
+            "expected_after_split": sum(s["M_count"] for s in d_summary),
+        })
+
+    return {
+        "run_id": run_id,
+        "run_dir": str(run_dir),
+        "presets": preset_reports,
+    }

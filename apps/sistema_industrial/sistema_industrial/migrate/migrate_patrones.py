@@ -191,6 +191,31 @@ def migrate_parametricos():
     return {"inserted": inserted, "fixed_activo": fixed_activo, "ok": ok_list, "errors": errors}
 
 
+def list_inactive_patrones():
+    """Lista los SI Patron con activo=0 o activo=NULL — candidatos a hard-delete.
+
+    Retorna: {"candidatos": [{name, tipo, archivo_dxf, activo}], "total": N}
+
+    Uso (paso previo a delete_named_patrones — requiere confirmación de Constantino):
+        bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.list_inactive_patrones
+    """
+    import frappe
+
+    inactivos = frappe.db.get_all(
+        "SI Patron",
+        filters={"activo": 0},
+        fields=["name", "tipo", "archivo_dxf", "activo"],
+    )
+    nulos = frappe.db.get_all(
+        "SI Patron",
+        filters={"activo": ["is", "not set"]},
+        fields=["name", "tipo", "archivo_dxf", "activo"],
+    )
+
+    candidatos = inactivos + nulos
+    return {"candidatos": candidatos, "total": len(candidatos)}
+
+
 def delete_named_patrones(names):
     """Hard-delete de SI Patron por nombre, sin importar su tipo.
 
