@@ -160,17 +160,25 @@ def descargar_dxf(batches_json, customer="", job_name=""):
     # --- TRACE: pid, worker, batches IN, bytes/hash del DXF OUT, duración ---
     try:
         _md5 = _hl.md5(content).hexdigest()[:8]
-        # ¿el DXF generado contiene cada ancho de entrada? (proxy de completitud)
         _txt = content.decode("latin-1", "ignore")
-        _present = [w for w in set(_in_widths) if ("\n" + w + "\n") in _txt or ("\n" + str(int(float(w))) + ".0\n") in _txt]
-        frappe.logger("dxf_trace").warning(
-            f"pid={_os.getpid()} t={_t0:.3f} dur={_time.time()-_t0:.2f}s "
-            f"n_batches={len(batches)} anchos_in={_in_widths} "
-            f"bytes={len(content)} md5={_md5} anchos_en_dxf={sorted(_present)} "
-            f"customer={customer!r} job={job_name!r}"
+        _present = sorted(
+            w for w in set(_in_widths)
+            if ("\n" + w + "\n") in _txt or ("\n" + str(int(float(w))) + ".0\n") in _txt
         )
-    except Exception:
-        pass
+        _line = (
+            f"{_time.strftime('%H:%M:%S')} pid={_os.getpid()} t={_t0:.3f} "
+            f"dur={_time.time()-_t0:.2f}s n_batches={len(batches)} "
+            f"anchos_in={_in_widths} bytes={len(content)} md5={_md5} "
+            f"anchos_en_dxf={_present} customer={customer!r} job={job_name!r}\n"
+        )
+        with open("/home/costa/dxf_trace.log", "a", encoding="utf-8") as _f:
+            _f.write(_line)
+    except Exception as _e:
+        try:
+            with open("/home/costa/dxf_trace.log", "a", encoding="utf-8") as _f:
+                _f.write(f"TRACE_ERROR: {_e}\n")
+        except Exception:
+            pass
 
     nombre_trabajo = (job_name or "panel").replace(" ", "_")[:40]
     frappe.response.filename = f"{nombre_trabajo}.dxf"
