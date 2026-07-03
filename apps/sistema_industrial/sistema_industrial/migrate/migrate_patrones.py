@@ -154,6 +154,51 @@ def _find_pattern_library():
         return None
 
 
+def migrate_parametricos():
+    """Inserta o repara los 3 patrones paramétricos builtin.
+
+    Cubre dos casos:
+    - Doc faltante (migration nunca corrió): lo inserta con activo=1.
+    - Doc existente con activo=NULL/0 (field añadido después de la inserción):
+      fuerza activo=1 sin tocar el resto.
+
+    Retorna: {"inserted": [...], "fixed_activo": [...], "ok": [...], "errors": [...]}
+    """
+    import frappe
+
+    inserted, fixed_activo, ok_list, errors = [], [], [], []
+
+    for p in _PARAMETRICOS:
+        name = p["name"]
+        try:
+            if not frappe.db.exists("SI Patron", name):
+                payload = {
+                    "doctype": "SI Patron",
+                    "name": name,
+                    "tipo": p["tipo"],
+                    "visibilidad": p["visibilidad"],
+                    "descripcion": p.get("descripcion", ""),
+                    "parametros": json.dumps(p["parametros"], ensure_ascii=False),
+                    "activo": 1,
+                }
+                doc = frappe.get_doc(payload)
+                doc.insert(ignore_permissions=True)
+                inserted.append(name)
+            else:
+                doc = frappe.get_doc("SI Patron", name)
+                if not doc.activo:
+                    doc.activo = 1
+                    doc.save(ignore_permissions=True)
+                    fixed_activo.append(name)
+                else:
+                    ok_list.append(name)
+        except Exception as exc:
+            errors.append({"name": name, "error": str(exc)})
+
+    frappe.db.commit()
+    return {"inserted": inserted, "fixed_activo": fixed_activo, "ok": ok_list, "errors": errors}
+
+
 def wipe_file_patterns():
     """Hard-delete de todos los SI Patron tipo Archivo + Vectorizado.
 
