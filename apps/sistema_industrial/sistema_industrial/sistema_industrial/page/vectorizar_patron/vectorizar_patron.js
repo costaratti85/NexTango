@@ -242,6 +242,7 @@ class Vectorizador {
 		$('.vp-tool').removeClass('active');
 		$('#vp-tool-' + mode).addClass('active');
 		$('#vp-viewer').toggleClass('mode-pan', mode === 'pan');
+		$('#vp-viewer').toggleClass('mode-select', mode === 'select');
 		$('#vp-calib-panel').toggleClass('hidden', mode !== 'calibrate');
 
 		const hints = {

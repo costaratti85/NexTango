@@ -42,7 +42,20 @@
 .si-page .vp-viewer svg { width:100%; height:100%; display:block; cursor:crosshair; }
 .si-page .vp-viewer.mode-pan svg { cursor:grab; }
 .si-page .vp-viewer.panning svg { cursor:grabbing; }
-.si-page .vp-viewer svg path.vp-selected { stroke:#0066cc !important; stroke-width:3 !important; fill:rgba(0,102,204,.12) !important; }
+/* pointer-events:all — el subpath entra en modo hit-testing por su geometría de
+ * fill aunque fill sea "none" (son líneas finas, no queremos exigirle al usuario
+ * clickear el pixel exacto del trazo). */
+.si-page .vp-viewer svg path { pointer-events:all; }
+.si-page .vp-viewer.mode-select svg path:hover { stroke:#88bbdd; }
+/* Highlight de selección: SOLO contorno (stroke), nunca relleno — una entidad
+ * es una línea/subpath, no una región. vector-effect la mantiene visible sea
+ * cual sea el nivel de zoom (viewBox variable). */
+.si-page .vp-viewer svg path.vp-selected {
+	stroke:#0066cc !important;
+	stroke-width:2.5 !important;
+	fill:none !important;
+	vector-effect:non-scaling-stroke;
+}
 .si-page .vp-rubber-box { position:absolute; border:1px dashed var(--si-brand); background:rgba(23,107,135,.12); pointer-events:none; }
 .si-page .vp-calib-line { stroke:#e67e22; stroke-width:2; vector-effect:non-scaling-stroke; }
 .si-page .vp-calib-line.vertical { stroke:#c0392b; }
