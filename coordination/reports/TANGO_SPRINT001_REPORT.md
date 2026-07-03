@@ -157,6 +157,38 @@ Cliente ALANIZ SANTIAGO FERNANDO (código 000598) tiene newlines en el campo RAZ
 
 ---
 
+## Sync artículos Tango → ERPNext (completado 2026-07-02)
+
+### Resultados
+
+| Métrica | Valor |
+|---|---|
+| Artículos en Tango (STA11, process 87) | **2.189** |
+| Creados en ERPNext | **2.179** |
+| Actualizados (subset de prueba) | **10** |
+| Fallidos | **0** |
+
+**Todos los artículos presentes en ERPNext con 0 errores.**
+
+### Mapeo de campos
+
+| Campo Tango | Campo ERPNext | Decisión |
+|---|---|---|
+| `COD_STA11` | `item_code` | Clave natural (sin custom field) |
+| `DESCRIPCIO` | `item_name` + `description` | Whitespace normalizado |
+| `FAMILIA` | `item_group` | 7 familias → 5 grupos existentes |
+| `MEDIDA_STOCK_CODIGO` ("UNIDAD") | `stock_uom` = "Nos" | Único UoM del catálogo |
+| — | `is_stock_item` = 0 | Catálogo, no inventario |
+
+### Archivos creados/modificados
+
+- `tango_sync/article_push.py` — push idempotente con `_FAMILIA_TO_ITEM_GROUP`
+- `tango_sync/scheduled.py` — `sync_articles_from_tango()` agregada
+- `hooks.py` — job diario registrado
+- `tools/probe_articles_sync.py` — script de prueba
+
+---
+
 ## Pendientes para próximo sprint
 
 | Item | Bloqueado por | Prioridad |
@@ -165,8 +197,8 @@ Cliente ALANIZ SANTIAGO FERNANDO (código 000598) tiene newlines en el campo RAZ
 | SI_NEXUS_KEY en /etc/environment | Forge (MSG_022 + MSG_023) | Alta |
 | Cleanup token del repo | **Tango** — bloqueado hasta confirmación de Forge | Alta |
 | Discount UI en presupuestos | Vega — leer si_tango_discount al abrir presupuesto | Media |
+| Precios de artículos (GVA45/STA30) | A confirmar con Constantino — ¿expone Tango? | Media |
 | CUIT dedup risk | 8,318 clientes sin CUIT → name = COD_GVA14 si hay colisión | Baja |
-| Sync artículos (STA11) | Nueva task — process 87 confirmado | Baja |
 
 ---
 
