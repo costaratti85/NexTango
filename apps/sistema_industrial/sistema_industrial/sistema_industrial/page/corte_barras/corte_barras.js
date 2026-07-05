@@ -22,35 +22,33 @@ class CorteBarras {
 
 	_make_customer_control() {
 		this.customer_ctrl = frappe.ui.form.make_control({
-			parent: $('#cb-customer-field')[0],
+			parent: $('#cb-customer-field'),
 			df: {
 				fieldtype: 'Link',
 				fieldname: 'customer',
 				options: 'Customer',
-				placeholder: 'Buscar cliente...',
+				placeholder: __('Buscar cliente...'),
 			},
 			render_input: true,
 		});
-		this.customer_ctrl.refresh();
+		sistema_industrial.attach_customer_sync_button(this.customer_ctrl, '#cb-customer-field');
 	}
 
 	_make_item_control() {
 		this.item_ctrl = frappe.ui.form.make_control({
-			parent: $('#cb-item-field')[0],
+			parent: $('#cb-item-field'),
 			df: {
 				fieldtype: 'Link',
 				fieldname: 'item',
 				options: 'Item',
-				placeholder: 'Buscar perfil o caño (01-/02-)...',
-				get_query: () => ({
-					filters: [['Item', 'item_code', 'like', '01-%'],
-					          ['Item', 'item_code', 'like', '02-%']],
-					or_filters: true,
-				}),
+				placeholder: __('Buscar perfil o caño (01-/02-)...'),
+				// search_link no soporta or_filters (confirmado: TypeError) — filters
+				// ANDados de "like 01-%" + "like 02-%" es una condición imposible,
+				// siempre devolvía 0 resultados. Resuelto con query function propia.
+				get_query: () => ({ query: 'sistema_industrial.api.corte_barras.item_query' }),
 			},
 			render_input: true,
 		});
-		this.item_ctrl.refresh();
 	}
 
 	// ── Eventos ───────────────────────────────────────────────────────────────

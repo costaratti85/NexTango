@@ -63,15 +63,18 @@
 /* ---- Botón "Actualizar" junto al selector de Customer (MSG_023) ---- */
 /* sistema_industrial.attach_customer_sync_button() (public/js/customer_sync.js)
  * agrega esta clase al div contenedor del control Link (ya existente en cada
- * page), convirtiéndolo en fila para alinear input + botón. */
-.si-page .si-customer-sync-row { display: flex; align-items: center; gap: 6px; }
-.si-page .si-customer-sync-row .control-input-wrapper,
-.si-page .si-customer-sync-row .control-input { flex: 1 1 auto; min-width: 0; }
-.si-page .si-customer-sync-btn { flex: 0 0 auto; padding: 6px 9px; line-height: 1; font-size: 14px;
+ * page), convirtiéndolo en fila para alinear input + botón.
+ * SIN scope a .si-page a propósito: este bundle se carga globalmente
+ * (app_include_css) y el botón se usa también en páginas que no envuelven
+ * su contenido en .si-page (ej. corte-barras, con su propio #cb-root). */
+.si-customer-sync-row { display: flex; align-items: center; gap: 6px; }
+.si-customer-sync-row .control-input-wrapper,
+.si-customer-sync-row .control-input { flex: 1 1 auto; min-width: 0; }
+.si-customer-sync-btn { flex: 0 0 auto; padding: 6px 9px; line-height: 1; font-size: 14px;
   border: 1px solid #ccc; border-radius: 5px; background: #fff; cursor: pointer; }
-.si-page .si-customer-sync-btn:hover:not(:disabled) { border-color: var(--si-brand); }
-.si-page .si-customer-sync-btn:disabled { opacity: .6; cursor: default; }
-.si-page .si-customer-sync-btn .si-spin { display: inline-block; animation: si-sync-spin .8s linear infinite; }
+.si-customer-sync-btn:hover:not(:disabled) { border-color: var(--si-brand); }
+.si-customer-sync-btn:disabled { opacity: .6; cursor: default; }
+.si-customer-sync-btn .si-spin { display: inline-block; animation: si-sync-spin .8s linear infinite; }
 @keyframes si-sync-spin { to { transform: rotate(360deg); } }
 
 /* ---- Responsive ---- */

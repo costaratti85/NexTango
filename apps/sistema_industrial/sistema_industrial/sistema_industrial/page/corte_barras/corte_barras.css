@@ -3,7 +3,7 @@
   font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
   background: #f0f2f5;
   color: #16314f;
-  font-size: 16px;
+  font-size: 14px;
   padding: 16px;
   max-width: 960px;
   margin: 0 auto;
@@ -26,7 +26,7 @@
 #cb-root .cb-card {
   background: #fff;
   border: 1.5px solid #d8e6f6;
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 18px;
   margin-bottom: 16px;
   box-shadow: 0 4px 14px rgba(20,60,110,.06);
@@ -48,8 +48,8 @@
 #cb-root input[type="text"] {
   width: 100%;
   padding: 10px 10px;
-  font-size: 16px;
-  border-radius: 10px;
+  font-size: 14px;
+  border-radius: 6px;
   border: 1.5px solid #bcd4ee;
   background: #fff;
   color: #16314f;
@@ -64,7 +64,7 @@
 
 /* Frappe control override */
 #cb-root .form-group { margin-bottom: 0; }
-#cb-root .frappe-control .form-control { border-radius: 10px; border: 1.5px solid #bcd4ee; }
+#cb-root .frappe-control .form-control { border-radius: 6px; border: 1.5px solid #bcd4ee; }
 
 /* Table */
 #cb-root table { width: 100%; border-collapse: collapse; margin-top: 4px; }
@@ -86,8 +86,8 @@
 #cb-root .cb-primary {
   -webkit-appearance: none;
   border: none;
-  border-radius: 12px;
-  font-size: 17px;
+  border-radius: 6px;
+  font-size: 16px;
   padding: 14px 20px;
   font-weight: 700;
   color: #fff;
@@ -102,7 +102,7 @@
 #cb-root .cb-ghost {
   -webkit-appearance: none;
   border: 1.5px solid #bcd4ee;
-  border-radius: 10px;
+  border-radius: 6px;
   font-size: 14px;
   padding: 8px 14px;
   font-weight: 700;
@@ -113,7 +113,7 @@
 #cb-root .cb-ghost-sm {
   -webkit-appearance: none;
   border: 1.5px solid #f0c0c0;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 13px;
   padding: 6px 10px;
   color: #c0392b;
@@ -144,7 +144,7 @@
   flex: 1 1 130px;
   background: #f0f8ff;
   border: 1.5px solid #bcd4ee;
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 12px 14px;
   text-align: center;
 }
@@ -157,7 +157,7 @@
 #cb-root .cb-breakdown {
   background: #f8fafe;
   border: 1.5px solid #d4e3f5;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 14px 16px;
 }
 #cb-root .cb-breakdown .line {
@@ -200,19 +200,19 @@
   background: #fff3e0;
   border: 1.5px solid #f0c060;
   color: #7a4800;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 6px 14px;
   font-size: 15px;
   font-weight: 700;
 }
 
-/* Error */
+/* Error — mismos colores que .si-page .error-box del resto del sistema */
 #cb-root .cb-error {
-  background: #ffe3ec;
-  border: 1.5px solid #f3a3bd;
-  color: #b23560;
+  background: #fdecea;
+  border: 1px solid #f5a5a0;
+  color: #c62828;
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: 6px;
   margin-top: 12px;
-  font-size: 15px;
+  font-size: 14px;
 }

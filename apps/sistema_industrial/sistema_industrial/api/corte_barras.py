@@ -4,14 +4,17 @@ URL base: /api/method/sistema_industrial.api.corte_barras.
 
 Endpoints:
     calcular(bar_len, cuts_json, price_per_bar, price_per_meter, kerf_mm)
+    item_query(...)  — autocomplete del selector de Producto (01-/02-)
 """
 import json
 
 try:
     import frappe
+    from frappe.utils import cint
     _whitelist = frappe.whitelist
 except ImportError:
     frappe = None
+    cint = int
 
     def _whitelist(**_kw):
         def deco(fn):
@@ -20,6 +23,36 @@ except ImportError:
 
 
 from sistema_industrial.cutting.nest_1d import calculate_purchase_plan
+
+
+@_whitelist()
+def item_query(doctype, txt, searchfield, start, page_length, filters=None, **kwargs):
+    """Autocomplete de Item para el selector de Producto en corte-barras —
+    solo perfiles (01-) y caños (02-).
+
+    VEGA_REVISION_CORTE_BARRAS: el get_query original armaba
+    {filters: [AND de 2 like], or_filters: true} para pedir un OR entre
+    "item_code like 01-%" y "like 02-%" — pero search_link/search_widget
+    (frappe/desk/search.py) no aceptan un parámetro or_filters (confirmado:
+    TypeError). El resultado real era 0 resultados siempre (o error de
+    servidor), el selector de producto no funcionaba. No hay forma de
+    expresar el OR con el "filters" simple de Frappe sin incluir también
+    otros prefijos reales del maestro (04-/05-/06-/07-/50-/etc.), así que
+    se resuelve con SQL directo como query function.
+    """
+    like_txt = f"%{txt}%" if txt else "%"
+    return frappe.db.sql(
+        """
+        select name, item_name
+        from `tabItem`
+        where disabled = 0
+          and (name like %(txt)s or item_name like %(txt)s)
+          and (name like '01-%%' or name like '02-%%')
+        order by name
+        limit %(start)s, %(page_length)s
+        """,
+        {"txt": like_txt, "start": cint(start), "page_length": cint(page_length)},
+    )
 
 
 @_whitelist()
