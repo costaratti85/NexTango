@@ -28,13 +28,11 @@ def manual_sync_customers() -> dict:
     job = frappe.enqueue(
         "sistema_industrial.tango_sync.api._sync_customers_background",
         enqueue_after_commit=True,
-        is_async=True,
         timeout=300,  # 5 min para ~8.400 clientes
-        job_title="Sync manual de clientes Tango → ERPNext",
     )
 
     return {
-        "job_id": job.id,
+        "job_id": job.id if job else None,
         "message": "Sincronización de clientes iniciada. Por favor espere...",
         "status": "queued",
     }
