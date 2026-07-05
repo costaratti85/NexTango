@@ -31,21 +31,26 @@ def manual_sync_customers() -> dict:
         timeout=300,  # 5 min para ~8.400 clientes
     )
 
-    # Debug: log what frappe.enqueue returned
-    logger.info("frappe.enqueue returned: type=%s, value=%r", type(job).__name__, job)
-
-    # Frappe v16: frappe.enqueue devuelve un Background Job doc o un string ID
+    # Frappe v16: frappe.enqueue devuelve el job ID como string o en un object
     job_id = None
-    if job is None:
-        job_id = "queued_but_no_id"  # Fallback: enqueue succeeds but no ID returned
-    elif isinstance(job, str):
+    if isinstance(job, str):
         job_id = job
-    elif isinstance(job, dict):
-        job_id = job.get("id") or job.get("name") or str(job)
-    elif hasattr(job, "id"):
-        job_id = job.id or job.name if hasattr(job, "name") else str(job)
-    else:
-        job_id = str(job) if job else "queued_no_id"
+    elif job is not None:
+        # Si no es string, intenta extraer el atributo 'id'
+        if hasattr(job, 'id'):
+            job_id = job.id
+        elif hasattr(job, 'name'):
+            job_id = job.name
+        else:
+            job_id = str(job)
+
+    if not job_id:
+        # Fallback: si el job_id sigue vacío, usa un timestamp como identificador
+        import time
+        job_id = f"sync_{int(time.time()*1000)}"
+        logger.warning("manual_sync_customers: enqueue devolvió sin ID, usando fallback: %s", job_id)
+
+    logger.info("manual_sync_customers: job_id=%s, type=%s", job_id, type(job).__name__)
 
     return {
         "job_id": job_id,
