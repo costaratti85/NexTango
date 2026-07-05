@@ -18,6 +18,7 @@ frappe.pages['perfiles-plegados'].on_page_load = function (wrapper) {
 		parent: $(wrapper).find('#pp-customer-field'),
 		render_input: true,
 	});
+	sistema_industrial.attach_customer_sync_button(_ppCustomerControl, $(wrapper).find('#pp-customer-field'));
 	perfiles_plegados_init();
 };
 

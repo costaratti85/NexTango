@@ -125,6 +125,7 @@ class PanelDecorativo {
 			parent: $('#pd-customer-field'),
 			render_input: true,
 		});
+		sistema_industrial.attach_customer_sync_button(this.customer_control, '#pd-customer-field');
 	}
 
 	get_customer() {

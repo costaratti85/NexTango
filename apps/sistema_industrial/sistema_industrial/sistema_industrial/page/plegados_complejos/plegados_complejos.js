@@ -35,6 +35,7 @@ class PlegadosComplejos {
 			parent: $('#pc-customer-field'),
 			render_input: true,
 		});
+		sistema_industrial.attach_customer_sync_button(this.customer_control, '#pc-customer-field');
 	}
 
 	get_customer() {

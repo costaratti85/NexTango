@@ -8,6 +8,9 @@ app_license = "MIT"
 # CSS común de las páginas del módulo (scopeado bajo .si-page — ver el archivo)
 app_include_css = "/assets/sistema_industrial/css/sistema_industrial.css"
 
+# Helper compartido: botón "Actualizar" de sync manual de clientes (MSG_023)
+app_include_js = "/assets/sistema_industrial/js/customer_sync.js"
+
 fixtures = [
     {"dt": "Role", "filters": [["role_name", "like", "SI %"]]},
 ]
