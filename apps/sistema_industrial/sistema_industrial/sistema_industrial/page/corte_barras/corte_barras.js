@@ -106,7 +106,18 @@ class CorteBarras {
 			return;
 		}
 
+		// Mostrar modo activo cuando falta un precio (precio=0 → ese modo no aplica)
 		this._hide_error();
+		if (price_per_bar === 0 && price_per_meter === 0) {
+			this._show_info('Sin precios cargados: se muestra solo el plan de corte (costo = $0).');
+		} else if (price_per_bar === 0) {
+			this._show_info('Precio/barra = $0 → modo solo tramos sueltos por metro.');
+		} else if (price_per_meter === 0) {
+			this._show_info('Precio/metro = $0 → modo solo barras enteras.');
+		} else {
+			this._hide_info();
+		}
+
 		this._set_loading(true);
 
 		frappe.call({
@@ -247,5 +258,13 @@ class CorteBarras {
 
 	_hide_error() {
 		$('#cb-error').hide();
+	}
+
+	_show_info(msg) {
+		$('#cb-info').text(msg).show();
+	}
+
+	_hide_info() {
+		$('#cb-info').hide();
 	}
 }
