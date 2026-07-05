@@ -1,22 +1,32 @@
 """Endpoints whitelisted para sincronización Tango → ERPNext.
 
 Manual/on-demand sync de clientes (vs. scheduled sync que corre diariamente).
-Usa background jobs para no bloquear requests (sync completo de ~8.400 clientes).
+Usa Redis para trackear estado (Background Jobs no disponible en esta instalación Frappe v16).
 """
 from __future__ import annotations
 
 import logging
+import json
+import time
+import uuid
 import frappe
 
 logger = logging.getLogger(__name__)
 
+# Redis cache para trackear sync jobs (Background Job doctype no existe)
+def _get_redis():
+    return frappe.cache()
+
+def _sync_job_key(job_id: str) -> str:
+    return f"sync_customer_job:{job_id}"
+
 
 @frappe.whitelist()
 def manual_sync_customers() -> dict:
-    """Dispara sync manual de clientes Tango → ERPNext como background job.
+    """Dispara sync manual de clientes Tango → ERPNext (síncrono con timeout largo).
 
-    Usa frappe.enqueue para no bloquear el request. El frontend hace polling
-    en el job_id para obtener resultados cuando esté listo.
+    No usa Background Jobs (no disponible en esta instalación Frappe v16).
+    Usa Redis para trackear el estado y permitir polling del frontend.
 
     Returns:
         {
@@ -25,32 +35,37 @@ def manual_sync_customers() -> dict:
             "status": "queued"
         }
     """
-    job = frappe.enqueue(
-        "sistema_industrial.tango_sync.api._sync_customers_background",
-        enqueue_after_commit=True,
-        timeout=300,  # 5 min para ~8.400 clientes
-    )
+    # Generar job_id único
+    job_id = str(uuid.uuid4())
 
-    # Frappe v16: frappe.enqueue devuelve el job ID como string o en un object
-    job_id = None
-    if isinstance(job, str):
-        job_id = job
-    elif job is not None:
-        # Si no es string, intenta extraer el atributo 'id'
-        if hasattr(job, 'id'):
-            job_id = job.id
-        elif hasattr(job, 'name'):
-            job_id = job.name
-        else:
-            job_id = str(job)
+    # Guardar estado inicial en Redis (TTL 10 min)
+    redis = _get_redis()
+    job_data = {
+        "status": "running",
+        "started_at": time.time(),
+        "created": 0,
+        "updated": 0,
+        "failed": 0,
+        "total": 0,
+    }
+    redis.setex(_sync_job_key(job_id), 600, json.dumps(job_data))
 
-    if not job_id:
-        # Fallback: si el job_id sigue vacío, usa un timestamp como identificador
-        import time
-        job_id = f"sync_{int(time.time()*1000)}"
-        logger.warning("manual_sync_customers: enqueue devolvió sin ID, usando fallback: %s", job_id)
+    logger.info("manual_sync_customers: job_id=%s, iniciando sync en thread", job_id)
 
-    logger.info("manual_sync_customers: job_id=%s, type=%s", job_id, type(job).__name__)
+    # Ejecutar el sync sincronicamente (Frappe sin Background Jobs)
+    # Enqueue si es posible, sino correr directo
+    try:
+        frappe.enqueue(
+            "sistema_industrial.tango_sync.api._sync_customers_background_redis",
+            job_id=job_id,
+            enqueue_after_commit=True,
+            timeout=300,
+        )
+        logger.info("manual_sync_customers: job_id=%s enqueued via frappe.enqueue", job_id)
+    except Exception as e:
+        logger.warning("manual_sync_customers: frappe.enqueue falló, corriendo sincrónico: %s", e)
+        # Fallback: correr sincrónico
+        _sync_customers_background_redis(job_id)
 
     return {
         "job_id": job_id,
@@ -61,117 +76,122 @@ def manual_sync_customers() -> dict:
 
 @frappe.whitelist()
 def get_sync_status(job_id: str) -> dict:
-    """Consulta el status de un Background Job de sync de clientes.
-
-    Accede directamente a la BD porque Background Job doctype puede no estar
-    disponible en algunos entornos Frappe v16.
+    """Consulta el status de un sync de clientes (almacenado en Redis).
 
     Args:
-        job_id: ID del Background Job (devuelto por manual_sync_customers)
+        job_id: ID del sync job (devuelto por manual_sync_customers)
 
     Returns:
         {
-            "status": "queued" | "running" | "completed" | "failed",
-            "created": int (si completed),
-            "updated": int (si completed),
-            "failed": int (si completed),
-            "total": int (si completed),
+            "status": "running" | "completed" | "failed",
+            "created": int,
+            "updated": int,
+            "failed": int,
+            "total": int,
             "error": str (si failed),
-            "started_on": timestamp,
-            "completed_on": timestamp
+            "started_at": timestamp,
+            "completed_at": timestamp (si completed)
         }
     """
     if not job_id:
         raise frappe.ValidationError("job_id requerido")
 
-    # Query directo a la BD en lugar de frappe.get_doc (Background Job puede no existir)
-    result = frappe.db.get_value(
-        "Background Job",
-        job_id,
-        ["status", "output", "exc", "started_on", "completed_on"],
-        as_dict=True,
-    )
+    redis = _get_redis()
+    job_data_json = redis.get(_sync_job_key(job_id))
 
-    if not result:
-        return {"status": "not_found", "error": f"Job {job_id} no existe"}
+    if not job_data_json:
+        return {"status": "not_found", "error": f"Job {job_id} no existe o expiró"}
 
+    try:
+        job_data = json.loads(job_data_json)
+    except Exception as e:
+        logger.error("get_sync_status: no se pudo parsear Redis data: %s", e)
+        return {"status": "error", "error": "Corrupted job data"}
+
+    # Devolver el estado guardado en Redis
     response = {
-        "status": result.get("status"),  # "queued", "running", "completed", "failed"
+        "status": job_data.get("status"),
+        "created": job_data.get("created", 0),
+        "updated": job_data.get("updated", 0),
+        "failed": job_data.get("failed", 0),
+        "total": job_data.get("total", 0),
     }
 
-    # Si está completo, parsear output
-    if result.get("status") == "completed" and result.get("output"):
-        try:
-            output_data = frappe.parse_json(result["output"])
-            response.update({
-                "created": output_data.get("created", 0),
-                "updated": output_data.get("updated", 0),
-                "failed": output_data.get("failed", 0),
-                "total": output_data.get("total", 0),
-            })
-        except Exception as e:
-            logger.warning("get_sync_status: no se pudo parsear output: %s", e)
-            response["output_raw"] = result["output"]
+    if job_data.get("error"):
+        response["error"] = job_data["error"]
 
-    # Si falló, incluir error
-    if result.get("status") == "failed" and result.get("exc"):
-        response["error"] = result["exc"][:500]  # primeros 500 chars del traceback
+    if job_data.get("started_at"):
+        response["started_at"] = job_data["started_at"]
+    if job_data.get("completed_at"):
+        response["completed_at"] = job_data["completed_at"]
 
-    # Timestamps
-    if result.get("started_on"):
-        response["started_on"] = str(result["started_on"])
-    if result.get("completed_on"):
-        response["completed_on"] = str(result["completed_on"])
-
-    logger.info("get_sync_status(%s): status=%s", job_id, result.get("status"))
+    logger.info("get_sync_status(%s): status=%s", job_id, job_data.get("status"))
     return response
 
 
-def _sync_customers_background() -> dict:
-    """Worker background que ejecuta el sync de clientes.
+def _sync_customers_background_redis(job_id: str) -> dict:
+    """Worker que ejecuta el sync de clientes y guarda resultado en Redis.
 
-    Reutiliza la lógica de sync_customers_from_tango() pero devuelve el resultado
-    para que pueda ser inspeccionado vía Background Job polling.
+    Args:
+        job_id: ID del job (para trackear en Redis)
 
     Returns:
         {
             "created": int,
             "updated": int,
             "failed": int,
-            "errors": list[tuple[str, str]]
+            "errors": list
         }
     """
     from sistema_industrial.tango_sync.http_client import TangoHTTPClient, make_tango_config_from_env
     from sistema_industrial.erpnext_extensions.client import ERPNextClient
     from sistema_industrial.tango_sync.customer_push import push_customers_to_erpnext
 
-    config = make_tango_config_from_env()
-    if not config.token:
-        msg = "SI_NEXUS_KEY no configurado — sync abortado"
-        logger.error("_sync_customers_background: %s", msg)
-        raise frappe.ValidationError(msg)
+    redis = _get_redis()
+    job_key = _sync_job_key(job_id)
 
-    logger.info("_sync_customers_background: iniciando descarga desde Tango...")
-    tango = TangoHTTPClient(config)
+    try:
+        config = make_tango_config_from_env()
+        if not config.token:
+            raise frappe.ValidationError("SI_NEXUS_KEY no configurado")
 
-    customers = tango.get_customers()
-    logger.info("_sync_customers_background: %d clientes descargados", len(customers))
+        logger.info("_sync_customers_background_redis(%s): iniciando...", job_id)
+        tango = TangoHTTPClient(config)
 
-    result = push_customers_to_erpnext(customers, ERPNextClient())
-    logger.info(
-        "_sync_customers_background: creados=%d actualizados=%d fallidos=%d",
-        result.created, result.updated, result.failed,
-    )
-    if result.errors:
-        for code, err in result.errors[:10]:
-            logger.warning("  cliente %s: %s", code, err[:200])
+        customers = tango.get_customers()
+        logger.info("_sync_customers_background_redis(%s): %d clientes descargados", job_id, len(customers))
 
-    # Devolver dict que será guardado en el job output
-    return {
-        "created": result.created,
-        "updated": result.updated,
-        "failed": result.failed,
-        "skipped": result.skipped,
-        "total": result.total,
-        "errors": result.errors,
-    }
+        result = push_customers_to_erpnext(customers, ERPNextClient())
+        logger.info(
+            "_sync_customers_background_redis(%s): creados=%d actualizados=%d fallidos=%d",
+            job_id, result.created, result.updated, result.failed,
+        )
+
+        # Guardar resultado en Redis
+        job_data = {
+            "status": "completed",
+            "created": result.created,
+            "updated": result.updated,
+            "failed": result.failed,
+            "total": result.total,
+            "started_at": redis.get(job_key + ":started_at") or time.time(),
+            "completed_at": time.time(),
+        }
+        if result.errors:
+            job_data["error"] = f"{len(result.errors)} clientes con error. Primero: {result.errors[0][1][:200]}"
+
+        redis.setex(job_key, 600, json.dumps(job_data))
+        logger.info("_sync_customers_background_redis(%s): resultado guardado en Redis", job_id)
+
+        return job_data
+
+    except Exception as e:
+        logger.exception("_sync_customers_background_redis(%s): ERROR: %s", job_id, e)
+        job_data = {
+            "status": "failed",
+            "error": str(e)[:500],
+            "started_at": redis.get(job_key + ":started_at") or time.time(),
+            "completed_at": time.time(),
+        }
+        redis.setex(job_key, 600, json.dumps(job_data))
+        return job_data
