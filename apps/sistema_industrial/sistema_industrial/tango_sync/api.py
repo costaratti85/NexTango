@@ -31,8 +31,19 @@ def manual_sync_customers() -> dict:
         timeout=300,  # 5 min para ~8.400 clientes
     )
 
+    # Frappe v16: frappe.enqueue devuelve un dict con 'id' o un objeto Background Job
+    job_id = None
+    if isinstance(job, dict):
+        job_id = job.get("id") or job.get("name")
+    elif hasattr(job, "id"):
+        job_id = job.id
+    elif hasattr(job, "name"):
+        job_id = job.name
+    elif job:
+        job_id = str(job)
+
     return {
-        "job_id": job.id if job else None,
+        "job_id": job_id,
         "message": "Sincronización de clientes iniciada. Por favor espere...",
         "status": "queued",
     }
