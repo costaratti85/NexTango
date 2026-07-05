@@ -54,6 +54,64 @@ def manual_sync_customers() -> dict:
     }
 
 
+@frappe.whitelist()
+def get_sync_status(job_id: str) -> dict:
+    """Consulta el status de un Background Job de sync de clientes.
+
+    Args:
+        job_id: ID del Background Job (devuelto por manual_sync_customers)
+
+    Returns:
+        {
+            "status": "queued" | "running" | "completed" | "failed",
+            "created": int (si completed),
+            "updated": int (si completed),
+            "failed": int (si completed),
+            "total": int (si completed),
+            "error": str (si failed),
+            "progress": str (ej. "Descargando clientes...")
+        }
+    """
+    if not job_id:
+        raise frappe.ValidationError("job_id requerido")
+
+    try:
+        job = frappe.get_doc("Background Job", job_id)
+    except frappe.DoesNotExistError:
+        return {"status": "not_found", "error": f"Job {job_id} no existe"}
+
+    result = {
+        "status": job.status,  # "queued", "running", "completed", "failed"
+    }
+
+    # Si está completo, parsear output
+    if job.status == "completed" and job.output:
+        try:
+            output_data = frappe.parse_json(job.output)
+            result.update({
+                "created": output_data.get("created", 0),
+                "updated": output_data.get("updated", 0),
+                "failed": output_data.get("failed", 0),
+                "total": output_data.get("total", 0),
+            })
+        except Exception as e:
+            logger.warning("get_sync_status: no se pudo parsear output: %s", e)
+            result["output_raw"] = job.output
+
+    # Si falló, incluir error
+    if job.status == "failed" and job.exc:
+        result["error"] = job.exc[:500]  # primeros 500 chars del traceback
+
+    # Timestamps útiles
+    if job.started_on:
+        result["started_on"] = str(job.started_on)
+    if job.completed_on:
+        result["completed_on"] = str(job.completed_on)
+
+    logger.info("get_sync_status(%s): status=%s", job_id, job.status)
+    return result
+
+
 def _sync_customers_background() -> dict:
     """Worker background que ejecuta el sync de clientes.
 
