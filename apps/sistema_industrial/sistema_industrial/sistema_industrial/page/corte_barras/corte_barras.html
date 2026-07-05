@@ -1,0 +1,112 @@
+<div id="cb-root">
+
+  <!-- ============ CABECERA ============ -->
+  <div class="cb-header">
+    <h1>Corte de Barras</h1>
+    <p class="cb-sub">Calculá cuántas barras comprar y cómo cortarlas.</p>
+  </div>
+
+  <!-- ============ FORMULARIO ============ -->
+  <div class="cb-card">
+    <h2>Datos de la cotización</h2>
+
+    <div class="cb-row">
+      <div class="cb-col cb-col-wide">
+        <label>Cliente (opcional)</label>
+        <div id="cb-customer-field"></div>
+      </div>
+      <div class="cb-col cb-col-wide">
+        <label>Producto (perfil o caño 01-/02-)</label>
+        <div id="cb-item-field"></div>
+      </div>
+    </div>
+
+    <div class="cb-row">
+      <div class="cb-col">
+        <label>Largo de barra (mm)</label>
+        <input type="number" id="cb-bar-len" value="6000" min="100" step="1">
+      </div>
+      <div class="cb-col">
+        <label>Kerf / sierra (mm)</label>
+        <input type="number" id="cb-kerf" value="2" min="0" step="0.1">
+      </div>
+      <div class="cb-col">
+        <label>Precio por barra ($)</label>
+        <input type="number" id="cb-price-bar" value="" min="0" step="0.01" placeholder="ej. 4500">
+      </div>
+      <div class="cb-col">
+        <label>Precio por metro lineal ($)</label>
+        <input type="number" id="cb-price-metro" value="" min="0" step="0.01" placeholder="ej. 750">
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TABLA DE PIEZAS ============ -->
+  <div class="cb-card">
+    <div class="cb-section-head">
+      <h2>Lista de piezas</h2>
+      <button id="cb-btn-add" class="cb-ghost">+ Agregar fila</button>
+    </div>
+
+    <table id="cb-pieces-table">
+      <thead>
+        <tr>
+          <th>Cant.</th>
+          <th>Largo (mm)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="cb-pieces-body">
+        <tr>
+          <td><input type="number" class="cb-qty" value="1" min="1" step="1"></td>
+          <td><input type="number" class="cb-len" min="1" step="1" placeholder="mm"></td>
+          <td><button class="cb-del-row cb-ghost-sm">✕</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="cb-btnbar" style="margin-top:16px;">
+      <button id="cb-btn-calc" class="cb-primary">Calcular plan de corte</button>
+    </div>
+  </div>
+
+  <!-- ============ RESULTADOS ============ -->
+  <div id="cb-results" style="display:none;">
+
+    <!-- Resumen de compra -->
+    <div class="cb-card" id="cb-summary-card">
+      <h2>Resumen de compra</h2>
+      <div class="cb-kpis" id="cb-kpis"></div>
+      <div id="cb-cost-breakdown"></div>
+    </div>
+
+    <!-- Plan de corte de barras enteras -->
+    <div class="cb-card" id="cb-plan-card" style="display:none;">
+      <h2>Plan de corte — barras enteras</h2>
+      <table id="cb-plan-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Patrón de cortes (mm)</th>
+            <th>Barras</th>
+            <th>Usado</th>
+            <th>Desperdicio</th>
+            <th>Efic.</th>
+          </tr>
+        </thead>
+        <tbody id="cb-plan-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Tramos sueltos -->
+    <div class="cb-card" id="cb-tramos-card" style="display:none;">
+      <h2>Tramos sueltos (compra por metro)</h2>
+      <div id="cb-tramos-list"></div>
+    </div>
+
+  </div>
+
+  <!-- Error banner -->
+  <div id="cb-error" class="cb-error" style="display:none;"></div>
+
+</div>
