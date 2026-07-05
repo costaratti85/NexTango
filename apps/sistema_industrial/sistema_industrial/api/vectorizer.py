@@ -107,11 +107,15 @@ def compose_pattern(run_id, preset, selected_entity_ids, escala_display,
         "escala_display": escala_display,
     })
 
+    from sistema_industrial.api.patrones import _count_splines, _generate_and_save_thumbnail
+    sc = _count_splines(dest_path)
+
     if frappe.db.exists("SI Patron", nombre):
         doc = frappe.get_doc("SI Patron", nombre)
         doc.archivo_dxf = str(dest_path)
         doc.activo = 1
         doc.parametros = parametros
+        doc.spline_count = sc
     else:
         doc = frappe.new_doc("SI Patron")
         doc.name = nombre
@@ -121,21 +125,20 @@ def compose_pattern(run_id, preset, selected_entity_ids, escala_display,
         doc.descripcion = descripcion or ""
         doc.archivo_dxf = str(dest_path)
         doc.parametros = parametros
-        doc.spline_count = 0
+        doc.spline_count = sc
         doc.activo = 1
 
     doc.save(ignore_permissions=True)
     frappe.db.commit()
 
-    from sistema_industrial.api.patrones import _generate_and_save_thumbnail
     _generate_and_save_thumbnail(nombre, dest_path)
 
     return {
         "ok": True,
         "name": doc.name,
         "version": doc.version,
-        "has_splines": False,
-        "spline_count": 0,
+        "has_splines": sc > 0,
+        "spline_count": sc,
     }
 
 
