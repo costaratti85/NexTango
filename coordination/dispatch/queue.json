@@ -14,18 +14,30 @@
       "task": "VEGA_BOTON_SYNC_CLIENTES",
       "descripcion": "Tarea de Constantino (2026-07-03): botón 'Actualizar' junto al Link a Customer en panel-decorativo, plegados-complejos, perfiles-plegados (y la futura página de corte de barras cuando exista el selector). Dispara el endpoint de Forge (FORGE_SYNC_MANUAL_CLIENTES), muestra loading + resultado (frappe.show_alert), y refresca el control Link para que el cliente recién sincronizado sea buscable sin recargar la página. Valorar helper JS compartido entre las 4 páginas en vez de repetir. Ver MSG_023 de su canal.",
       "msg": "coordination/channel/Vega/MSG_023_nova_boton_sync_clientes.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-rebanada",
-      "prioridad": "media"
+      "prioridad": "media",
+      "nota": "Vega commit fc6c111 (erpnext), deployado y verificado (build + bump_page_cache + restart del worker web para que hooks.py tome el app_include_js nuevo). Helper compartido public/js/customer_sync.js (attach_customer_sync_button): botón + loading + show_alert + reset de control.$input.cache (Frappe cachea search_link por input+término). Conectado en panel-decorativo/plegados-complejos/perfiles-plegados. Contrato provisorio (sync_customers_now → {ok,created,updated,failed}) propuesto a Forge en MSG_025 de su canal, pendiente de que confirme sync vs async por performance (FORGE_SYNC_MANUAL_CLIENTES sigue abierto). Ver MSG_069 en Nova."
     },
     {
       "agent": "Nova",
       "task": "NOVA_GEMU_CORTE_BARRAS_ENTREGADO",
-      "descripcion": "Gemu completó GEMU_PAGINA_CORTE_BARRAS + GEMU_MODELO_COMPRA_MIXTO. Commits: main a548132 (motor mixto + 21 tests), erpnext b1b8722 (page corte-barras + API + workspace shortcut). Pendiente deploy por Orbit/Forge. Ver MSG_005 en canal Gemu.",
+      "descripcion": "Gemu completó GEMU_PAGINA_CORTE_BARRAS + GEMU_MODELO_COMPRA_MIXTO. Commits: main a548132 (motor mixto + 21 tests), erpnext b1b8722 (page corte-barras + API + workspace shortcut). Ver MSG_005 en canal Gemu.",
       "msg": "coordination/channel/Gemu/MSG_005_gemu_entrega_corte_barras.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "002-corte-barras",
-      "prioridad": "alta"
+      "prioridad": "alta",
+      "nota": "Procesado 2026-07-05: dispatch de deploy a Orbit (ORBIT_DEPLOY_CORTE_BARRAS), dispatch de revisión frontend a Vega (VEGA_REVISION_CORTE_BARRAS, MSG_024) ya que Gemu construyó el frontend solo, y las 3 preguntas abiertas de Gemu (precios en SI Precios Globales, filtro de prefijos de Item, uso del selector de Item en resultados) escaladas directo a Constantino en conversación."
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_REVISION_CORTE_BARRAS",
+      "descripcion": "Pasada de revisión sobre la página corte-barras que Gemu construyó de punta a punta (frontend incluido, no es su especialidad). Revisar: armonización visual con panel-decorativo/plegados-complejos/perfiles-plegados, consistencia del Customer Link, ubicación del shortcut en Workspace, y evaluar sumar el botón de sync de clientes (VEGA_BOTON_SYNC_CLIENTES) ya que la página no existía cuando se hizo esa tarea. No es reconstrucción — motor y lógica de negocio de Gemu no se tocan. Ver MSG_024 de su canal.",
+      "msg": "coordination/channel/Vega/MSG_024_nova_revision_corte_barras.md",
+      "status": "completado",
+      "sprint": "002-corte-barras",
+      "prioridad": "media",
+      "nota": "Vega commit 2a7d16c (erpnext), deployado y verificado en vivo (pull+build+bump_page_cache+restart worker). BUG CRÍTICO encontrado y arreglado: el selector de Producto (Item) nunca funcionaba — get_query armaba filters ANDados imposibles + or_filters:true (parámetro inexistente en search_link, TypeError confirmado en servidor). Fix: query function propia item_query() con SQL directo (OR real, no se podía resolver con un solo like por otros prefijos reales 04-/05-/06-/07-/50-/etc.). Verificado end-to-end contra el mecanismo real de Frappe post-deploy. Armonización visual liviana (radios/tipografía, colores ya coincidían). Customer Link alineado a las otras 3 páginas. Sync button conectado (de paso, saqué el scope .si-page del CSS compartido — corte-barras no lo usa). Workspace shortcut verificado OK, sin cambios. HALLAZGO reportado a Gemu (MSG_007 en su canal), no tocado: calculate_purchase_plan usa precio=0 como sentinel Y como precio real — si solo se carga un precio, el total sale /usr/bin/bash silenciosamente. Ver MSG_070 en Nova."
     },
     {
       "agent": "Orbit",
@@ -41,9 +53,10 @@
       "task": "VEGA_SHORTCUT_PANEL_DECORATIVO_HOME",
       "descripcion": "Tarea nueva de Constantino (2026-07-03): agregar un acceso directo a 'Panel Decorativo' en la página principal del Desk de ERPNext — lo más visible/accesible posible. Ya existe un shortcut a panel-decorativo dentro del Workspace 'Sistema Industrial' (VEGA_TASK_009), pero Constantino lo pide de nuevo, así que probablemente no es lo primero que ve al entrar. Vega decide el mejor lugar (default workspace al entrar al Desk, shortcut en el Workspace 'Home' nativo, u otro) y reporta con verificación. Ver MSG_022 de su canal.",
       "msg": "coordination/channel/Vega/MSG_022_nova_shortcut_panel_decorativo.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-rebanada",
-      "prioridad": "media"
+      "prioridad": "media",
+      "nota": "Duplicado de VEGA_SHORTCUT_HOME_PANEL_DECORATIVO (ya completado, commit ebb1684) — mismo pedido de Constantino (MSG_022), resuelto agregando el shortcut al Workspace Home nativo, primero en Your Shortcuts. Ver MSG_068 en Nova."
     },
     {
       "agent": "Punto",
@@ -85,6 +98,16 @@
       "prioridad": "alta",
       "comando": "cd /home/costa/Nextango-erpnext && git pull && supervisorctl restart all",
       "nota": "Orbit MSG_012 (2026-07-03): git pull c1cb6bb..a53ef40 fast-forward + supervisorctl restart all (7/7 RUNNING). Commit verificado en servidor (vectorize/runner.py, cambio de modelo a contornos morfológicos). Sin pendientes en su cola. Falta que Constantino verifique con la imagen original de la malla."
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_COMPOSER_SPLINE",
+      "descripcion": "Deploy del composer con SPLINEs reales (a44b34f). Solo bench restart — sin bench migrate. El DXF de patrones vectorizados ahora emite entidades SPLINE (degree=3, clamped knots) en vez de LINE segments. compose_pattern() actualiza spline_count correctamente → badge 'Tiene Splines' aparece en admin-patrones → Constantino puede correr 'Convertir a arcos'. Ver MSG_070 de Nova.",
+      "msg": "coordination/channel/Nova/MSG_070_punto_composer_spline.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "alta",
+      "comando": "cd /home/costa/Nextango-erpnext && git pull && supervisorctl restart all"
     },
     {
       "agent": "Orbit",
