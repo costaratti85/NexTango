@@ -57,7 +57,7 @@ def manual_sync_customers() -> dict:
     try:
         frappe.enqueue(
             "sistema_industrial.tango_sync.api._sync_customers_background_redis",
-            job_id=job_id,
+            sync_job_id=job_id,  # RENAMED: job_id es parámetro reservado de frappe.enqueue(), no se reenvía
             enqueue_after_commit=True,
             timeout=300,
         )
@@ -129,11 +129,11 @@ def get_sync_status(job_id: str) -> dict:
     return response
 
 
-def _sync_customers_background_redis(job_id: str) -> dict:
+def _sync_customers_background_redis(sync_job_id: str) -> dict:
     """Worker que ejecuta el sync de clientes y guarda resultado en Redis.
 
     Args:
-        job_id: ID del job (para trackear en Redis)
+        sync_job_id: ID del job (para trackear en Redis) — renombrado para evitar colisión con frappe.enqueue(job_id=...)
 
     Returns:
         {
@@ -147,6 +147,7 @@ def _sync_customers_background_redis(job_id: str) -> dict:
     from sistema_industrial.erpnext_extensions.client import ERPNextClient
     from sistema_industrial.tango_sync.customer_push import push_customers_to_erpnext
 
+    job_id = sync_job_id  # Alias para compatibilidad con el resto del código
     redis = _get_redis()
     job_key = _sync_job_key(job_id)
 
