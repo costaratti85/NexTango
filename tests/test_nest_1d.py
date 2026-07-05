@@ -193,3 +193,32 @@ def test_compra_mixta_tramo_pieces_ordenadas_desc():
     """tramo_pieces está ordenado de mayor a menor."""
     r = calculate_purchase_plan(6000, [(2, 300), (1, 900), (3, 150)], price_per_bar=10000, price_per_meter=1, kerf_mm=0)
     assert r.tramo_pieces == sorted(r.tramo_pieces, reverse=True)
+
+
+def test_precio_barra_cero_fuerza_todo_tramos():
+    """price_per_bar=0 → precio=0 como sentinel 'modo no disponible' → todo a tramos."""
+    r = calculate_purchase_plan(6000, [(3, 1500)], price_per_bar=0, price_per_meter=20.0, kerf_mm=0)
+    assert r.error == ""
+    assert r.full_bars == 0
+    assert r.full_bar_cost == 0.0
+    # 3×1500mm = 4500mm = 4.5m × 20 = 90
+    assert abs(r.tramo_total_meters - 4.5) < 0.001
+    assert abs(r.total_cost - 90.0) < 0.01
+
+
+def test_precio_metro_cero_fuerza_todo_barras():
+    """price_per_meter=0 → modo no disponible → todo a barras enteras."""
+    r = calculate_purchase_plan(6000, [(3, 1500)], price_per_bar=100.0, price_per_meter=0, kerf_mm=0)
+    assert r.error == ""
+    assert r.full_bars == 1
+    assert r.tramo_total_mm == 0.0
+    assert abs(r.full_bar_cost - 100.0) < 0.01
+    assert abs(r.total_cost - 100.0) < 0.01
+
+
+def test_ambos_precios_cero_solo_plan_barras():
+    """Ambos=0 → sin precios, todo a barras, costo=0 (solo plan de corte)."""
+    r = calculate_purchase_plan(6000, [(3, 1500)], price_per_bar=0, price_per_meter=0, kerf_mm=0)
+    assert r.error == ""
+    assert r.full_bars >= 1
+    assert r.total_cost == 0.0

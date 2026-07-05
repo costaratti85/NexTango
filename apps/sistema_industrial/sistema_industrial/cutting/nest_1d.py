@@ -324,12 +324,24 @@ def calculate_purchase_plan(
     bar_bins = []
     tramo_pieces = []
 
+    # precio=0 actúa como sentinel "ese modo no disponible":
+    #   price_per_bar=0   → todo a tramos (no se pueden comprar barras enteras)
+    #   price_per_meter=0 → todo a barras (no se pueden comprar tramos sueltos)
+    #   ambos=0           → todo a barras, costo=0 (solo plan de corte sin precio)
+    only_tramos = price_per_bar == 0 and price_per_meter > 0
+    only_bars = price_per_meter == 0
+
     for b in bins:
-        cost_tramo = sum(b) / 1000.0 * price_per_meter
-        if price_per_bar <= cost_tramo:
+        if only_tramos:
+            tramo_pieces.extend(b)
+        elif only_bars:
             bar_bins.append(b)
         else:
-            tramo_pieces.extend(b)
+            cost_tramo = sum(b) / 1000.0 * price_per_meter
+            if price_per_bar <= cost_tramo:
+                bar_bins.append(b)
+            else:
+                tramo_pieces.extend(b)
 
     # Patrones de barras enteras
     freq = Counter(_normalizar(b) for b in bar_bins)
