@@ -58,6 +58,9 @@ def manual_sync_customers() -> dict:
 def get_sync_status(job_id: str) -> dict:
     """Consulta el status de un Background Job de sync de clientes.
 
+    Accede directamente a la BD porque Background Job doctype puede no estar
+    disponible en algunos entornos Frappe v16.
+
     Args:
         job_id: ID del Background Job (devuelto por manual_sync_customers)
 
@@ -69,26 +72,33 @@ def get_sync_status(job_id: str) -> dict:
             "failed": int (si completed),
             "total": int (si completed),
             "error": str (si failed),
-            "progress": str (ej. "Descargando clientes...")
+            "started_on": timestamp,
+            "completed_on": timestamp
         }
     """
     if not job_id:
         raise frappe.ValidationError("job_id requerido")
 
-    try:
-        job = frappe.get_doc("Background Job", job_id)
-    except frappe.DoesNotExistError:
+    # Query directo a la BD en lugar de frappe.get_doc (Background Job puede no existir)
+    result = frappe.db.get_value(
+        "Background Job",
+        job_id,
+        ["status", "output", "exc", "started_on", "completed_on"],
+        as_dict=True,
+    )
+
+    if not result:
         return {"status": "not_found", "error": f"Job {job_id} no existe"}
 
-    result = {
-        "status": job.status,  # "queued", "running", "completed", "failed"
+    response = {
+        "status": result.get("status"),  # "queued", "running", "completed", "failed"
     }
 
     # Si está completo, parsear output
-    if job.status == "completed" and job.output:
+    if result.get("status") == "completed" and result.get("output"):
         try:
-            output_data = frappe.parse_json(job.output)
-            result.update({
+            output_data = frappe.parse_json(result["output"])
+            response.update({
                 "created": output_data.get("created", 0),
                 "updated": output_data.get("updated", 0),
                 "failed": output_data.get("failed", 0),
@@ -96,20 +106,20 @@ def get_sync_status(job_id: str) -> dict:
             })
         except Exception as e:
             logger.warning("get_sync_status: no se pudo parsear output: %s", e)
-            result["output_raw"] = job.output
+            response["output_raw"] = result["output"]
 
     # Si falló, incluir error
-    if job.status == "failed" and job.exc:
-        result["error"] = job.exc[:500]  # primeros 500 chars del traceback
+    if result.get("status") == "failed" and result.get("exc"):
+        response["error"] = result["exc"][:500]  # primeros 500 chars del traceback
 
-    # Timestamps útiles
-    if job.started_on:
-        result["started_on"] = str(job.started_on)
-    if job.completed_on:
-        result["completed_on"] = str(job.completed_on)
+    # Timestamps
+    if result.get("started_on"):
+        response["started_on"] = str(result["started_on"])
+    if result.get("completed_on"):
+        response["completed_on"] = str(result["completed_on"])
 
-    logger.info("get_sync_status(%s): status=%s", job_id, job.status)
-    return result
+    logger.info("get_sync_status(%s): status=%s", job_id, result.get("status"))
+    return response
 
 
 def _sync_customers_background() -> dict:
