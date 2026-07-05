@@ -1,10 +1,49 @@
 {
   "pending": [
     {
+      "agent": "Forge",
+      "task": "FORGE_SYNC_MANUAL_CLIENTES",
+      "descripcion": "Tarea de Constantino (2026-07-03): endpoint whitelisted que dispara sync_customers_from_tango() on-demand (mismo proceso del scheduler diario, manual) para un botón 'Actualizar' junto a los selectores de cliente. Debe devolver resultado usable por la UI (creados/actualizados/fallidos), no fire-and-forget. Resolver antes de exponerlo: performance del sync completo (~8.400 clientes) para un uso pensado en 'traer 1 cliente nuevo ya' — evaluar filtro incremental en Tango API o correr como background job (frappe.enqueue). Coordinar con Tango antes de tocar tango_sync/ (ownership suyo). Ver MSG_024 de su canal.",
+      "msg": "coordination/channel/Forge/MSG_024_nova_sync_manual_clientes.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "media"
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_BOTON_SYNC_CLIENTES",
+      "descripcion": "Tarea de Constantino (2026-07-03): botón 'Actualizar' junto al Link a Customer en panel-decorativo, plegados-complejos, perfiles-plegados (y la futura página de corte de barras cuando exista el selector). Dispara el endpoint de Forge (FORGE_SYNC_MANUAL_CLIENTES), muestra loading + resultado (frappe.show_alert), y refresca el control Link para que el cliente recién sincronizado sea buscable sin recargar la página. Valorar helper JS compartido entre las 4 páginas en vez de repetir. Ver MSG_023 de su canal.",
+      "msg": "coordination/channel/Vega/MSG_023_nova_boton_sync_clientes.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "media"
+    },
+    {
       "agent": "Nova",
-      "session_id": "local_c9d7e577-8e15-45d7-bc7c-1184aa2b0428",
-      "message": "Gemu: motor entregado (TASK_001, kerf=2mm, 14 tests). ACK de tu mensaje en MSG_004. Esperando verde tuyo para el scope de la página. Ver coordination/channel/Gemu/MSG_004_gemu_ack_nova.md",
-      "queued_at": "2026-07-03T01:30:00"
+      "task": "NOVA_GEMU_CORTE_BARRAS_ENTREGADO",
+      "descripcion": "Gemu completó GEMU_PAGINA_CORTE_BARRAS + GEMU_MODELO_COMPRA_MIXTO. Commits: main a548132 (motor mixto + 21 tests), erpnext b1b8722 (page corte-barras + API + workspace shortcut). Pendiente deploy por Orbit/Forge. Ver MSG_005 en canal Gemu.",
+      "msg": "coordination/channel/Gemu/MSG_005_gemu_entrega_corte_barras.md",
+      "status": "pendiente",
+      "sprint": "002-corte-barras",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_CORTE_BARRAS",
+      "descripcion": "Deploy de página corte-barras (commit b1b8722 en erpnext). Requiere: git pull + bench migrate (crea el Page doc) + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. No hay DocTypes nuevos. Verificar: la URL /corte-barras carga y el botón Calcular no da 404.",
+      "msg": "coordination/channel/Gemu/MSG_005_gemu_entrega_corte_barras.md",
+      "status": "pendiente",
+      "sprint": "002-corte-barras",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_SHORTCUT_PANEL_DECORATIVO_HOME",
+      "descripcion": "Tarea nueva de Constantino (2026-07-03): agregar un acceso directo a 'Panel Decorativo' en la página principal del Desk de ERPNext — lo más visible/accesible posible. Ya existe un shortcut a panel-decorativo dentro del Workspace 'Sistema Industrial' (VEGA_TASK_009), pero Constantino lo pide de nuevo, así que probablemente no es lo primero que ve al entrar. Vega decide el mejor lugar (default workspace al entrar al Desk, shortcut en el Workspace 'Home' nativo, u otro) y reporta con verificación. Ver MSG_022 de su canal.",
+      "msg": "coordination/channel/Vega/MSG_022_nova_shortcut_panel_decorativo.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "media"
     },
     {
       "agent": "Punto",
@@ -41,10 +80,11 @@
       "task": "ORBIT_DEPLOY_MSG033_CONTORNOS",
       "descripcion": "Deploy del fix de extracción de contornos morfológicos (a53ef40). Solo bench restart — sin bench migrate (no hay DocTypes nuevos). Verificar con la imagen de la malla de Constantino: antes 29 entidades borde-only, esperado ahora N anillos individuales (uno por círculo visible). Ver MSG_069 de Nova.",
       "msg": "coordination/channel/Nova/MSG_069_punto_msg033_fix.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-rebanada",
       "prioridad": "alta",
-      "comando": "cd /home/costa/Nextango-erpnext && git pull && supervisorctl restart all"
+      "comando": "cd /home/costa/Nextango-erpnext && git pull && supervisorctl restart all",
+      "nota": "Orbit MSG_012 (2026-07-03): git pull c1cb6bb..a53ef40 fast-forward + supervisorctl restart all (7/7 RUNNING). Commit verificado en servidor (vectorize/runner.py, cambio de modelo a contornos morfológicos). Sin pendientes en su cola. Falta que Constantino verifique con la imagen original de la malla."
     },
     {
       "agent": "Orbit",
@@ -123,6 +163,16 @@
       "sprint": "001-rebanada",
       "prioridad": "media",
       "nota": "Vega commit e1725e1 (erpnext), deployado (pull+migrate+build+bump_page_cache junto con 083a031 de Punto). .vp-selected ahora solo stroke (fill:none), pointer-events:all para hit-testing tolerante sobre subpaths finos. Ver MSG_067 en Nova."
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_SHORTCUT_HOME_PANEL_DECORATIVO",
+      "descripcion": "Constantino pidió acceso directo a Panel Decorativo en la página principal del Desk, lo más visible con un solo clic. Ver MSG_022 en canal Vega.",
+      "msg": "coordination/channel/Nova/MSG_068_VEGA_shortcut_home_panel_decorativo.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "media",
+      "nota": "Vega commit ebb1684 (erpnext), deployado y verificado en el servidor (bench execute, no requiere migrate/build/bump_page_cache). ensure_home_shortcut_panel_decorativo() en deploy.py agrega el shortcut como PRIMERO en la sección 'Your Shortcuts' del Workspace Home nativo — antes de Item/Customer/Supplier/Sales Invoice. Idempotente (verificado: 2da corrida = changed:false). Opción elegida sobre forzar Sistema Industrial como default global (afectaría a todos los roles). Ver MSG_068 en Nova."
     }
   ],
   "foco_2026-07-02": {
