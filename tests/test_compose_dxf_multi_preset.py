@@ -399,3 +399,160 @@ class TestBboxFromD:
         """Empty path → zero bbox without error."""
         bb = self._bbox("")
         assert bb == {"x": 0.0, "y": 0.0, "w": 0.0, "h": 0.0}
+
+
+# ---------------------------------------------------------------------------
+# Corner-clipping at tangent discontinuities (PUNTO_ESQUINA_SIGUE_TORCIDA)
+# ---------------------------------------------------------------------------
+
+class TestVecAngleDeg:
+    """Unit tests for _vec_angle_deg helper."""
+
+    @staticmethod
+    def _angle(v1, v2):
+        from sistema_industrial.vectorize.composer import _vec_angle_deg
+        return _vec_angle_deg(v1, v2)
+
+    def test_parallel_vectors_zero_deg(self):
+        assert abs(self._angle((1, 0), (2, 0))) < 1e-6
+
+    def test_antiparallel_vectors_180_deg(self):
+        assert abs(self._angle((1, 0), (-1, 0)) - 180.0) < 1e-6
+
+    def test_perpendicular_vectors_90_deg(self):
+        assert abs(self._angle((1, 0), (0, 1)) - 90.0) < 1e-6
+
+    def test_45_deg(self):
+        assert abs(self._angle((1, 0), (1, 1)) - 45.0) < 1e-3
+
+    def test_degenerate_zero_vector_returns_zero(self):
+        """Zero-length vector: angle = 0 (no clipping triggered)."""
+        assert self._angle((0, 0), (1, 0)) == 0.0
+
+
+class TestDeCasteljauSplit:
+    """Unit tests for _de_casteljau_split."""
+
+    @staticmethod
+    def _split(p0, p1, p2, p3, t):
+        from sistema_industrial.vectorize.composer import _de_casteljau_split
+        return _de_casteljau_split(p0, p1, p2, p3, t)
+
+    def test_split_at_zero_returns_degenerate_first(self):
+        """t=0: first piece is a degenerate point, second is the full curve."""
+        p0, p1, p2, p3 = (0, 0), (1, 0), (1, 1), (0, 1)
+        first, second = self._split(p0, p1, p2, p3, 0.0)
+        assert abs(first[0][0]) < 1e-9 and abs(first[0][1]) < 1e-9
+        assert abs(first[3][0]) < 1e-9 and abs(first[3][1]) < 1e-9  # first is a point
+
+    def test_split_at_one_returns_degenerate_second(self):
+        """t=1: second piece is degenerate, first is the full curve."""
+        p0, p1, p2, p3 = (0, 0), (1, 0), (1, 1), (0, 1)
+        first, second = self._split(p0, p1, p2, p3, 1.0)
+        assert abs(first[0][0]) < 1e-9
+        assert abs(first[3][0] - 0) < 1e-9 and abs(first[3][1] - 1) < 1e-9
+
+    def test_split_at_half_midpoint(self):
+        """t=0.5: split point for a symmetric Bézier is at its midpoint."""
+        # Symmetric cubic: P0=(0,0) P1=(0,1) P2=(1,1) P3=(1,0)
+        # At t=0.5 the curve passes through (0.5, 0.75) for this symmetric case
+        p0, p1, p2, p3 = (0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)
+        first, second = self._split(p0, p1, p2, p3, 0.5)
+        # Endpoints must be connected: first[3] == second[0]
+        assert abs(first[3][0] - second[0][0]) < 1e-9
+        assert abs(first[3][1] - second[0][1]) < 1e-9
+        # Outer endpoints preserved
+        assert abs(first[0][0] - p0[0]) < 1e-9
+        assert abs(second[3][0] - p3[0]) < 1e-9
+
+    def test_linear_bezier_split_point_on_line(self):
+        """For a degenerate (linear) Bézier, split point lies on the line."""
+        # P0=(0,0) P1=(1,0) P2=(2,0) P3=(3,0) — a straight line
+        p0, p1, p2, p3 = (0.0, 0.0), (1.0, 0.0), (2.0, 0.0), (3.0, 0.0)
+        first, second = self._split(p0, p1, p2, p3, 0.87)
+        # Split point should be at x = 3 * 0.87 = 2.61
+        assert abs(first[3][0] - 3.0 * 0.87) < 1e-6
+        assert abs(first[3][1]) < 1e-9
+
+
+class TestSplitAtCorners:
+    """Integration tests for corner detection and clipping pipeline."""
+
+    @staticmethod
+    def _split(d, scale=1.0):
+        from sistema_industrial.vectorize.composer import (
+            _parse_path_segments, _split_at_corners
+        )
+        segs = _parse_path_segments(d, scale)
+        return _split_at_corners(segs)
+
+    def _count(self, d, scale=1.0):
+        segs = self._split(d, scale)
+        cubics = sum(1 for s in segs if s[0] == "cubic")
+        lines  = sum(1 for s in segs if s[0] == "line")
+        return cubics, lines
+
+    def test_smooth_join_no_clip(self):
+        """Two Béziers meeting at <25° are NOT clipped — count unchanged."""
+        # Two very similar Béziers meeting with ~0° angle (tangent-continuous)
+        # Segment 1: P0=(0,0) P1=(1,0) P2=(2,0) P3=(3,0) — horizontal exit
+        # Segment 2: P3=(3,0) P4=(4,0) P5=(5,0) P6=(6,0) — horizontal entry
+        d = "M 0 0 C 1 0 2 0 3 0 C 4 0 5 0 6 0"
+        cubics, lines = self._count(d)
+        assert cubics == 2  # both intact
+        assert lines == 0
+
+    def test_right_angle_corner_produces_stubs(self):
+        """Two Béziers with 90° junction → each gets a LINE stub at the corner."""
+        # Segment 1: exit tangent pointing right  (+x)
+        # Segment 2: entry tangent pointing down   (-y) — 90° difference
+        # P0=(0,0) P1=(1,0) P2=(2,0) P3=(3,0) | P4=(3,-1) P5=(3,-2) P6=(3,-3)
+        d = "M 0 0 C 1 0 2 0 3 0 C 3 -1 3 -2 3 -3"
+        cubics, lines = self._count(d)
+        assert cubics == 2     # main body of each Bézier survives as SPLINE
+        assert lines == 2      # one stub per side of the corner
+
+    def test_sharp_corner_stub_endpoints_at_junction(self):
+        """The LINE stubs both touch the junction point P3."""
+        # Same 90° corner path
+        d = "M 0 0 C 1 0 2 0 3 0 C 3 -1 3 -2 3 -3"
+        segs = self._split(d)
+        lines = [s for s in segs if s[0] == "line"]
+        assert len(lines) == 2
+        # Stub of segment 1 (tail): its endpoint (p1) should be near (3,0)
+        tail_stub = lines[0]
+        assert abs(tail_stub[2][0] - 3.0) < 0.1  # near P3.x
+        assert abs(tail_stub[2][1] - 0.0) < 0.1  # near P3.y
+        # Stub of segment 2 (head): its startpoint (p0) should be near (3,0)
+        head_stub = lines[1]
+        assert abs(head_stub[1][0] - 3.0) < 0.1
+        assert abs(head_stub[1][1] - 0.0) < 0.1
+
+    def test_three_segments_two_corners(self):
+        """Three Béziers with two 90° corners → 4 stubs total."""
+        # Seg1: right, Seg2: down, Seg3: left — L-shape with two 90° corners
+        d = (
+            "M 0 0 C 1 0 2 0 3 0 "    # seg1: exit →
+            "C 3 -1 3 -2 3 -3 "        # seg2: entry ↓, exit ↓
+            "C 2 -3 1 -3 0 -3"         # seg3: entry ←
+        )
+        cubics, lines = self._count(d)
+        assert cubics == 3
+        assert lines == 4  # tail+head at first corner, tail+head at second
+
+    def test_line_between_cubics_breaks_adjacency(self):
+        """A LINE between two cubics means they are NOT adjacent → no clipping."""
+        from sistema_industrial.vectorize.composer import (
+            _parse_path_segments, _split_at_corners
+        )
+        # Build segments manually: cubic, LINE, cubic with 90° that would trigger
+        segs = [
+            ("cubic", (0.0,0.0), (1.0,0.0), (2.0,0.0), (3.0,0.0)),
+            ("line",  (3.0,0.0), (3.0,0.5)),   # intervening line breaks chain
+            ("cubic", (3.0,0.5), (3.0,-0.5), (3.0,-1.5), (3.0,-3.0)),
+        ]
+        result = _split_at_corners(segs)
+        cubics = sum(1 for s in result if s[0] == "cubic")
+        lines  = sum(1 for s in result if s[0] == "line")
+        assert cubics == 2
+        assert lines == 1   # only the original intervening line
