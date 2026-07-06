@@ -141,18 +141,27 @@ def item_query(doctype, txt, searchfield, start, page_length, filters=None, **kw
     otros prefijos reales del maestro (04-/05-/06-/07-/50-/etc.), así que
     se resuelve con SQL directo como query function.
     """
-    like_txt = f"%{txt}%" if txt else "%"
+    # name (código): prefijo — "01-02-03" solo matchea códigos que EMPIEZAN con eso,
+    # así la jerarquía 01→01-02→01-02-03 se resuelve a medida que el usuario tipea más.
+    # item_name: substring — el nombre libre puede buscarse en cualquier posición.
+    prefix_txt = f"{txt}%" if txt else "%"
+    substr_txt = f"%{txt}%" if txt else "%"
     return frappe.db.sql(
         """
         select name, item_name
         from `tabItem`
         where disabled = 0
-          and (name like %(txt)s or item_name like %(txt)s)
+          and (name like %(prefix_txt)s or item_name like %(substr_txt)s)
           and (name like '01-%%' or name like '02-%%')
         order by name
         limit %(start)s, %(page_length)s
         """,
-        {"txt": like_txt, "start": cint(start), "page_length": cint(page_length)},
+        {
+            "prefix_txt": prefix_txt,
+            "substr_txt": substr_txt,
+            "start": cint(start),
+            "page_length": cint(page_length),
+        },
     )
 
 
@@ -180,7 +189,8 @@ def calcular(bar_len, cuts_json, tipo_material="", medida="",
     kerf_mm = float(kerf_mm)
     price_per_bar = float(price_per_bar)
     price_per_meter = float(price_per_meter)
-    angular = bool(angular)
+    # bool("false") == True en Python (string no vacío = truthy) — parseo explícito
+    angular = str(angular).strip().lower() in ("1", "true", "yes", "on")
     cuts_raw = json.loads(cuts_json)
 
     if angular:
