@@ -184,6 +184,47 @@ def _add_path_to_msp(msp, d: str, scale: float, layer: str) -> None:
                 i += 1
 
 
+def _center_msp_on_origin(msp) -> None:
+    """Translate all LINE/SPLINE entities in msp so their combined bbox is centered on (0,0).
+
+    The vectorizer writes coordinates in image space (origin at image corner).
+    This ensures the resulting DXF pattern has (0,0) at its geometric center,
+    which is required for symmetric tiling in the panel motor.
+    """
+    all_x: list = []
+    all_y: list = []
+    for entity in msp:
+        et = entity.dxftype()
+        if et == "LINE":
+            all_x.extend([entity.dxf.start.x, entity.dxf.end.x])
+            all_y.extend([entity.dxf.start.y, entity.dxf.end.y])
+        elif et == "SPLINE":
+            for cp in entity.control_points:
+                all_x.append(cp[0])
+                all_y.append(cp[1])
+
+    if not all_x or not all_y:
+        return
+
+    cx = (min(all_x) + max(all_x)) / 2.0
+    cy = (min(all_y) + max(all_y)) / 2.0
+    if abs(cx) <= 1e-6 and abs(cy) <= 1e-6:
+        return
+
+    for entity in msp:
+        et = entity.dxftype()
+        if et == "LINE":
+            s = entity.dxf.start
+            e = entity.dxf.end
+            entity.dxf.start = (s.x - cx, s.y - cy, 0.0)
+            entity.dxf.end = (e.x - cx, e.y - cy, 0.0)
+        elif et == "SPLINE":
+            entity.control_points = [
+                (cp[0] - cx, cp[1] - cy, 0.0)
+                for cp in entity.control_points
+            ]
+
+
 def compose_dxf(
     manifest: dict,
     selected_items: list,
@@ -231,6 +272,11 @@ def compose_dxf(
             _add_path_to_msp(msp, entity["d"], scale=mm_factor, layer=layer)
         except Exception:
             continue
+
+    # Center bbox on origin so the pattern file itself has (0,0) at its center.
+    # Without this, patterns open in CypCut/viewers with the origin offset to
+    # one corner, matching the raw image coordinates from the vectorizer.
+    _center_msp_on_origin(msp)
 
     doc.saveas(str(output_path))
 

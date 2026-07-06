@@ -126,14 +126,102 @@ def _parse_potrace_svg(svg_text: str) -> tuple:
 
 
 def _bbox_from_d(d: str) -> dict:
-    """Approximate bbox from raw numbers in path d — adequate for rubber-band hints."""
-    nums = [float(n) for n in re.findall(
-        r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", d
-    )]
-    if len(nums) < 4:
+    """Compute bbox from SVG path d, correctly handling relative (lowercase) commands.
+
+    The old implementation extracted raw numbers and assumed absolute coordinates,
+    which broke for paths with relative commands (m,l,c,q lowercase) — the numbers
+    are offsets from the current position, not absolute coordinates, so the raw-number
+    approach produces a bbox grouped near zero instead of the actual position.
+
+    This parser tracks the current position and converts all relative coordinates to
+    absolute before recording them. Bézier control points are used as bbox bounds
+    (conservative: by the convex-hull property the curve stays within them).
+    """
+    _tok_re = re.compile(
+        r"[MmLlCcQqZzHhVv]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
+    )
+    tokens = _tok_re.findall(d)
+    cx = cy = sx = sy = 0.0
+    cmd = None
+    i = 0
+    xs: list = []
+    ys: list = []
+
+    def _consume(n):
+        nonlocal i
+        vals = [float(tokens[i + k]) for k in range(n)]
+        i += n
+        return vals
+
+    while i < len(tokens):
+        tok = tokens[i]
+        if re.match(r"[a-zA-Z]", tok):
+            cmd = tok
+            i += 1
+        if i >= len(tokens):
+            break
+
+        if cmd == "M":
+            x, y = _consume(2)
+            cx, cy = x, y
+            sx, sy = cx, cy
+            xs.append(cx); ys.append(cy)
+            cmd = "L"
+        elif cmd == "m":
+            dx, dy = _consume(2)
+            cx, cy = cx + dx, cy + dy
+            sx, sy = cx, cy
+            xs.append(cx); ys.append(cy)
+            cmd = "l"
+        elif cmd == "L":
+            x, y = _consume(2)
+            cx, cy = x, y
+            xs.append(cx); ys.append(cy)
+        elif cmd == "l":
+            dx, dy = _consume(2)
+            cx, cy = cx + dx, cy + dy
+            xs.append(cx); ys.append(cy)
+        elif cmd == "H":
+            (x,) = _consume(1)
+            cx = x
+            xs.append(cx); ys.append(cy)
+        elif cmd == "h":
+            (dx,) = _consume(1)
+            cx += dx
+            xs.append(cx); ys.append(cy)
+        elif cmd == "V":
+            (y,) = _consume(1)
+            cy = y
+            xs.append(cx); ys.append(cy)
+        elif cmd == "v":
+            (dy,) = _consume(1)
+            cy += dy
+            xs.append(cx); ys.append(cy)
+        elif cmd == "C":
+            x1, y1, x2, y2, x, y = _consume(6)
+            xs.extend([x1, x2, x]); ys.extend([y1, y2, y])
+            cx, cy = x, y
+        elif cmd == "c":
+            dx1, dy1, dx2, dy2, dx, dy = _consume(6)
+            xs.extend([cx + dx1, cx + dx2, cx + dx])
+            ys.extend([cy + dy1, cy + dy2, cy + dy])
+            cx, cy = cx + dx, cy + dy
+        elif cmd == "Q":
+            x1, y1, x, y = _consume(4)
+            xs.extend([x1, x]); ys.extend([y1, y])
+            cx, cy = x, y
+        elif cmd == "q":
+            dx1, dy1, dx, dy = _consume(4)
+            xs.extend([cx + dx1, cx + dx]); ys.extend([cy + dy1, cy + dy])
+            cx, cy = cx + dx, cy + dy
+        elif cmd in ("Z", "z"):
+            cx, cy = sx, sy
+        else:
+            while i < len(tokens) and not re.match(r"[a-zA-Z]", tokens[i]):
+                i += 1
+
+    if not xs or not ys:
         return {"x": 0.0, "y": 0.0, "w": 0.0, "h": 0.0}
-    xs = nums[0::2]
-    ys = nums[1::2]
     return {
         "x": round(min(xs), 1), "y": round(min(ys), 1),
         "w": round(max(xs) - min(xs), 1), "h": round(max(ys) - min(ys), 1),
