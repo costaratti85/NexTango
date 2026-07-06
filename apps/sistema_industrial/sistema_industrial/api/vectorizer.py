@@ -63,17 +63,37 @@ def vectorize_image(file_url, presets=None):
 
 
 @frappe.whitelist(allow_guest=False)
-def compose_pattern(run_id, preset, selected_entity_ids, escala_display,
-                    step_x_mm, step_y_mm, nombre, visibilidad,
+def compose_pattern(run_id, escala_display, step_x_mm, step_y_mm,
+                    nombre, visibilidad,
+                    selected_items=None,
+                    preset=None, selected_entity_ids=None,
                     customer=None, descripcion=None):
-    """Compone DXF con las entidades seleccionadas y registra SI Patron."""
-    from sistema_industrial.vectorize.composer import compose_dxf
+    """Compone DXF con las entidades seleccionadas y registra SI Patron.
 
-    if isinstance(selected_entity_ids, str):
-        selected_entity_ids = json.loads(selected_entity_ids)
+    Acepta dos formatos:
+    - Nuevo (preferred): selected_items=[{entity_id, preset}, ...] — cada entidad
+      puede venir de un preset distinto.
+    - Legado (compat): preset + selected_entity_ids — un preset para todas.
+    """
+    from sistema_industrial.vectorize.composer import compose_dxf, compose_dxf_legacy
+
     escala_display = float(escala_display)
     step_x_mm = float(step_x_mm)
     step_y_mm = float(step_y_mm)
+
+    # Normalizar al formato unificado selected_items
+    if selected_items is not None:
+        if isinstance(selected_items, str):
+            selected_items = json.loads(selected_items)
+    elif preset is not None and selected_entity_ids is not None:
+        if isinstance(selected_entity_ids, str):
+            selected_entity_ids = json.loads(selected_entity_ids)
+        selected_items = [
+            {"entity_id": eid, "preset": preset}
+            for eid in selected_entity_ids
+        ]
+    else:
+        return {"ok": False, "error": "Se requiere selected_items o (preset + selected_entity_ids)"}
 
     run_dir = _runs_root() / run_id
     manifest_path = run_dir / "manifest.json"
@@ -84,7 +104,7 @@ def compose_pattern(run_id, preset, selected_entity_ids, escala_display,
 
     safe_stem = re.sub(r"[^\w\-]", "_", nombre)
     tmp_dxf = run_dir / f"{safe_stem}_composed.dxf"
-    compose_dxf(manifest, preset, selected_entity_ids, escala_display, tmp_dxf)
+    compose_dxf(manifest, selected_items, escala_display, tmp_dxf)
 
     dest_dir = _patron_dest_dir(visibilidad, customer)
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -99,12 +119,20 @@ def compose_pattern(run_id, preset, selected_entity_ids, escala_display,
     dest_path = dest_dir / dxf_filename
     shutil.copy2(str(tmp_dxf), str(dest_path))
 
+    # Registrar el preset "principal" en parámetros (el más frecuente entre los items)
+    preset_counts: dict = {}
+    for item in selected_items:
+        p = item.get("preset", "")
+        preset_counts[p] = preset_counts.get(p, 0) + 1
+    preset_dominante = max(preset_counts, key=preset_counts.get) if preset_counts else (preset or "")
+
     parametros = json.dumps({
         "step_x": step_x_mm,
         "step_y": step_y_mm,
         "origen": "vectorizado",
-        "preset": preset,
+        "preset": preset_dominante,
         "escala_display": escala_display,
+        "selected_items": selected_items,
     })
 
     from sistema_industrial.api.patrones import _count_splines, _generate_and_save_thumbnail
@@ -140,6 +168,99 @@ def compose_pattern(run_id, preset, selected_entity_ids, escala_display,
         "has_splines": sc > 0,
         "spline_count": sc,
     }
+
+
+@frappe.whitelist(allow_guest=False)
+def get_entity_variants(run_id, entity_id, source_preset):
+    """Devuelve las variantes de una entidad puntual en los otros presets.
+
+    Dado entity_id en source_preset, busca la entidad equivalente en cada
+    uno de los demás presets por proximidad de bbox-center (matching lazy,
+    client-side no necesita conocer la lógica).
+
+    Returns:
+    {
+      "variants": [
+        {"preset": "Esquinas",   "entity_id": "e2", "available": true,
+         "bbox_approx": {...}},
+        {"preset": "Ultra-Fino", "entity_id": "e0", "available": false},
+        ...
+      ]
+    }
+    """
+    run_dir = _runs_root() / run_id
+    manifest_path = run_dir / "manifest.json"
+    if not manifest_path.exists():
+        return {"ok": False, "error": "run expirado o no encontrado"}
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    # Encontrar la entidad de referencia en el preset fuente
+    src_preset = next(
+        (p for p in manifest.get("presets", []) if p["name"] == source_preset), None
+    )
+    if src_preset is None:
+        return {"ok": False, "error": f"Preset '{source_preset}' no encontrado"}
+
+    src_entity = next(
+        (e for e in src_preset.get("entities", []) if e["id"] == entity_id), None
+    )
+    if src_entity is None:
+        return {"ok": False, "error": f"Entidad '{entity_id}' no encontrada en {source_preset}"}
+
+    # Centro de bbox de la entidad de referencia
+    bb = src_entity.get("bbox_approx", {})
+    ref_cx = bb.get("x", 0) + bb.get("w", 0) / 2.0
+    ref_cy = bb.get("y", 0) + bb.get("h", 0) / 2.0
+    ref_w = bb.get("w", 0)
+    ref_h = bb.get("h", 0)
+
+    # Tolerancia: 10% de la dimensión mayor, mínimo 5 unidades display
+    img_dim = max(ref_w, ref_h, 1.0)
+    tol = max(img_dim * 0.10, 5.0)
+
+    variants = []
+    for p in manifest.get("presets", []):
+        if p["name"] == source_preset:
+            # La propia entidad en su preset origen
+            variants.append({
+                "preset": p["name"],
+                "entity_id": entity_id,
+                "available": True,
+                "bbox_approx": src_entity.get("bbox_approx"),
+                "is_source": True,
+            })
+            continue
+
+        # Buscar la entidad más cercana por centro de bbox
+        best = None
+        best_dist = float("inf")
+        for e in p.get("entities", []):
+            ebb = e.get("bbox_approx", {})
+            cx = ebb.get("x", 0) + ebb.get("w", 0) / 2.0
+            cy = ebb.get("y", 0) + ebb.get("h", 0) / 2.0
+            dist = ((cx - ref_cx) ** 2 + (cy - ref_cy) ** 2) ** 0.5
+            if dist < best_dist:
+                best_dist = dist
+                best = e
+
+        if best is not None and best_dist <= tol:
+            variants.append({
+                "preset": p["name"],
+                "entity_id": best["id"],
+                "available": True,
+                "bbox_approx": best.get("bbox_approx"),
+                "is_source": False,
+            })
+        else:
+            variants.append({
+                "preset": p["name"],
+                "entity_id": None,
+                "available": False,
+                "is_source": False,
+            })
+
+    return {"ok": True, "variants": variants}
 
 
 @frappe.whitelist(allow_guest=False)

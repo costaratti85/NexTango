@@ -186,42 +186,62 @@ def _add_path_to_msp(msp, d: str, scale: float, layer: str) -> None:
 
 def compose_dxf(
     manifest: dict,
-    preset_name: str,
-    selected_ids: list,
+    selected_items: list,
     escala_display: float,
     output_path: Path,
 ) -> None:
-    """Compose DXF from selected entities of one preset.
+    """Compose DXF from selected entities, each with its own preset.
 
     Args:
         manifest: dict loaded from manifest.json
-        preset_name: e.g. "Fino"
-        selected_ids: list of entity IDs, e.g. ["e0", "e3", "e7"]
+        selected_items: list of {entity_id: str, preset: str}, e.g.
+            [{"entity_id": "e0", "preset": "Fino"},
+             {"entity_id": "e7", "preset": "Ultra-Fino"}]
+            Every item may use a different preset — the entity is looked up
+            in the preset named by its own "preset" key.
         escala_display: mm per SVG display unit (from calibration line)
         output_path: destination .dxf path
     """
     import ezdxf
 
-    preset = next((p for p in manifest.get("presets", []) if p["name"] == preset_name), None)
-    if preset is None:
-        raise ValueError(f"Preset '{preset_name}' no encontrado en el manifest")
+    # Build per-preset lookup: preset_name → {entity_id → entity dict}
+    presets_by_name: dict = {}
+    for p in manifest.get("presets", []):
+        presets_by_name[p["name"]] = {
+            "transform_scale": p.get("transform_scale", 0.1),
+            "entities_by_id": {e["id"]: e for e in p.get("entities", [])},
+        }
 
-    transform_scale = preset.get("transform_scale", 0.1)
-    mm_factor = transform_scale * escala_display
-
-    selected = set(selected_ids)
     layer = "CUT"
-
     doc = ezdxf.new("R2010")
     msp = doc.modelspace()
     doc.layers.new(layer, dxfattribs={"color": 1})
 
-    for entity in preset.get("entities", []):
-        if entity["id"] not in selected:
+    for item in selected_items:
+        entity_id = item.get("entity_id") or item.get("id")
+        preset_name = item.get("preset")
+        preset_info = presets_by_name.get(preset_name)
+        if preset_info is None:
             continue
+        entity = preset_info["entities_by_id"].get(entity_id)
+        if entity is None:
+            continue
+        mm_factor = preset_info["transform_scale"] * escala_display
         try:
             _add_path_to_msp(msp, entity["d"], scale=mm_factor, layer=layer)
         except Exception:
             continue
 
     doc.saveas(str(output_path))
+
+
+def compose_dxf_legacy(
+    manifest: dict,
+    preset_name: str,
+    selected_ids: list,
+    escala_display: float,
+    output_path: Path,
+) -> None:
+    """Backward-compatible wrapper: one preset for all entities."""
+    items = [{"entity_id": eid, "preset": preset_name} for eid in selected_ids]
+    compose_dxf(manifest, items, escala_display, output_path)
