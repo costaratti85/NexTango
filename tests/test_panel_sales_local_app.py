@@ -1075,3 +1075,100 @@ def test_build_sales_input_cuadriculado():
     assert data.pattern_type == "cuadriculado"
     assert data.offset_x_mm == 30.0
     assert data.offset_y_mm == 30.0
+
+
+# ---------------------------------------------------------------------------
+# Bug fixes: arc export and DXF origin normalization
+# ---------------------------------------------------------------------------
+
+def test_arc_segment_export_dxf_partial_arc_across_zero(tmp_path):
+    """ArcSegment(start=350, end=10) is a 20° arc — must NOT be exported as CIRCLE.
+
+    Bug: abs(350 - 10) % 360 = 340 → no problem here.
+    But abs(350 - 0) % 360 = 350 >= 350 → wrongly exported as CIRCLE.
+    Fix: use (end - start) % 360 = (0 - 350) % 360 = 10 (correct).
+    """
+    import sys, os
+    from pathlib import Path as _Path
+    legacy_dir = _Path(__file__).resolve().parent.parent / "Programas_hechos" / "Panel Decorativo"
+    prev_cwd = _Path.cwd()
+    inserted = str(legacy_dir) not in sys.path
+    if inserted:
+        sys.path.insert(0, str(legacy_dir))
+    os.chdir(legacy_dir)
+    try:
+        pytest.importorskip("ezdxf")
+        import ezdxf
+        from importlib import import_module
+        _arc_mod = import_module("geometry.arc_segment")
+
+        out = tmp_path / "arc_test.dxf"
+        doc = ezdxf.new("R2010")
+        msp = doc.modelspace()
+
+        # 10° arc crossing 0° (start=350, end=0)
+        _arc_mod.ArcSegment(0, 0, 10, 350, 0).export_dxf(msp)
+        # 20° arc crossing 0° (start=350, end=10)
+        _arc_mod.ArcSegment(0, 0, 10, 350, 10).export_dxf(msp)
+        # Full circle encoded as (0, 360) — should still export as CIRCLE
+        _arc_mod.ArcSegment(0, 0, 10, 0, 360).export_dxf(msp)
+        # Large near-full arc (1° to 359°, span=358°) → CIRCLE is acceptable
+        _arc_mod.ArcSegment(0, 0, 10, 1, 359).export_dxf(msp)
+
+        doc.saveas(str(out))
+        doc2 = ezdxf.readfile(str(out))
+        entities = list(doc2.modelspace())
+        types = [e.dxftype() for e in entities]
+
+        assert types[0] == "ARC", f"350→0 (10° arc) must be ARC, got {types[0]}"
+        assert types[1] == "ARC", f"350→10 (20° arc) must be ARC, got {types[1]}"
+        assert types[2] == "CIRCLE", f"0→360 (full) must be CIRCLE, got {types[2]}"
+        assert types[3] == "CIRCLE", f"1→359 (358° near-full) must be CIRCLE, got {types[3]}"
+    finally:
+        os.chdir(prev_cwd)
+        if inserted:
+            try:
+                sys.path.remove(str(legacy_dir))
+            except ValueError:
+                pass
+
+
+def test_load_pattern_dxf_normalizes_origin():
+    """DXF patterns must be centered at (0,0) after load_pattern() for symmetric tiling."""
+    import sys, os
+    from pathlib import Path as _Path
+    legacy_dir = _Path(__file__).resolve().parent.parent / "Programas_hechos" / "Panel Decorativo"
+    prev_cwd = _Path.cwd()
+    inserted = str(legacy_dir) not in sys.path
+    if inserted:
+        sys.path.insert(0, str(legacy_dir))
+    os.chdir(legacy_dir)
+    try:
+        from importlib import import_module
+        _main = import_module("main")
+
+        class _Settings:
+            pattern_type = "dxf"
+            input_file = str(MINIMAL_DXF_FIXTURE)  # square (0,0)→(12,12)
+            step_x = 20.0
+            step_y = 20.0
+
+        piece, step_x, step_y = _main.load_pattern(_Settings())
+        bbox = piece.bbox()
+
+        # After normalization, center must be at (0, 0)
+        cx = (bbox.min_x + bbox.max_x) / 2
+        cy = (bbox.min_y + bbox.max_y) / 2
+        assert abs(cx) < 1e-6, f"Piece X center should be 0, got {cx}"
+        assert abs(cy) < 1e-6, f"Piece Y center should be 0, got {cy}"
+
+        # Width/height must be preserved (12×12 square)
+        assert abs((bbox.max_x - bbox.min_x) - 12.0) < 1e-6
+        assert abs((bbox.max_y - bbox.min_y) - 12.0) < 1e-6
+    finally:
+        os.chdir(prev_cwd)
+        if inserted:
+            try:
+                sys.path.remove(str(legacy_dir))
+            except ValueError:
+                pass

@@ -92,7 +92,10 @@ class ArcSegment:
         return result
 
     def export_dxf(self, msp):
-        span = abs(self.end_angle - self.start_angle) % 360
+        # CCW span: (end - start) % 360 gives the correct angular sweep.
+        # abs() is wrong — e.g. start=350, end=0 (10° arc) gives abs(350)%360=350,
+        # incorrectly triggering the full-circle branch.
+        span = (self.end_angle - self.start_angle) % 360
         if span == 0 or span >= 350:
             # near-complete arc → output as CIRCLE (cleaner laser path, no tiny gap)
             msp.add_circle(

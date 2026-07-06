@@ -142,6 +142,19 @@ def load_pattern(settings):
             settings.input_file
         )
 
+        # Normalize piece center to origin so tiling is symmetric on all 4
+        # borders regardless of where the DXF author placed the content.
+        # Without this, a piece whose bbox starts at (min_x > 0) produces a
+        # gap at the left/bottom borders and overhang at right/top (or vice
+        # versa). Parametric patterns (tresbolillo, cuadriculado) are defined
+        # with their own known origins and are NOT touched.
+        bbox = piece.bbox()
+        if bbox is not None:
+            cx = (bbox.min_x + bbox.max_x) / 2.0
+            cy = (bbox.min_y + bbox.max_y) / 2.0
+            if abs(cx) > 1e-6 or abs(cy) > 1e-6:
+                piece = piece.translated(-cx, -cy)
+
         return (
             piece,
             settings.step_x,
