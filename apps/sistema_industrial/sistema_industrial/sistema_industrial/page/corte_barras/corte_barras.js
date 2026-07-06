@@ -60,6 +60,7 @@ class CorteBarras {
 			if (rows.length > 1) $(e.currentTarget).closest('tr').remove();
 		});
 		$('#cb-btn-calc').on('click', () => this._calcular());
+		$('#cb-btn-copy').on('click', () => this._copiar());
 	}
 
 	// ── Tabla de piezas ───────────────────────────────────────────────────────
@@ -120,11 +121,16 @@ class CorteBarras {
 
 		this._set_loading(true);
 
+		const tipo_material = $('#cb-tipo-material').val().trim();
+		const medida = $('#cb-medida').val().trim();
+
 		frappe.call({
 			method: 'sistema_industrial.api.corte_barras.calcular',
 			args: {
 				bar_len,
 				cuts_json: JSON.stringify(cuts),
+				tipo_material,
+				medida,
 				price_per_bar,
 				price_per_meter,
 				kerf_mm,
@@ -236,6 +242,14 @@ class CorteBarras {
 			$('#cb-tramos-card').hide();
 		}
 
+		// Texto de salida para orden de trabajo
+		if (data.texto_salida) {
+			$('#cb-texto-salida').val(data.texto_salida);
+			$('#cb-texto-card').show();
+		} else {
+			$('#cb-texto-card').hide();
+		}
+
 		$('#cb-results').show();
 	}
 
@@ -266,5 +280,19 @@ class CorteBarras {
 
 	_hide_info() {
 		$('#cb-info').hide();
+	}
+
+	_copiar() {
+		const txt = $('#cb-texto-salida').val();
+		if (!txt) return;
+		navigator.clipboard.writeText(txt).then(() => {
+			const btn = $('#cb-btn-copy');
+			btn.text('¡Copiado!');
+			setTimeout(() => btn.text('Copiar'), 1800);
+		}).catch(() => {
+			// Fallback para entornos sin clipboard API
+			$('#cb-texto-salida').select();
+			document.execCommand('copy');
+		});
 	}
 }

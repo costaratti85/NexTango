@@ -206,6 +206,25 @@
   font-weight: 700;
 }
 
+/* Textarea de salida para orden de trabajo */
+#cb-root .cb-output {
+  width: 100%;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border: 1.5px solid #bcd4ee;
+  border-radius: 6px;
+  background: #f8fafe;
+  color: #16314f;
+  resize: vertical;
+}
+#cb-root .cb-output:focus {
+  outline: none;
+  border-color: #176b87;
+  background: #f0fbfd;
+}
+
 /* Info — modo activo cuando falta un precio */
 #cb-root .cb-info {
   background: #fff8e1;

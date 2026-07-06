@@ -23,6 +23,14 @@
 
     <div class="cb-row">
       <div class="cb-col">
+        <label>Tipo de material</label>
+        <input type="text" id="cb-tipo-material" placeholder="ej. Caño">
+      </div>
+      <div class="cb-col">
+        <label>Medida</label>
+        <input type="text" id="cb-medida" placeholder="ej. 80 x 80 x 1.6">
+      </div>
+      <div class="cb-col">
         <label>Largo de barra (mm)</label>
         <input type="number" id="cb-bar-len" value="6000" min="100" step="1">
       </div>
@@ -30,6 +38,9 @@
         <label>Kerf / sierra (mm)</label>
         <input type="number" id="cb-kerf" value="2" min="0" step="0.1">
       </div>
+    </div>
+
+    <div class="cb-row">
       <div class="cb-col">
         <label>Precio por barra ($)</label>
         <input type="number" id="cb-price-bar" value="" min="0" step="0.01" placeholder="ej. 4500">
@@ -38,6 +49,7 @@
         <label>Precio por metro lineal ($)</label>
         <input type="number" id="cb-price-metro" value="" min="0" step="0.01" placeholder="ej. 750">
       </div>
+      <div class="cb-col cb-col-wide"></div>
     </div>
   </div>
 
@@ -102,6 +114,15 @@
     <div class="cb-card" id="cb-tramos-card" style="display:none;">
       <h2>Tramos sueltos (compra por metro)</h2>
       <div id="cb-tramos-list"></div>
+    </div>
+
+    <!-- Texto de salida para orden de trabajo -->
+    <div class="cb-card" id="cb-texto-card">
+      <div class="cb-section-head">
+        <h2>Texto para orden de trabajo</h2>
+        <button id="cb-btn-copy" class="cb-ghost">Copiar</button>
+      </div>
+      <textarea id="cb-texto-salida" class="cb-output" readonly rows="8" spellcheck="false"></textarea>
     </div>
 
   </div>

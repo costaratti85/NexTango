@@ -22,7 +22,72 @@ except ImportError:
         return deco
 
 
+from collections import Counter
+
 from sistema_industrial.cutting.nest_1d import calculate_purchase_plan
+
+
+def _fmt_num(n):
+    """Formato numérico igual al original: enteros sin decimal, decimales con coma."""
+    if float(n) == int(float(n)):
+        return str(int(float(n)))
+    return str(round(float(n), 2)).replace(".", ",")
+
+
+def _patron_a_str(patron):
+    """'6 x 950' o '2 x 2,250 + 1 x 1,000' — agrupa piezas iguales."""
+    conteo = Counter(patron)
+    partes = []
+    for largo, cantidad in sorted(conteo.items(), key=lambda x: -x[0]):
+        if cantidad > 1:
+            partes.append(f"{cantidad} x {_fmt_num(largo)}")
+        else:
+            partes.append(_fmt_num(largo))
+    return " + ".join(partes)
+
+
+def _generar_texto_salida(result, bar_len, tipo_material, medida):
+    """Genera el texto tab-separated compatible con el formato del programa original.
+
+    Barras enteras → bloque cantidad/patrón.
+    Tramos sueltos → una línea por pieza (formato original: línea suelta).
+    Resumen arriba: 1 línea con total barras + material + largo.
+    """
+    if result.error:
+        return result.error
+
+    lines = []
+
+    # ── Resumen ────────────────────────────────────────────────────────────────
+    total_barras = result.full_bars
+    resumen_parts = []
+    if total_barras:
+        resumen_parts.append(f"{total_barras} barra{'s' if total_barras != 1 else ''}")
+    if result.tramo_pieces:
+        n_tramos = len(result.tramo_pieces)
+        resumen_parts.append(f"{n_tramos} pieza{'s' if n_tramos != 1 else ''} sueltas")
+    resumen = " + ".join(resumen_parts) if resumen_parts else "Sin resultado"
+    tipo_str = tipo_material or "—"
+    medida_str = medida or "—"
+    lines.append(
+        f"RESUMEN\t{tipo_str}\t{medida_str}\t"
+        f"x {_fmt_num(bar_len)} mm\t{resumen}"
+    )
+    lines.append("")
+
+    # ── Barras enteras ─────────────────────────────────────────────────────────
+    for p in result.bar_patterns:
+        detalle = f"{p.count} a {_patron_a_str(p.pieces)}"
+        lines.append(
+            f"{p.count}\t{tipo_str}\t{medida_str}\tx {_fmt_num(bar_len)}"
+        )
+        lines.append(f"\t{detalle}\t\t")
+
+    # ── Tramos sueltos ─────────────────────────────────────────────────────────
+    for largo_mm in result.tramo_pieces:
+        lines.append(f"1\t{tipo_str}\t{medida_str}\tx {_fmt_num(largo_mm)}")
+
+    return "\n".join(lines)
 
 
 @_whitelist()
@@ -56,19 +121,22 @@ def item_query(doctype, txt, searchfield, start, page_length, filters=None, **kw
 
 
 @_whitelist()
-def calcular(bar_len, cuts_json, price_per_bar=0, price_per_meter=0, kerf_mm=2.0):
+def calcular(bar_len, cuts_json, tipo_material="", medida="",
+             price_per_bar=0, price_per_meter=0, kerf_mm=2.0):
     """
     Calcula el plan de compra mixto (barras enteras + tramos sueltos).
 
     Args:
         bar_len:         Largo de barra en mm.
         cuts_json:       JSON con lista [[qty, length_mm], ...].
-        price_per_bar:   Precio de una barra entera (puede ser 0 si no se cotiza).
-        price_per_meter: Precio por metro lineal de tramo suelto.
+        tipo_material:   Texto libre (ej. "Caño").
+        medida:          Texto libre (ej. "80 x 80 x 1.6").
+        price_per_bar:   Precio de una barra entera (0 = modo no disponible).
+        price_per_meter: Precio por metro lineal de tramo suelto (0 = modo no disponible).
         kerf_mm:         Ancho de sierra en mm (default 2).
 
     Returns:
-        dict con los campos de PurchasePlanResult.
+        dict con campos de PurchasePlanResult + texto_salida (formato tab-separated original).
     """
     bar_len = float(bar_len)
     kerf_mm = float(kerf_mm)
@@ -104,4 +172,5 @@ def calcular(bar_len, cuts_json, price_per_bar=0, price_per_meter=0, kerf_mm=2.0
             for p in result.bar_patterns
         ],
         "tramo_pieces": result.tramo_pieces,
+        "texto_salida": _generar_texto_salida(result, bar_len, tipo_material, medida),
     }
