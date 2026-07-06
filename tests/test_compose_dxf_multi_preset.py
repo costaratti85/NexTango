@@ -277,3 +277,125 @@ class TestGetEntityVariants:
         ]
         best, _ = self._find_best(entities, ref_cx=5, ref_cy=5, tol=1.0)
         assert best["id"] == "e0"  # first one wins when equidistant
+
+
+# ---------------------------------------------------------------------------
+# compose_dxf — bbox centering (PUNTO_ORIGEN_SIN_CENTRAR_COMPOSE_DXF)
+# ---------------------------------------------------------------------------
+
+class TestComposeDxfCentering:
+
+    def test_centered_on_origin_after_compose(self, tmp_path):
+        """compose_dxf centers entity bbox on (0,0) before saving."""
+        from sistema_industrial.vectorize.composer import compose_dxf
+        import ezdxf
+        # Square at (100,200)→(110,210) — center at (105,205), should move to (0,0)
+        manifest = _minimal_manifest([
+            _preset("Fino", [_entity("e0", "M 100 200 L 110 200 L 110 210 L 100 210 Z")]),
+        ])
+        out = tmp_path / "out.dxf"
+        compose_dxf(manifest, [{"entity_id": "e0", "preset": "Fino"}], 1.0, out)
+        doc = ezdxf.readfile(str(out))
+        lines = [e for e in doc.modelspace() if e.dxftype() == "LINE"]
+        xs = [l.dxf.start.x for l in lines] + [l.dxf.end.x for l in lines]
+        ys = [l.dxf.start.y for l in lines] + [l.dxf.end.y for l in lines]
+        cx = (min(xs) + max(xs)) / 2
+        cy = (min(ys) + max(ys)) / 2
+        assert abs(cx) < 1e-4, f"Expected bbox center x≈0, got {cx}"
+        assert abs(cy) < 1e-4, f"Expected bbox center y≈0, got {cy}"
+
+    def test_already_centered_unchanged(self, tmp_path):
+        """compose_dxf does not alter a pattern already centered at origin."""
+        from sistema_industrial.vectorize.composer import compose_dxf
+        import ezdxf
+        # Square symmetric around origin: (-5,-5)→(5,5)
+        manifest = _minimal_manifest([
+            _preset("Fino", [_entity("e0", "M -5 -5 L 5 -5 L 5 5 L -5 5 Z")]),
+        ])
+        out = tmp_path / "out.dxf"
+        compose_dxf(manifest, [{"entity_id": "e0", "preset": "Fino"}], 1.0, out)
+        doc = ezdxf.readfile(str(out))
+        lines = [e for e in doc.modelspace() if e.dxftype() == "LINE"]
+        xs = [l.dxf.start.x for l in lines] + [l.dxf.end.x for l in lines]
+        ys = [l.dxf.start.y for l in lines] + [l.dxf.end.y for l in lines]
+        assert abs(min(xs) + 5) < 1e-4
+        assert abs(max(xs) - 5) < 1e-4
+
+    def test_centering_preserves_geometry(self, tmp_path):
+        """Centering translates but does not distort — width and height stay the same."""
+        from sistema_industrial.vectorize.composer import compose_dxf
+        import ezdxf
+        # 30x20 rectangle at (1000, 500)
+        manifest = _minimal_manifest([
+            _preset("Fino", [_entity("e0", "M 1000 500 L 1030 500 L 1030 520 L 1000 520 Z")]),
+        ])
+        out = tmp_path / "out.dxf"
+        compose_dxf(manifest, [{"entity_id": "e0", "preset": "Fino"}], 1.0, out)
+        doc = ezdxf.readfile(str(out))
+        lines = [e for e in doc.modelspace() if e.dxftype() == "LINE"]
+        xs = [l.dxf.start.x for l in lines] + [l.dxf.end.x for l in lines]
+        ys = [l.dxf.start.y for l in lines] + [l.dxf.end.y for l in lines]
+        assert abs(max(xs) - min(xs) - 30) < 1e-4, "Width should be 30"
+        assert abs(max(ys) - min(ys) - 20) < 1e-4, "Height should be 20"
+
+
+# ---------------------------------------------------------------------------
+# _bbox_from_d — relative commands (PUNTO_BBOX_APPROX_COMANDOS_RELATIVOS)
+# ---------------------------------------------------------------------------
+
+class TestBboxFromD:
+
+    @staticmethod
+    def _bbox(d):
+        from sistema_industrial.vectorize.runner import _bbox_from_d
+        return _bbox_from_d(d)
+
+    def test_absolute_commands_unchanged(self):
+        """Absolute commands: bbox matches direct coordinate min/max."""
+        bb = self._bbox("M 10 20 L 50 20 L 50 60 L 10 60 Z")
+        assert abs(bb["x"] - 10) < 0.2
+        assert abs(bb["y"] - 20) < 0.2
+        assert abs(bb["w"] - 40) < 0.2
+        assert abs(bb["h"] - 40) < 0.2
+
+    def test_relative_move_and_lines(self):
+        """Relative m,l commands accumulate position correctly."""
+        # m 100 200 l 10 0 l 0 10 z → square at (100,200)-(110,210)
+        bb = self._bbox("m 100 200 l 10 0 l 0 10 z")
+        assert abs(bb["x"] - 100) < 0.2, f"Expected x≈100, got {bb['x']}"
+        assert abs(bb["y"] - 200) < 0.2, f"Expected y≈200, got {bb['y']}"
+        assert abs(bb["w"] - 10) < 0.2, f"Expected w≈10, got {bb['w']}"
+        assert abs(bb["h"] - 10) < 0.2, f"Expected h≈10, got {bb['h']}"
+
+    def test_relative_cubic_bezier(self):
+        """Relative c command: control points accumulated from current position."""
+        # M 100 100 c 0 -50 100 -50 100 0 → a Bézier from (100,100) to (200,100)
+        # control pts at (100,50) and (200,50)
+        bb = self._bbox("M 100 100 c 0 -50 100 -50 100 0")
+        # x range: 100..200, y range: 50..100
+        assert bb["x"] <= 100.1
+        assert bb["x"] + bb["w"] >= 199.9
+        assert bb["y"] <= 50.1
+        assert bb["y"] + bb["h"] >= 99.9
+
+    def test_relative_path_far_from_origin(self):
+        """Relative path at (500,300) gives correct bbox, not near-zero."""
+        bb = self._bbox("M 500 300 l 20 0 l 0 15 l -20 0 z")
+        assert bb["x"] >= 490, f"x should be ~500, got {bb['x']}"
+        assert bb["y"] >= 290, f"y should be ~300, got {bb['y']}"
+        assert abs(bb["w"] - 20) < 0.2
+        assert abs(bb["h"] - 15) < 0.2
+
+    def test_mixed_absolute_and_relative(self):
+        """Path mixing absolute M with relative l commands."""
+        # M 200 100 l 30 0 l 0 20 l -30 0 z → rect at (200,100) 30×20
+        bb = self._bbox("M 200 100 l 30 0 l 0 20 l -30 0 z")
+        assert abs(bb["x"] - 200) < 0.2
+        assert abs(bb["y"] - 100) < 0.2
+        assert abs(bb["w"] - 30) < 0.2
+        assert abs(bb["h"] - 20) < 0.2
+
+    def test_empty_d_returns_zero_bbox(self):
+        """Empty path → zero bbox without error."""
+        bb = self._bbox("")
+        assert bb == {"x": 0.0, "y": 0.0, "w": 0.0, "h": 0.0}

@@ -1,13 +1,82 @@
 {
   "pending": [
     {
+      "agent": "Punto",
+      "task": "PUNTO_BBOX_APPROX_COMANDOS_RELATIVOS",
+      "descripcion": "Constantino reportó que en el modal 'Elegir preset para esta figura' (ya agrandado por Vega), 5 de 6 opciones muestran la figura chica y metida en una esquina del recuadro, resto vacío — no es tamaño, es posición. Hipótesis de alta confianza: _bbox_from_d() en vectorize/runner.py:128 extrae todos los números del d y asume que alternan x,y — válido solo para comandos SVG absolutos (M,L,C,Q mayúscula). El propio código cuenta comandos relativos (mlcq minúscula, línea de al lado) — si una entidad los usa, cada número es un desplazamiento relativo, no coordenada absoluta, y el bbox calculado sale agrupado cerca de valores chicos/arbitrarios mientras el navegador dibuja el path real en su posición absoluta correcta — coincide con el síntoma. Confirmar si las entidades afectadas tienen comandos relativos; si es así, _bbox_from_d necesita parsear acumulando posición absoluta (o normalizar el d a absoluto antes, ej. con svgpathtools/svg.path) en vez de extraer números crudos. Evaluar alcance: puede afectar también el rubber-band de selección y el matching de find_entity_in_preset (frontend) si usan el mismo bbox_approx. Ver MSG_046 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_046_nova_bbox_approx_comandos_relativos.md",
+      "status": "completado",
+      "nota": "Punto commit 29dd28d (erpnext): _bbox_from_d() en runner.py reescrita con parser real que acumula posición para comandos relativos (m,l,c,q,h,v minúsculas). Ya no extrae números crudos. Bézier control points usados como bbox conservador (por la propiedad de convex hull). 6 tests en main (test_compose_dxf_multi_preset.py::TestBboxFromD, todos pasan). Afecta: thumbnails del modal preset-por-figura (viewBox corregido), rubber-band de selección, matching entre presets (mismo bbox_approx). Deploy: incluido en ORBIT_DEPLOY_BBOX_CENTERING_VECTORIZADOR.",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Punto",
+      "task": "PUNTO_ORIGEN_SIN_CENTRAR_COMPOSE_DXF",
+      "descripcion": "Constantino mandó 3 capturas: un patrón recién creado con el vectorizador salió con el origen de coordenadas lejos del centro real (debe estar en el medio). Confirmado en código: compose_dxf() en vectorize/composer.py NO tiene ningún centrado de origen — escribe las entidades tal cual vienen de la imagen, sin pasar por el bbox-centering que ya se aplicó en load_pattern() (motor de panel) ni en panel_sales_local_app.py. Es un TERCER lugar con la misma clase de bug. Aplicar el mismo criterio de bbox-centering directamente en compose_dxf() antes de doc.saveas(), para que el archivo del patrón quede centrado desde su creación (no depender de que un consumidor downstream lo corrija). Al terminar, grep final en todo el repo (ambas ramas) por si queda un cuarto lugar. Ver MSG_045 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_045_nova_origen_sin_centrar_en_compose_dxf.md",
+      "status": "completado",
+      "nota": "Punto commit 29dd28d (erpnext): _center_msp_on_origin() nueva en composer.py — itera LINE y SPLINE del modelspace, calcula bbox, traslada todo por (-cx,-cy). Llamada en compose_dxf() antes de saveas(). Grep final: no hay cuarto lugar (upload_pattern y otros saveas son transformaciones de DXF existentes, no creación de patrones desde el vectorizador). 3 tests en main (test_compose_dxf_multi_preset.py::TestComposeDxfCentering). Deploy: incluido en ORBIT_DEPLOY_BBOX_CENTERING_VECTORIZADOR.",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_BBOX_CENTERING_VECTORIZADOR",
+      "descripcion": "Deploy de commit 29dd28d (erpnext): fix bbox_approx comandos relativos en runner.py + centering de compose_dxf en composer.py. Requiere: git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin bench migrate. Verificar: /vectorizar-patron carga OK, crear un patrón nuevo y abrir el DXF — origen debe quedar centrado. Ver MSG_080 de canal Nova.",
+      "msg": "coordination/channel/Nova/MSG_080_punto_bbox_centering_done.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_PAN_CON_RUEDA_MOUSE",
+      "descripcion": "Constantino pidió poder mover la vista del visor de vectorizado arrastrando con el botón central del mouse (rueda), en cualquier modo activo, sin cambiar a 'Mover vista' primero (convención estándar CAD/diseño). Agregar chequeo e.button===1 en on_pointer_down() de vectorizar_patron.js que dispare el mismo drag type:'pan' ya existente para el modo pan — on_pointer_move/up ya lo manejan genérico, no deberían necesitar cambios. Verificar que preventDefault evite el autopan nativo del navegador. Ver MSG_037 de su canal.",
+      "msg": "coordination/channel/Vega/MSG_037_nova_pan_con_rueda_mouse.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "media",
+      "nota": "Vega commit ba7b10d (erpnext), deployado y verificado (build+bump_page_cache). _start_pan(e) extraido como helper compartido entre e.button===1 (nuevo, cualquier modo) y mode===pan existente. on_pointer_move/up sin cambios, ya manejaban type:pan generico. preventDefault evita autoscroll nativo. Ver MSG_082 en Nova."
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_REHACER_LINEA_CALIBRACION",
+      "descripcion": "Constantino no puede rehacer una línea de calibración (horizontal/vertical) si no le gusta cómo quedó. Revisión de código (vectorizar_patron.js): arm_calib_line() no tiene guard, el click del botón siempre re-arma, draw_calib_preview reutiliza el mismo elemento por ID, commit_calib_line sobreescribe sin acumular — el mecanismo de reemplazo PARECE que ya existe en el código, pero Constantino no lo logró. Puede ser bug real no visto en lectura rápida, o problema de descubribilidad (botón se pone verde 'done', se lee como “terminado” en vez de “click para rehacer”). Verificar en el visor real, arreglar si hay bug, mejorar afordancia si es solo de UX. Opcional: botón × para borrar una línea sin redibujar. Ver MSG_036 de su canal.",
+      "msg": "coordination/channel/Vega/MSG_036_nova_rehacer_linea_calibracion.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "media",
+      "nota": "Vega commit ba7b10d (erpnext), deployado y verificado. Confirmado: el reemplazo de linea YA funcionaba (commit_calib_line sin guard), era descubribilidad -- boton ahora dice Rehacer línea VERTICAL/HORIZONTAL una vez dibujada + boton x para borrar sin redibujar otra. BUG REAL encontrado en la revision (no solo descubribilidad): redibujar invalidaba vLine/hLine pero dejaba escala_display/step_x_mm/step_y_mm con los valores VIEJOS -- Crear patron quedaba habilitado con una escala que ya no correspondia a las lineas en pantalla. commit_calib_line ahora invalida esos 3 campos al redibujar, fuerza reaplicar calibracion. Ver MSG_082 en Nova."
+    },
+    {
+      "agent": "Forge",
+      "task": "FORGE_VERSION_STAMP_DEPLOY",
+      "descripcion": "Constantino pidió (2026-07-06) un mecanismo de marca de versión automática regenerada en cada deploy (commit corto + timestamp, ej. window.SI_VERSION = {commit, deployed_at}), para poder confirmar de un vistazo si una página está actualizada — motivado por no poder saber si un patrón se vectorizó con la página nueva o una cacheada. Debe generarse solo (git rev-parse --short HEAD + timestamp del deploy), sin depender de actualización manual. Integrar como paso de la secuencia estándar de deploy (antes de bench build). Reportar dónde queda el archivo/variable para que Vega lo consuma. Ver MSG_032 de su canal.",
+      "msg": "coordination/channel/Forge/MSG_032_nova_version_stamp_paginas.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "media",
+      "nota": "Forge MSG_061 (2026-07-06): script tools/generate_version_stamp.py genera public/js/version_stamp.js con window.SI_VERSION = {commit, deployed_at}. Ejecutar ANTES de bench build en cada deploy. Desbloqueó a Vega (VEGA_MOSTRAR_VERSION_EN_PAGINAS)."
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_MOSTRAR_VERSION_EN_PAGINAS",
+      "descripcion": "Agregar indicador chico y discreto de versión (footer esquina, ej. 'v a223b74 · 06/07 14:32') en las 6 páginas del sistema, leyendo el stamp que genera Forge (FORGE_VERSION_STAMP_DEPLOY, en curso). Valorar helper compartido entre páginas en vez de repetir. Esperar confirmación de Forge del mecanismo antes de integrar, puede preparar HTML/CSS mientras tanto. Ver MSG_035 de su canal.",
+      "msg": "coordination/channel/Vega/MSG_035_nova_mostrar_version_en_paginas.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "media"
+    },
+    {
       "agent": "Orbit",
       "task": "ORBIT_DEPLOY_ARCO_BBOX_ERPNEXT",
       "descripcion": "Deploy de commit c60511e (erpnext): fix arco→círculo (arc_segment.py CCW span sin abs) + bbox centering (main.py load_pattern) en el worktree erpnext — los mismos fixes de main/a223b74 que faltaban en el standalone que usa ERPNext. git pull + bench build + bump_page_cache + supervisorctl restart all. Sin bench migrate. Verificar con patrón Corazón: arcos como ARC (no CIRCLE) y 4 bordes simétricos. Ver MSG_010 de su canal.",
       "msg": "coordination/channel/Orbit/MSG_010_nova_deploy_arco_bbox_erpnext.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-rebanada",
-      "prioridad": "alta"
+      "prioridad": "alta",
+      "nota": "Orbit MSG_027 (2026-07-06): git pull (Fast-forward, 19 objects). bench migrate 100% completado. bench build 695ms. bump_page_cache 6 páginas. supervisorctl restart all: 7/7 RUNNING. Commit c60511e deployado exitosamente. Fix arco CCW + bbox centering activos en el servidor erpnext."
     },
     {
       "agent": "Punto",
@@ -44,18 +113,20 @@
       "task": "VEGA_THUMBNAILS_PRESET_FIGURA_CHICOS",
       "descripcion": "Constantino reportó (2026-07-06) que en el modal 'Elegir preset para esta figura' (open_entity_preset_picker) los 6 thumbnails son demasiado chicos para comparar calidad de vectorización. Confirmado en CSS: .vp-variant-card width 110px, .vp-variant-thumb height 70px. El código de generación del thumbnail (entity_thumb_svg) sí clona el path real por preset, es solo un problema de tamaño/legibilidad. Pedido: agrandar tarjetas (ej. 200-250px), considerar grid 3x2 en vez de una fila, dialog más ancho, y/o zoom al hover/click si aun así no alcanza. Ver MSG_034 de su canal.",
       "msg": "coordination/channel/Vega/MSG_034_nova_thumbnails_muy_chicos_preset_figura.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-rebanada",
-      "prioridad": "alta"
+      "prioridad": "alta",
+      "nota": "Vega commit b4a3eb7 (erpnext), deployado y verificado (build+bump_page_cache). Dialog size:large, grilla explicita 3 columnas (antes flex-wrap sin criterio fijo), thumb 70px->220px, zoom al hover (scale 1.6, recortado por overflow:hidden, sin competir con el clic-para-elegir). entity_thumb_svg() no se toco, era puro tamano/legibilidad. Ver MSG_081 en Nova. De paso: MSG_026 de Orbit (bug esbuild en main) resultó NO ser un bug de codigo -- main tiene una copia distinta/incompatible de sistema_industrial (sin carpeta page/), nunca sincronizada con erpnext; build real contra produccion compilo limpio en 2 commits de hoy. Ver MSG_080 en Nova y MSG_011 en Orbit, esperando que confirmen contra que checkout corrieron el build que fallo."
     },
     {
       "agent": "Gemu",
       "task": "GEMU_BUG_CRITICO_ANGULAR_BOOL",
       "descripcion": "BUG CRÍTICO en producción (2026-07-06): calcular() rompe con IndexError para CUALQUIER cálculo en modo recto (el uso principal de la página). Causa confirmada: corte_barras.py:183 angular = bool(angular) — si angular llega como string 'false' (típico en requests web), bool('false')==True en Python (string no vacío = truthy), entonces la rama angular (línea 187, espera 6 elementos por corte) se ejecuta siempre, explotando con cuts_json en formato recto (2 elementos). Fix: angular = str(angular).strip().lower() in ('1','true','yes','on') — no existe frappe.utils.sbool en esta versión de Frappe, hay que resolverlo a mano. Revisar otros parámetros bool(param) en calcular() u otros endpoints por el mismo patrón. Ver MSG_012 de su canal — incluye el request real de Constantino para reproducir.",
       "msg": "coordination/channel/Gemu/MSG_012_nova_bug_critico_angular_bool.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "002-corte-barras",
-      "prioridad": "alta"
+      "prioridad": "alta",
+      "nota": "Gemu commit 329027d (erpnext, MSG_027): corte_barras.py:183 fix angular = str(angular).strip().lower() in ('1','true','yes','on') en lugar de bool(angular). También fix búsqueda por prefijo en tabla de piezas (select producto con prefijos 01-/02-/etc). Deploy exitoso: 7/7 RUNNING."
     },
     {
       "agent": "Gemu",
