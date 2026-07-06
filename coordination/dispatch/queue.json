@@ -1,6 +1,81 @@
 {
   "pending": [
     {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_ARCO_BBOX_ERPNEXT",
+      "descripcion": "Deploy de commit c60511e (erpnext): fix arco→círculo (arc_segment.py CCW span sin abs) + bbox centering (main.py load_pattern) en el worktree erpnext — los mismos fixes de main/a223b74 que faltaban en el standalone que usa ERPNext. git pull + bench build + bump_page_cache + supervisorctl restart all. Sin bench migrate. Verificar con patrón Corazón: arcos como ARC (no CIRCLE) y 4 bordes simétricos. Ver MSG_010 de su canal.",
+      "msg": "coordination/channel/Orbit/MSG_010_nova_deploy_arco_bbox_erpnext.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Punto",
+      "task": "PUNTO_ORIGEN_CENTRADO_PERSISTE_ERPNEXT",
+      "descripcion": "Constantino mandó captura de un panel real con bordes izquierdo e inferior incompletos (sin cortes de figura) mientras el resto del panel se ve completo — el Bug 2 de PUNTO_BUG_ARCO_CIRCULO_Y_ORIGEN (origen no centrado en el bbox del patrón) sigue pasando. Sospecha fuerte (mismo patrón que PUNTO_ARCO_CIRCULO_PERSISTE_ERPNEXT): el fix original fue en main.py load_pattern() (motor standalone) y presets/panel_sales_local_app.py probablemente tiene su propia lógica de tiling/origen nunca tocada. Punto debe confirmar dónde vive esa lógica en el archivo erpnext y aplicar el mismo criterio de centrado de bbox. Requiere deploy en erpnext si aplica — avisar a Orbit. Pedido extra: confirmar explícitamente en el reporte en qué código se corrigió (standalone/erpnext/ambos) para no repetir la confusión una tercera vez. ALTERNATIVA propuesta por Constantino (MSG_044): en vez de centrar el origen del patrón, extender la grilla de tiling una fila extra hacia abajo y una columna extra hacia la izquierda — parche más local en el loop de multiplicación en vez de tocar la geometría del patrón. Punto elige el camino más simple/seguro por codebase. Ver MSG_043 y MSG_044 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_043_nova_origen_centrado_persiste_erpnext.md",
+      "status": "completado",
+      "nota": "Punto commit c60511e (erpnext): bbox centering aplicado en Programas_hechos/Panel Decorativo/main.py load_pattern() del worktree erpnext — idéntico al fix de main/a223b74. Causa raíz: find_legacy_panel_dir() apunta a erpnext/Programas_hechos/Panel Decorativo/, copia independiente que no recibía los fixes de main. Elegido centrado de bbox (no extensión de grilla) — más correcto geométricamente y mismo código que ya funciona en standalone. Deploy: ORBIT_DEPLOY_ARCO_BBOX_ERPNEXT.",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Punto",
+      "task": "PUNTO_ARCO_CIRCULO_PERSISTE_ERPNEXT",
+      "descripcion": "Constantino mandó captura de un panel real (N°24) con círculos completos superpuestos — el bug de PUNTO_BUG_ARCO_CIRCULO_Y_ORIGEN sigue pasando. Causa encontrada: el fix (commit a223b74) solo tocó Programas_hechos/Panel Decorativo/geometry/arc_segment.py (motor standalone), pero la página Frappe real corre presets/panel_sales_local_app.py, que tiene su PROPIA copia separada de la lógica de detección de círculo completo (abs(span)>=359.9, líneas ~1055 y ~1187-1194) — nunca tocada por ese fix. Aplicar el mismo criterio de fix ahí. Grepear el repo (ambas ramas) por más copias de este patrón (abs(span)) por si hay una tercera. A DIFERENCIA del fix anterior, ESTE SÍ requiere deploy en erpnext — avisar a Orbit al terminar. Ver MSG_042 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_042_nova_arco_circulo_persiste_erpnext.md",
+      "status": "completado",
+      "nota": "Punto commit c60511e (erpnext): arc_segment.py en erpnext/Programas_hechos/Panel Decorativo/geometry/ corregido: span=(end-start)%360 (sin abs). El bug NO estaba en panel_sales_local_app.py (esas líneas ~1055/~1188 son visualización de thumbnail, no DXF). El DXF real lo produce arc_segment.py vía MixedDXFExporter. También corregido _draw() de thumbnails (span==0 para círculo completo, abs redundante eliminado). Grep completo: copias restantes en tools/gen_comparison_thumbnails.py (herramienta de comparación, no motor) y Paneles decorativos funcionando/ (archivo histórico) — no requieren fix urgente. Deploy: ORBIT_DEPLOY_ARCO_BBOX_ERPNEXT.",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Punto",
+      "task": "PUNTO_ESQUINA_SIGUE_TORCIDA",
+      "descripcion": "Constantino mandó captura (2026-07-06) de una esquina donde la curva sigue viéndose distorsionada cruzando el punto de quiebre (un lado 'contamina' al otro), mismo síntoma que PUNTO_PRECISION_ESQUINAS_SPLINE debía resolver. Necesito que Punto confirme: (1) ¿la geometría de la captura usa el preset 'Esquinas' nuevo (alphamax=0) o un patrón viejo sin re-vectorizar? (2) si es con el preset nuevo y persiste, evaluar viabilidad de un preprocesamiento de detección de esquinas ANTES de generar la spline (no como parte del ajuste de curva actual), que luego ajuste cada lado de una esquina de forma completamente independiente. No implementar todavía, primero diagnóstico. Ver MSG_041 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_041_nova_esquina_sigue_torcida.md",
+      "status": "diagnosticado-esperando-confirmacion",
+      "nota": "Punto MSG_079 (Nova): diagnóstico entregado. Si el preset 'Esquinas' fue usado, las esquinas son L commands independientes — no puede haber contaminación entre lados. Hipótesis más probable: figura vectorizada con preset viejo antes de que existiera Esquinas. Acción: Constantino debe confirmar si re-vectorizó con Esquinas. Si lo hizo y persiste → evaluar pre-procesamiento de discontinuidades de tangente entre Béziers (ángulo > 25-30° → corte forzado). No implementar todavía.",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_THUMBNAILS_PRESET_FIGURA_CHICOS",
+      "descripcion": "Constantino reportó (2026-07-06) que en el modal 'Elegir preset para esta figura' (open_entity_preset_picker) los 6 thumbnails son demasiado chicos para comparar calidad de vectorización. Confirmado en CSS: .vp-variant-card width 110px, .vp-variant-thumb height 70px. El código de generación del thumbnail (entity_thumb_svg) sí clona el path real por preset, es solo un problema de tamaño/legibilidad. Pedido: agrandar tarjetas (ej. 200-250px), considerar grid 3x2 en vez de una fila, dialog más ancho, y/o zoom al hover/click si aun así no alcanza. Ver MSG_034 de su canal.",
+      "msg": "coordination/channel/Vega/MSG_034_nova_thumbnails_muy_chicos_preset_figura.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Gemu",
+      "task": "GEMU_BUG_CRITICO_ANGULAR_BOOL",
+      "descripcion": "BUG CRÍTICO en producción (2026-07-06): calcular() rompe con IndexError para CUALQUIER cálculo en modo recto (el uso principal de la página). Causa confirmada: corte_barras.py:183 angular = bool(angular) — si angular llega como string 'false' (típico en requests web), bool('false')==True en Python (string no vacío = truthy), entonces la rama angular (línea 187, espera 6 elementos por corte) se ejecuta siempre, explotando con cuts_json en formato recto (2 elementos). Fix: angular = str(angular).strip().lower() in ('1','true','yes','on') — no existe frappe.utils.sbool en esta versión de Frappe, hay que resolverlo a mano. Revisar otros parámetros bool(param) en calcular() u otros endpoints por el mismo patrón. Ver MSG_012 de su canal — incluye el request real de Constantino para reproducir.",
+      "msg": "coordination/channel/Gemu/MSG_012_nova_bug_critico_angular_bool.md",
+      "status": "pendiente",
+      "sprint": "002-corte-barras",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Gemu",
+      "task": "GEMU_AUTOCOMPLETAR_DESDE_ITEM",
+      "descripcion": "Idea de seguimiento de Constantino (2026-07-06) sobre MSG_010: una vez arreglada la búsqueda por prefijo, usar el código jerárquico del Item seleccionado para autocompletar los campos hoy manuales de corte-barras — Tipo de material, Medida, y evaluar Largo de barra / Precio por barra / Precio por metro lineal. Investigar ANTES de implementar: qué datos reales tienen los Items sincronizados (item_name, item_group, custom fields) — ¿alcanzan para derivar tipo/medida sin parsing frágil? Confirmar formato real mirando Items 01-/02- reales en el servidor, no asumir. Campos sin dato confiable de origen quedan manuales como hoy — no forzar autocompletar los 5 si solo algunos tienen sentido. Depende de GEMU_BUG_BUSQUEDA_PRODUCTO_PREFIJO resuelto primero. Ver MSG_011 de su canal.",
+      "msg": "coordination/channel/Gemu/MSG_011_nova_autocompletar_desde_item.md",
+      "status": "pendiente",
+      "sprint": "002-corte-barras",
+      "prioridad": "media"
+    },
+    {
+      "agent": "Gemu",
+      "task": "GEMU_BUG_BUSQUEDA_PRODUCTO_PREFIJO",
+      "descripcion": "BUG confirmado (causa raíz en código, ya localizada): en corte-barras, el buscador de Producto hace match por substring en vez de prefijo. api/corte_barras.py:144, item_query(): like_txt = f'%{txt}%' — debería ser f'{txt}%' (sin comodín a la izquierda). Con substring, escribir '01-02-03' matchea códigos como '01-01-01-02-030' que NO empiezan así (la subcadena aparece en el medio). Con prefijo puro, la jerarquía de filtrado (01=perfiles, 01-02=redondo, 01-02-03=a medida) se resuelve sola a medida que el usuario tipea más dígitos, sin lógica especial. Decidir si item_name (línea 150, mismo patrón) también pasa a prefijo o mantiene substring para búsqueda libre por nombre. Avisar a Vega si cambia la firma. Ver MSG_010 de su canal.",
+      "msg": "coordination/channel/Gemu/MSG_010_nova_bug_busqueda_producto_prefijo.md",
+      "status": "pendiente",
+      "sprint": "002-corte-barras",
+      "prioridad": "alta"
+    },
+    {
       "agent": "Punto",
       "task": "PUNTO_PRECISION_ESQUINAS_SPLINE",
       "descripcion": "Pregunta de Constantino (2026-07-06): ¿se puede mejorar la precisión de la spline original agregando un análisis previo que detecte esquinas (cortes de pendiente) antes de vectorizar, para que el ajuste de curva no mezcle la pendiente a través de una esquina genuina? Contexto: potrace ya usa alphamax (0.5-1.2 según preset) como umbral de detección de esquinas — la pregunta es si se puede hacer algo mejor que ese umbral genérico, ya sea en la etapa de vectorizado o en la conversión splines→arcos (dxf_spline_to_arcs.py). CORREGIDO — ALTA PRIORIDAD: Constantino aclaró que con la calidad actual del vectorizado no puede vender el producto a nadie — bloquea todo el frente de patrones vectorizados, no es una mejora exploratoria. Ver MSG_040 de su canal (corrige la urgencia de MSG_039).",
@@ -21,15 +96,6 @@
       "nota": "Vega commit 82a5462 (erpnext), deployado (build+bump_page_cache+restart). Causa raiz confirmada: svg sin preserveAspectRatio=none, letterboxing con el default xMidYMid meet no contemplado en client_to_view/zoom_at/pan (los 3 usaban getBoundingClientRect a mano). Fix con getScreenCTM().inverse() en los 3 lugares; el pan necesito ademas congelar la CTM en pointerdown (el viewBox cambia durante el propio gesto). Verificado con simulacion numerica en Node (matriz afin xMidYMid meet) -- en pillarboxing horizontal (el eje reportado) el calculo viejo divergia ~205 unidades del correcto en un clic cercano al borde; con el fix, zoom mantiene el punto ancla fijo y pan termina exacto bajo el cursor. Sin browser real disponible para confirmar a ojo -- pendiente de que Constantino lo prueba con una imagen de proporcion bien distinta. Ver MSG_075 en Nova."
     },
     {
-      "agent": "Orbit",
-      "task": "ORBIT_DEPLOY_PRECISION_ESQUINAS",
-      "descripcion": "Deploy de precisión de esquinas spline (Punto commit fcffb06 en erpnext): 3 fixes de calidad vectorizador — (1) fix bug tolerancia: convert_dxf_splines_clean pasa fit_tol=tolerance a discretize_and_convert_spline; (2) preset 'Esquinas' alphamax=0; (3) runner.py tiene ahora 6 presets. Requiere: git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin bench migrate (no hay DocTypes nuevos). Verificar: /vectorizar-patron muestra 6 presets incluyendo 'Esquinas' como primero.",
-      "msg": "coordination/channel/Nova/MSG_072_punto_precision_esquinas.md",
-      "status": "pendiente",
-      "sprint": "001-rebanada",
-      "prioridad": "alta"
-    },
-    {
       "agent": "Punto",
       "task": "PUNTO_PRESET_POR_FIGURA",
       "descripcion": "Cambio de flujo confirmado por Constantino (2026-07-06): el vectorizador hoy aplica UN preset a toda la imagen, pero distintas figuras necesitan distinto nivel de detalle. Flujo nuevo: (1) subir imagen, (2) elegir preset global (sin cambios, sirve para el primer trazado), (3) seleccionar entidades (sin cambios), (4) NUEVO — por cada entidad seleccionada, elegir individualmente entre los 5 presets cuál la vectorizó mejor a ELLA. Esto reintroduce, en otro punto del flujo, el matching de figuras entre presets por bbox-center que el propio Punto sacó en el rewrite v2 (MSG_058) — revisar si esa lógica vieja (TASK_057, figuras[]×variantes[]) es reutilizable. Cambia el contrato de compose_pattern: de un preset único para toda la composición a preset por entidad (ej. lista de {entity_id, preset}). Pedido diagnóstico/enfoque antes de implementar: cómo correlacionar entidades entre presets, nuevo contrato exacto, qué publicar a Vega. Ver MSG_038 de su canal.",
@@ -44,10 +110,10 @@
       "task": "VEGA_PRESET_POR_FIGURA",
       "descripcion": "Nuevo paso 4 en el flujo del vectorizador: después de seleccionar entidades (paso 3, sin cambios), por cada figura seleccionada mostrar las 6 variantes de preset (ahora son 6: Esquinas+Ultra-Fino+Fino+Medio+Grueso+Umbral-Claro) de ESA figura puntual y dejar elegir cuál usar. Contrato de Punto (MSG_033 en canal Vega): selected_items=[{entity_id,preset}] en compose_pattern; endpoint get_entity_variants lazy para el popover; matching también disponible 100% client-side con el manifest (ver snippet JS en MSG_033). Ver diseño UX ya entregado en MSG_076 de canal Nova.",
       "msg": "coordination/channel/Vega/MSG_033_punto_contrato_preset_por_figura.md",
-      "status": "pendiente",
+      "status": "commit-listo-esperando-deploy-orbit",
       "sprint": "001-rebanada",
       "prioridad": "alta",
-      "nota": "Vega entrego diseno de UX (MSG_076 en Nova, cc Punto) sin codear -- Nova pidio pensar primero. Decision: default = preset global del paso 2 aplicado a todas las entidades seleccionadas, override puntual por clic (grilla de tarjetas, una por entidad seleccionada, clic abre selector de 5 variantes de esa figura). Insight de performance: la vista default de cada tarjeta se arma 100% client-side (clonando el path ya existente en el visor), el backend solo se consulta on-demand cuando el usuario hace clic en cambiar una figura puntual -- evita el costo de 300 figuras x 5 variantes en casos de reticula grande. Sugerencia de contrato (get_entity_variants(run_id, entity_id) lazy) pasada a Punto como input, no como exigencia. Esperando el contrato final de Punto (MSG_038, en curso) antes de escribir codigo -- la parte visual ya esta pensada y lista para construir en cuanto llegue."
+      "nota": "Vega commit 02ca949 (erpnext), PUSHEADO, NO deployado (Nova activa Orbit segun MSG_077). Implementado contra contrato final de Punto (MSG_033/430fc35): paso 4 nuevo con grilla de figuras seleccionadas (default = preset global), boton Cambiar abre dialogo con 6 variantes por bbox-center matching 100% client-side (sin get_entity_variants), miniaturas tambien client-side (svg_full parseado+cacheado, recortado a bbox_approx). selected_items=[{entity_id,preset}] en compose_pattern. Debounce 250ms en el render de la grilla para selecciones grandes. Validado node --check + template compile + cross-ref IDs + simulacion Node del matching bbox-center (5 casos). Pendiente: verificacion en vivo contra servidor real post-deploy de Orbit. Ver MSG_077 en Nova."
     },
     {
       "agent": "Punto",
