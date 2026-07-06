@@ -703,6 +703,7 @@ function perfiles_plegados_init() {
 	  var sw=document.getElementById('pp-stepWarn'); sw.innerHTML='';
 	  if(!st.ok) sw.innerHTML+='<div class="warn bad">⚠︎ Choque en este paso: '+st.warns[0]+'. Revisá útil o estrategia.</div>';
 	  for(var w=(st.ok?0:1);w<st.warns.length;w++) sw.innerHTML+='<div class="warn">⚠︎ '+st.warns[w]+'</div>';
+	  if(st.my&&state.step>0) sw.innerHTML+='<div class="warn" style="background:#eef4ff;border-color:#8aabdf;color:#1d4ed8;">ℹ️ En este paso la pieza va <b>dada vuelta</b> (cara opuesta arriba): los pliegues ya hechos se ven apuntando para abajo en el dibujo. El perfil final sale igual al que dibujaste.</div>';
 	  var man=(st.mx?'girá la pieza (otro extremo al tope)':'')+((st.mx&&st.my)?' y ':'')+(st.my?'dala vuelta (cara opuesta arriba)':'');
 	  document.getElementById('pp-stepHelp').textContent='Posicioná la pieza así'+(man?'; '+man:'')+'. Cargá X='+st.X.toFixed(1)+' e Y='+st.Y.toFixed(2)+' en el E21.';
 	  document.getElementById('pp-next').textContent=(state.step===n-1)?'Terminar ✓':'Siguiente ▸';
