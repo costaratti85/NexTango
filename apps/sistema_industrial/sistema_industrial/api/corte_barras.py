@@ -46,7 +46,34 @@ def _patron_a_str(patron):
     return " + ".join(partes)
 
 
-def _generar_texto_salida(result, bar_len, tipo_material, medida):
+def _pieza_ang_a_str(pieza):
+    """Formatea una pieza angular como texto para la orden de trabajo.
+
+    Ángulos en convención máquina (0°=recto, máx 60°) — se muestran tal cual,
+    sin conversión (el usuario los ingresó ya en esta convención).
+    Si izq==0 y der==0 (corte recto en ambos extremos), muestra solo el largo.
+    """
+    largo, izq, der, cara, disp = pieza[0], pieza[1], pieza[2], pieza[3], pieza[4]
+    txt = _fmt_num(largo)
+    if izq == 0 and der == 0:
+        return txt
+    return f"{txt} ({_fmt_num(izq)}{disp}{_fmt_num(der)}){_fmt_num(cara)}"
+
+
+def _patron_ang_a_str(patron):
+    """Agrupa piezas angulares iguales: '2 x 1000 (45//0)80 + 1 x 800'."""
+    conteo = Counter(tuple(p) for p in patron)
+    partes = []
+    for pieza_tuple, cantidad in sorted(conteo.items(), key=lambda x: -x[0][0]):
+        s = _pieza_ang_a_str(pieza_tuple)
+        if cantidad > 1:
+            partes.append(f"{cantidad} x {s}")
+        else:
+            partes.append(s)
+    return " + ".join(partes)
+
+
+def _generar_texto_salida(result, bar_len, tipo_material, medida, angular=False):
     """Genera el texto tab-separated compatible con el formato del programa original.
 
     Barras enteras → bloque cantidad/patrón.
@@ -77,15 +104,24 @@ def _generar_texto_salida(result, bar_len, tipo_material, medida):
 
     # ── Barras enteras ─────────────────────────────────────────────────────────
     for p in result.bar_patterns:
-        detalle = f"{p.count} a {_patron_a_str(p.pieces)}"
+        if angular:
+            detalle = f"{p.count} a {_patron_ang_a_str(p.pieces)}"
+        else:
+            detalle = f"{p.count} a {_patron_a_str(p.pieces)}"
         lines.append(
             f"{p.count}\t{tipo_str}\t{medida_str}\tx {_fmt_num(bar_len)}"
         )
         lines.append(f"\t{detalle}\t\t")
 
     # ── Tramos sueltos ─────────────────────────────────────────────────────────
-    for largo_mm in result.tramo_pieces:
-        lines.append(f"1\t{tipo_str}\t{medida_str}\tx {_fmt_num(largo_mm)}")
+    for pieza in result.tramo_pieces:
+        if angular:
+            largo_mm = pieza[0]
+            pieza_str = _pieza_ang_a_str(pieza)
+        else:
+            largo_mm = pieza
+            pieza_str = _fmt_num(largo_mm)
+        lines.append(f"1\t{tipo_str}\t{medida_str}\tx {pieza_str}")
 
     return "\n".join(lines)
 
@@ -122,38 +158,48 @@ def item_query(doctype, txt, searchfield, start, page_length, filters=None, **kw
 
 @_whitelist()
 def calcular(bar_len, cuts_json, tipo_material="", medida="",
-             price_per_bar=0, price_per_meter=0, kerf_mm=2.0):
+             price_per_bar=0, price_per_meter=0, kerf_mm=2.0, angular=False):
     """
     Calcula el plan de compra mixto (barras enteras + tramos sueltos).
 
     Args:
         bar_len:         Largo de barra en mm.
-        cuts_json:       JSON con lista [[qty, length_mm], ...].
+        cuts_json:       Modo recto: [[qty, largo], ...].
+                         Modo angular: [[qty, largo, izq, der, cara, disp], ...].
         tipo_material:   Texto libre (ej. "Caño").
         medida:          Texto libre (ej. "80 x 80 x 1.6").
         price_per_bar:   Precio de una barra entera (0 = modo no disponible).
         price_per_meter: Precio por metro lineal de tramo suelto (0 = modo no disponible).
         kerf_mm:         Ancho de sierra en mm (default 2).
+        angular:         Si True, procesa cortes angulares (cada corte tiene izq/der/cara/disp).
 
     Returns:
-        dict con campos de PurchasePlanResult + texto_salida (formato tab-separated original).
+        dict con campos de PurchasePlanResult + texto_salida + angular flag.
     """
     bar_len = float(bar_len)
     kerf_mm = float(kerf_mm)
     price_per_bar = float(price_per_bar)
     price_per_meter = float(price_per_meter)
-    cuts = json.loads(cuts_json)
+    angular = bool(angular)
+    cuts_raw = json.loads(cuts_json)
+
+    if angular:
+        cuts = [(c[0], c[1], c[2], c[3], c[4], c[5]) for c in cuts_raw]
+    else:
+        cuts = [(int(q), float(l)) for q, l in cuts_raw]
 
     result = calculate_purchase_plan(
         bar_len=bar_len,
-        cuts=[(int(q), float(l)) for q, l in cuts],
+        cuts=cuts,
         price_per_bar=price_per_bar,
         price_per_meter=price_per_meter,
         kerf_mm=kerf_mm,
+        angular=angular,
     )
 
     return {
         "error": result.error,
+        "angular": angular,
         "full_bars": result.full_bars,
         "full_bar_cost": result.full_bar_cost,
         "tramo_total_mm": result.tramo_total_mm,
@@ -163,7 +209,7 @@ def calcular(bar_len, cuts_json, tipo_material="", medida="",
         "global_efficiency_pct": result.global_efficiency_pct,
         "bar_patterns": [
             {
-                "pieces": p.pieces,
+                "pieces": [list(pc) if isinstance(pc, tuple) else pc for pc in p.pieces],
                 "count": p.count,
                 "used_mm": p.used_mm,
                 "waste_mm": p.waste_mm,
@@ -171,6 +217,9 @@ def calcular(bar_len, cuts_json, tipo_material="", medida="",
             }
             for p in result.bar_patterns
         ],
-        "tramo_pieces": result.tramo_pieces,
-        "texto_salida": _generar_texto_salida(result, bar_len, tipo_material, medida),
+        "tramo_pieces": [
+            list(pc) if isinstance(pc, tuple) else pc
+            for pc in result.tramo_pieces
+        ],
+        "texto_salida": _generar_texto_salida(result, bar_len, tipo_material, medida, angular),
     }

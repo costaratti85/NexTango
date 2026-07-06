@@ -57,7 +57,13 @@
   <div class="cb-card">
     <div class="cb-section-head">
       <h2>Lista de piezas</h2>
-      <button id="cb-btn-add" class="cb-ghost">+ Agregar fila</button>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <label class="cb-toggle-label" for="cb-angular-toggle">
+          <input type="checkbox" id="cb-angular-toggle">
+          Cortes en ángulo
+        </label>
+        <button id="cb-btn-add" class="cb-ghost">+ Agregar fila</button>
+      </div>
     </div>
 
     <table id="cb-pieces-table">
@@ -65,6 +71,10 @@
         <tr>
           <th>Cant.</th>
           <th>Largo (mm)</th>
+          <th class="cb-ang-col" style="display:none;">Izq °</th>
+          <th class="cb-ang-col" style="display:none;">Der °</th>
+          <th class="cb-ang-col" style="display:none;">Cara (mm)</th>
+          <th class="cb-ang-col" style="display:none;">Disp.</th>
           <th></th>
         </tr>
       </thead>
@@ -72,6 +82,18 @@
         <tr>
           <td><input type="number" class="cb-qty" value="1" min="1" step="1"></td>
           <td><input type="number" class="cb-len" min="1" step="1" placeholder="mm"></td>
+          <td class="cb-ang-col" style="display:none;"><input type="number" class="cb-izq" value="0" min="0" max="60" step="1"></td>
+          <td class="cb-ang-col" style="display:none;"><input type="number" class="cb-der" value="0" min="0" max="60" step="1"></td>
+          <td class="cb-ang-col" style="display:none;"><input type="number" class="cb-cara" value="0" min="0" step="1"></td>
+          <td class="cb-ang-col" style="display:none;">
+            <select class="cb-disp">
+              <option value="//">//</option>
+              <option value="\\">\</option>
+              <option value="/\">/\</option>
+              <option value="\/">\/</option>
+              <option value="X">X</option>
+            </select>
+          </td>
           <td><button class="cb-del-row cb-ghost-sm">✕</button></td>
         </tr>
       </tbody>

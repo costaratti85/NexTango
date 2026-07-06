@@ -61,7 +61,17 @@ class CorteBarras {
 		});
 		$('#cb-btn-calc').on('click', () => this._calcular());
 		$('#cb-btn-copy').on('click', () => this._copiar());
+		$('#cb-angular-toggle').on('change', () => this._toggle_angular());
 		this._bind_keyboard_nav();
+	}
+
+	_is_angular() {
+		return $('#cb-angular-toggle').is(':checked');
+	}
+
+	_toggle_angular() {
+		const on = this._is_angular();
+		$('.cb-ang-col').toggle(on);
 	}
 
 	// ── Tabla de piezas ───────────────────────────────────────────────────────
@@ -69,10 +79,24 @@ class CorteBarras {
 	// focus_col: 'qty' (default para filas creadas por teclado) o 'len' (para
 	// el botón "+ Agregar fila", que ya arranca con cantidad=1 precargada).
 	_add_row(focus_col) {
+		const ang_visible = this._is_angular();
+		const ang_style = ang_visible ? '' : 'display:none;';
 		const tr = $(`
 			<tr>
 				<td><input type="number" class="cb-qty" value="1" min="1" step="1"></td>
 				<td><input type="number" class="cb-len" min="1" step="1" placeholder="mm"></td>
+				<td class="cb-ang-col" style="${ang_style}"><input type="number" class="cb-izq" value="0" min="0" max="60" step="1"></td>
+				<td class="cb-ang-col" style="${ang_style}"><input type="number" class="cb-der" value="0" min="0" max="60" step="1"></td>
+				<td class="cb-ang-col" style="${ang_style}"><input type="number" class="cb-cara" value="0" min="0" step="1"></td>
+				<td class="cb-ang-col" style="${ang_style}">
+					<select class="cb-disp">
+						<option value="//">//</option>
+						<option value="\\">\</option>
+						<option value="/\">/\</option>
+						<option value="\/">\/</option>
+						<option value="X">X</option>
+					</select>
+				</td>
 				<td><button class="cb-del-row cb-ghost-sm">✕</button></td>
 			</tr>`);
 		$('#cb-pieces-body').append(tr);
@@ -149,11 +173,21 @@ class CorteBarras {
 	}
 
 	_get_cuts() {
+		const angular = this._is_angular();
 		const cuts = [];
 		$('#cb-pieces-body tr').each(function () {
 			const qty = parseInt($(this).find('.cb-qty').val(), 10) || 0;
 			const len = parseFloat($(this).find('.cb-len').val()) || 0;
-			if (qty > 0 && len > 0) cuts.push([qty, len]);
+			if (qty <= 0 || len <= 0) return;
+			if (angular) {
+				const izq = parseFloat($(this).find('.cb-izq').val()) || 0;
+				const der = parseFloat($(this).find('.cb-der').val()) || 0;
+				const cara = parseFloat($(this).find('.cb-cara').val()) || 0;
+				const disp = $(this).find('.cb-disp').val() || '//';
+				cuts.push([qty, len, izq, der, cara, disp]);
+			} else {
+				cuts.push([qty, len]);
+			}
 		});
 		return cuts;
 	}
@@ -195,6 +229,7 @@ class CorteBarras {
 
 		const tipo_material = $('#cb-tipo-material').val().trim();
 		const medida = $('#cb-medida').val().trim();
+		const angular = this._is_angular();
 
 		frappe.call({
 			method: 'sistema_industrial.api.corte_barras.calcular',
@@ -206,6 +241,7 @@ class CorteBarras {
 				price_per_bar,
 				price_per_meter,
 				kerf_mm,
+				angular,
 			},
 			callback: (r) => {
 				this._set_loading(false);
@@ -220,6 +256,16 @@ class CorteBarras {
 				this._show_error('Error de conexión con el servidor.');
 			},
 		});
+	}
+
+	// ── Formato de pieza angular ──────────────────────────────────────────────
+
+	_fmt_pieza(p) {
+		// p puede ser un número (recto) o un array [largo, izq, der, cara, disp] (angular)
+		if (!Array.isArray(p)) return `${p}`;
+		const [largo, izq, der, cara, disp] = p;
+		if (izq === 0 && der === 0) return `${largo}`;
+		return `${largo} (${izq}${disp}${der})${cara}`;
 	}
 
 	// ── Renderizado de resultados ─────────────────────────────────────────────
@@ -282,7 +328,7 @@ class CorteBarras {
 		if (data.bar_patterns && data.bar_patterns.length > 0) {
 			let rows_html = '';
 			data.bar_patterns.forEach((p, i) => {
-				const chips = p.pieces.map(mm => `<span class="cb-chip">${mm}</span>`).join('');
+				const chips = p.pieces.map(pc => `<span class="cb-chip">${this._fmt_pieza(pc)}</span>`).join('');
 				rows_html += `<tr>
 					<td>${i + 1}</td>
 					<td><div class="cb-pattern-chips">${chips}</div></td>
@@ -300,8 +346,8 @@ class CorteBarras {
 
 		// Tramos sueltos
 		if (data.tramo_pieces && data.tramo_pieces.length > 0) {
-			const chips = data.tramo_pieces.map(mm =>
-				`<span class="cb-tramo-chip">${mm} mm</span>`
+			const chips = data.tramo_pieces.map(pc =>
+				`<span class="cb-tramo-chip">${this._fmt_pieza(pc)} mm</span>`
 			).join('');
 			$('#cb-tramos-list').html(`
 				<div class="cb-tramos-grid">${chips}</div>
