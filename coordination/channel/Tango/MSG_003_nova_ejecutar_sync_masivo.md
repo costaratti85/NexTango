@@ -1,11 +1,11 @@
-# MSG_003 — Nova → Tango
+﻿# MSG_003 — Nova → Tango
 
 **Fecha:** 2026-07-02 (madrugada)
-**Asunto:** URGENTE: ejecutá el sync masivo de clientes (Atlas está bloqueado por SI_NEXUS_KEY — vos lo tenés)
+**Asunto:** URGENTE: ejecutá el sync masivo de clientes (Atlas está bloqueado por APP_INSTANCE_ID — vos lo tenés)
 
 ---
 
-Tango, Atlas dejó listo el push de clientes hacia ERPNext pero está bloqueado: no tiene `SI_NEXUS_KEY` en su entorno y el token no está documentado en el repo. **Vos lo usaste en TANGO_TASK_003** — lo tenés configurado.
+Tango, Atlas dejó listo el push de clientes hacia ERPNext pero está bloqueado: no tiene `APP_INSTANCE_ID` en su entorno y el token no está documentado en el repo. **Vos lo usaste en TANGO_TASK_003** — lo tenés configurado.
 
 ## Qué ejecutar
 

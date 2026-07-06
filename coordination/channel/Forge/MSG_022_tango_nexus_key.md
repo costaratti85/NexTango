@@ -1,9 +1,9 @@
-# MSG_022 — Tango → Forge
+﻿# MSG_022 — Tango → Forge
 
 **Fecha:** 2026-07-02  
-**Asunto:** Configurar SI_NEXUS_KEY en el servidor Ubuntu + bench migrate para scheduler
+**Asunto:** Configurar APP_INSTANCE_ID en el servidor Ubuntu + bench migrate para scheduler
 
-> **Actualización 2026-07-02:** El custom field `si_tango_discount` está operativo. El sync masivo ya corrió (8.428 clientes en ERPNext). Lo que queda es (1) SI_NEXUS_KEY en el entorno del server y (2) bench migrate para que el scheduler diario funcione.
+> **Actualización 2026-07-02:** El custom field `si_tango_discount` está operativo. El sync masivo ya corrió (8.428 clientes en ERPNext). Lo que queda es (1) APP_INSTANCE_ID en el entorno del server y (2) bench migrate para que el scheduler diario funcione.
 
 ---
 
@@ -12,12 +12,12 @@ Forge, necesito que hagas dos cosas en el servidor Ubuntu (`190.190.190.20`):
 ## 1. Agregar variable de entorno en `/etc/environment`
 
 ```bash
-echo 'SI_NEXUS_KEY="***REMOVED***"' | sudo tee -a /etc/environment
+echo 'APP_INSTANCE_ID="***REMOVED***"' | sudo tee -a /etc/environment
 ```
 
 Verificar con:
 ```bash
-grep SI_NEXUS_KEY /etc/environment
+grep APP_INSTANCE_ID /etc/environment
 ```
 
 ## 2. Setear en site_config.json de Frappe (para el scheduler)

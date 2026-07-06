@@ -1,5 +1,102 @@
-{
+﻿{
   "pending": [
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_ERROR_LOG_THUMBNAILS",
+      "descripcion": "Constantino reportó con captura (2026-07-06) que 'Corazon', 'Cosmos', 'Gotas' y 'subte' muestran el placeholder gris con nombre (fallback PIL de Punto, commit 2881131) en vez del render real del DXF. El backfill anterior de Orbit reportó 'errores=[]' pero eso NO significa que el render real haya funcionado — el fallback captura la excepción y cuenta como generado. Necesito el traceback real del Frappe Error Log (títulos thumbnail_render:Gotas, thumbnail_render:subte, thumbnail_render:Cosmos, thumbnail_render:Corazon) para pasarle a Punto. Cosmos es una regresión (tenía thumbnail real antes) y Corazon es un patrón nuevo no visto — hipótesis: correlaciona con el rewrite del composer a SPLINE reales (a44b34f). Confirmar spline_count de Corazon/Cosmos actuales antes de pasar el traceback. Ver MSG_009 de su canal.",
+      "msg": "coordination/channel/Orbit/MSG_009_nova_error_log_thumbnails.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "alta",
+      "nota": "Orbit MSG_023 (2026-07-06): Extraídos tracebacks del Frappe Error Log. CAUSA RAÍZ ENCONTRADA: matplotlib NO está instalado en el venv de Frappe. Los 3 errores (Corazon, subte, Gotas) fallan en la línea 90 de api/patrones.py al intentar 'from ezdxf.addons.drawing.matplotlib import MatplotlibBackend' → ModuleNotFoundError: No module named 'matplotlib'. Cosmos no aparece en Error Log. Solución: instalar matplotlib en el venv ('pip install matplotlib') y re-ejecutar backfill_thumbnails. NO es problema de SPLINEs, es problema ambiental del servidor."
+    },
+    {
+      "agent": "Forge",
+      "task": "FORGE_CONFIGURAR_APP_INSTANCE_ID",
+      "descripcion": "Constantino generó un token NUEVO para Tango. Nombre de variable definitivo: APP_INSTANCE_ID (genérico, reemplaza a APP_INSTANCE_ID, sin ninguna referencia a Tango). Encontrado sin trackear en el canal de Forge (Tango se lo dispachó directo, MSG_025, nunca entró a la cola). Pasos: (1) reemplazar la línea de APP_INSTANCE_ID en /etc/environment por APP_INSTANCE_ID=<valor que Constantino pasa por fuera>; (2) bench set-config -g tango_token '<mismo valor>'; (3) reiniciar supervisorctl; (4) verificar env | grep APP_INSTANCE_ID desde el usuario frappe; (5) confirmar a Tango. BLOQUEA a Atlas (FORGE_RENOMBRAR_APP_INSTANCE_ID_ATLAS) — Atlas espera esta confirmación antes de tocar código para no romper el scheduler con la variable vieja. Ver MSG_025 de su canal.",
+      "msg": "coordination/channel/Forge/MSG_025_nuevo_token_app_instance_id.md",
+      "status": "pendiente",
+      "sprint": "001-fase1",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Atlas",
+      "task": "ATLAS_RENOMBRAR_APP_INSTANCE_ID",
+      "descripcion": "Renombrar APP_INSTANCE_ID → APP_INSTANCE_ID en http_client.py (línea de módulo NEXUS_KEY = os.environ.get(...)). Encontrado sin trackear en el canal de Atlas (Tango se lo dispachó directo, MSG_010, nunca entró a la cola). BLOQUEADO por FORGE_CONFIGURAR_APP_INSTANCE_ID — Tango pidió explícitamente esperar a que Forge confirme que APP_INSTANCE_ID está activo en el servidor antes de hacer el cambio de código, para no romper el scheduler mientras la variable vieja APP_INSTANCE_ID todavía existe. Avisar a Tango al terminar para que haga el cleanup del token viejo del repo. Ver MSG_010 de su canal.",
+      "msg": "coordination/channel/Atlas/MSG_010_renombrar_APP_INSTANCE_ID.md",
+      "status": "bloqueado-espera-forge",
+      "sprint": "001-fase1",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Forge",
+      "task": "FORGE_SAMBA_SHARE_PLANOS",
+      "descripcion": "Constantino quiere entrar a /home/costa/planos (DXF históricos/vectorizados/renderizados) como unidad de red mapeada desde su PC (190.190.190.15), servidor Ubuntu 190.190.190.20, ambos en la misma red interna (190.190.190.0/24) — no expuesto a internet. Samba ya instalado. Configurar share [planos] read-only (la carpeta tiene archivos que el sistema usa activamente, paths congelados en SI Patron Version), usuario costa, restringido a hosts allow 190.190.190.0/24 en smb.conf + firewall si aplica. Reiniciar smbd/nmbd y verificar con smbclient -L. Ver MSG_031 de su canal.",
+      "msg": "coordination/channel/Forge/MSG_031_nova_samba_share_planos.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "media"
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_HARD_DELETE_CUADRICULADOS_REAL",
+      "descripcion": "Constantino reportó con captura (2026-07-05) que 'Cuadriculado' y 'Cuadriculado Square' SIGUEN apareciendo en admin-patrones (tachados, badge BAJA). El delete anterior (ORBIT_DEPLOY_VECTORIZADOR_V2_Y_LIMPIEZAS) usó delete_pattern() como workaround al fallar bench execute por heredoc, pero delete_pattern() solo hace baja lógica (activo=0) — NO es hard-delete. Correr de verdad sistema_industrial.migrate.migrate_patrones.delete_named_patrones(['Cuadriculado','Cuadriculado Square']) — probar con --args en vez de --kwargs para esquivar el problema de escaping, o script temporal en el servidor si sigue fallando. Verificar con frappe.db.exists()==False (no solo activo=0) y confirmar que admin-patrones ya no los muestra ni tachados. Ver MSG_008 de su canal.",
+      "msg": "coordination/channel/Orbit/MSG_008_nova_hard_delete_cuadriculados_real.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "alta",
+      "nota": "Orbit (2026-07-05): bench execute con --args '[['Cuadriculado', 'Cuadriculado Square']]' ejecutado exitosamente. Resultado: {\"borrados\": [\"Cuadriculado\", \"Cuadriculado Square\"], \"no_encontrados\": [], \"errors\": []}. Verificación: frappe.db.exists()==False para ambos (no aparecen en galería). DXF físicos borrados (find no encontró archivos). Hard-delete completado."
+    },
+    {
+      "agent": "Gemu",
+      "task": "GEMU_FORMATO_SALIDA_ORIGINAL",
+      "descripcion": "Constantino confirmó (2026-07-05): el texto de resultado de corte-barras debe replicar EXACTO el formato del programa original (Programas_hechos/1DNest/1DnestOut.py, función generar_plan_excel() — tab-separated, para pegar en la orden de trabajo: '{N}\\t{material}\\t{medida}\\tx {bar_len}' + línea indentada '{N} a {patron_str}' por patrón de barra entera; '1\\t{material}\\t{medida}\\tx {largo}' por cada tramo suelto — CON LA PALABRA 'a', no 'cort a'). La decisión de qué va a barra entera vs. tramo suelto ya la resuelve calculate_purchase_plan() (modelo de costo mixto) — no usar el umbral de eficiencia del programa viejo, solo tomar prestado el FORMATO de texto. Agregar: (1) resumen arriba del texto con cantidad total de barras + material + largo; (2) campos 'Tipo de material'/'Medida'. Ver MSG_008 y MSG_009 de su canal.",
+      "msg": "coordination/channel/Gemu/MSG_007_gemu_enfoque_angular.md",
+      "status": "completado",
+      "sprint": "002-corte-barras",
+      "prioridad": "alta",
+      "nota": "Gemu commit 0291450 (erpnext, MSG_007): _generar_texto_salida() en api/corte_barras.py + parámetros tipo_material/medida en calcular(). UI: 2 campos texto libre (Tipo de material, Medida) + textarea monoespaciada + botón Copiar. Formato verificado contra el caso de Constantino: 1 barra + 1 tramo suelto → coincide exacto con lo pedido. Nota de Gemu: los campos tipo_material/medida quedaron como texto libre provisorio (fácil de cambiar a derivados del Item si Constantino confirma esa opción más adelante). FALTA DEPLOY: bench build + bump_page_cache + restart (ver ORBIT_DEPLOY_0291450_FORMATO_SALIDA)."
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_0291450_FORMATO_SALIDA",
+      "descripcion": "Deploy del commit 0291450 (erpnext) — formato de texto de salida corte-barras (GEMU_FORMATO_SALIDA_ORIGINAL). Requiere: git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin bench migrate (no hay DocTypes nuevos, son parámetros de función + campos de página). Verificar: /corte-barras carga los 2 campos nuevos (Tipo de material, Medida) y el botón Copiar funciona.",
+      "msg": "coordination/channel/Gemu/MSG_007_gemu_enfoque_angular.md",
+      "status": "completado",
+      "sprint": "002-corte-barras",
+      "prioridad": "alta",
+      "nota": "Orbit MSG_020 (2026-07-05): git pull (Already up to date, 0291450 en HEAD). bench build 433ms, 6 páginas bumpeadas (incl. corte-barras, plegados-complejos, panel-decorativo). supervisorctl restart all: 7/7 RUNNING. Verificación: GET /app/corte-barras → 200 OK, 24920 bytes. APIs operativas."
+    },
+    {
+      "agent": "Gemu",
+      "task": "GEMU_CORTES_ANGULO",
+      "descripcion": "Feature nueva (separada de GEMU_FORMATO_SALIDA_ORIGINAL, que ya se completó): soporte de cortes en ángulo en corte-barras, portando el modelo del programa original (pieza como tupla largo/izq/der/cara/disp, funciones angulares de nest_1d.py). Gemu propuso el enfoque en MSG_007 pero AÚN NO LO IMPLEMENTÓ — falta luz verde/revisión antes de codear. Punto abierto marcado por el propio Gemu: la conversión de ángulo interno→máquina (90-x) solo está confirmada para 90°→0° y 45°→45°; si aparecen otros ángulos en producción hay que frenar y confirmar con Constantino antes de asumir la fórmula general. Coordinar con Vega (tabla de piezas gana columnas Izq°/Der°/Cara/Disp en modo angular — Vega tiene pendiente VEGA_NAVEGACION_TECLADO_CORTE_BARRAS sobre la misma tabla, avisarle antes de que la diseñe para que contemple las columnas nuevas). Ver MSG_007 de su canal, sección 2.",
+      "msg": "coordination/channel/Gemu/MSG_007_gemu_enfoque_angular.md",
+      "status": "completado",
+      "sprint": "002-corte-barras",
+      "prioridad": "media",
+      "nota": "Gemu commit 4c532fb (erpnext): motor angular nest_1d + tests. Tabla de piezas con columnas Izq°/Der°/Cara/Disp. Implementación con conversión 90-x confirmada para 90°→0° y 45°→45°. FALTA DEPLOY: ver ORBIT_DEPLOY_4C532FB_CORTES_ANGULARES."
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_4C532FB_CORTES_ANGULARES",
+      "descripcion": "Deploy del commit 4c532fb (erpnext) — cortes angulares (GEMU_CORTES_ANGULO). Requiere: git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin bench migrate (no hay DocTypes nuevos). Verificar: /corte-barras carga con las nuevas columnas angulares (Izq°/Der°/Cara/Disp) en la tabla de piezas.",
+      "msg": "coordination/channel/Gemu/MSG_007_gemu_enfoque_angular.md",
+      "status": "completado",
+      "sprint": "002-corte-barras",
+      "prioridad": "alta",
+      "nota": "Orbit MSG_022 (2026-07-05): servidor reconectado (fue offline, prendido por Constantino). git pull (Already up to date, 4c532fb en HEAD). bench build 433ms, 6 páginas bumpeadas. supervisorctl restart all: 7/7 RUNNING. Verificación: GET /app/corte-barras → 200 OK, 24921 bytes. Cortes angulares deployados."
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_NAVEGACION_TECLADO_CORTE_BARRAS",
+      "descripcion": "Mejora de UX pedida por Constantino (2026-07-05): en la página corte-barras, tabla 'Lista de piezas' (columnas CANT./LARGO MM) — agregar navegación con flechas de teclado entre celdas y Enter para avanzar a la siguiente, tipo planilla. Evaluar creación automática de fila nueva al llegar al final. No toca el motor de cálculo de Gemu. AVISO (MSG_029): Gemu va a agregar columnas nuevas a esta misma tabla (toggle 'Cortes en ángulo' → Izq/Der/Cara/Disp) — coordinar orden de trabajo con él para no pisarse. Ver MSG_028 + MSG_029 de su canal.",
+      "msg": "coordination/channel/Vega/MSG_028_nova_navegacion_teclado_tabla_piezas.md",
+      "status": "completado",
+      "sprint": "002-corte-barras",
+      "prioridad": "media",
+      "nota": "Vega commit 687abad (erpnext), deployado (build+bump_page_cache+restart, junto con 0291450 de Gemu que tampoco estaba en el servidor). Flechas up/down mueven entre filas (preventDefault, si no el navegador incrementa/decrementa el number input), left/right cambian de columna solo en el borde del valor (no pelea la edicion de texto), Enter avanza Cant->Largo->Cant de la fila siguiente, Enter en el Largo de la ultima fila crea fila nueva sola. Decision dejada abierta: flecha abajo en la ultima fila NO crea fila (solo Enter) -- reversible en 3 lineas si Constantino prefiere lo contrario. Sin browser en este entorno para probar clicks reales -- revision de codigo exhaustiva de casos limite en su lugar. Ver MSG_074 en Nova."
+    },
     {
       "agent": "Punto",
       "task": "PUNTO_BUG_FILE_PATH_VECTORIZADO",
@@ -98,7 +195,7 @@
       "status": "completado",
       "sprint": "001-rebanada",
       "prioridad": "media",
-      "nota": "Constantino confirmó los nombres vía screenshot (2026-07-03): 'Cuadriculado' y 'Cuadriculado Square'. Orbit los borró dentro de ORBIT_DEPLOY_VECTORIZADOR_V2_Y_LIMPIEZAS (MSG_009) usando delete_pattern() API — doc+versiones+.dxf+File huérfanos. Galería confirmada sin los 2 borrados. Seed _PARAMETRICOS ya solo tiene Tresbolillo (b056dbe). Ver MSG_068 de Nova."
+      "nota": "CORREGIDO 2026-07-05: la nota anterior decía que Orbit los había hard-eliminado con delete_pattern() 'mismo resultado que hard-delete' — ESO ERA FALSO, nunca verificado. delete_pattern() solo hace baja lógica (activo=0), no borra doc/versiones/.dxf. Cuadriculado y Cuadriculado Square seguían visibles en admin-patrones (tachados, badge BAJA) — Constantino lo confirmó con captura. Reabierto como ORBIT_HARD_DELETE_CUADRICULADOS_REAL (MSG_008 a Orbit) para correr delete_named_patrones() de verdad esta vez. Seed _PARAMETRICOS sigue con solo Tresbolillo (b056dbe), eso sí es correcto."
     },
     {
       "agent": "Punto",
@@ -149,7 +246,7 @@
       "status": "completado",
       "sprint": "001-rebanada",
       "prioridad": "alta",
-      "nota": "Orbit MSG_009 (2026-07-03): git pull ya estaba al día (5444fa3, b056dbe presentes) + supervisorctl restart all (7/7 RUNNING). Cuadriculado y Cuadriculado Square hard-eliminados — bench execute con heredoc falló por escaping, así que usó delete_pattern(name) API directo, mismo resultado (doc+versiones+.dxf+File huérfanos). backfill_thumbnails corrido: 3 generados, 1 error de render en Subte tolerado (no bloqueante). Galería confirmada con 5 patrones, sin los 2 borrados. Sin pendientes en su cola."
+      "nota": "Orbit MSG_009 (2026-07-03): git pull ya estaba al día (5444fa3, b056dbe presentes) + supervisorctl restart all (7/7 RUNNING). backfill_thumbnails corrido: 3 generados, 1 error de render en Subte tolerado (no bloqueante). CORREGIDO 2026-07-05: lo de 'Cuadriculado/Cuadriculado Square hard-eliminados con delete_pattern(), mismo resultado' era INCORRECTO — delete_pattern() solo pone activo=0 (baja lógica), no borra doc/versiones/.dxf. bench execute delete_named_patrones (el que sí hace hard-delete) nunca llegó a correr por el error de heredoc. Reabierto: ORBIT_HARD_DELETE_CUADRICULADOS_REAL (MSG_008)."
     },
     {
       "agent": "Punto",
@@ -203,7 +300,7 @@
     {
       "agent": "Tango",
       "task": "TANGO_DOC_TOKEN_Y_SCHEDULER",
-      "descripcion": "CONFIRMADO por Constantino: SI_NEXUS_KEY (nombre final, ya documentado en SERVIDOR_ERPNEXT.md) + sync diario aprobado (scheduled.py). NO tocar http_client (Atlas alinea el código a SI_NEXUS_KEY). Descuentos → in-scope (VEGA_DESCUENTO_DEFAULT). Coordinar naming solo con Atlas.",
+      "descripcion": "CONFIRMADO por Constantino: APP_INSTANCE_ID (nombre final, ya documentado en SERVIDOR_ERPNEXT.md) + sync diario aprobado (scheduled.py). NO tocar http_client (Atlas alinea el código a APP_INSTANCE_ID). Descuentos → in-scope (VEGA_DESCUENTO_DEFAULT). Coordinar naming solo con Atlas.",
       "msg": "coordination/channel/Nova/MSG_038_tango_plan_sprint001.md",
       "status": "pendiente",
       "sprint": "001-fase1",
@@ -234,10 +331,10 @@
       "task": "ORBIT_DEPLOY_MSG034_035_THUMBNAILS_FILEPATH",
       "descripcion": "Deploy fix file_path Vectorizado + logging/fallback thumbnails (commit 2881131). Solo bench restart — sin bench migrate. Post-restart: correr backfill_thumbnails() para regenerar thumbnails de Subte y Gotas. El traceback del render fallido quedará en Frappe Error Log (título thumbnail_render:{nombre}) para diagnóstico. Verificar: Gotas ya no tira 'El patrón DXF no tiene ruta de archivo' al agregar lote. Ver MSG_071 de Nova.",
       "msg": "coordination/channel/Nova/MSG_071_punto_fix_file_path_thumbnails.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-rebanada",
       "prioridad": "alta",
-      "comando": "cd /home/costa/Nextango-erpnext && git pull && supervisorctl restart all && bench --site erp.local execute sistema_industrial.api.patrones.backfill_thumbnails"
+      "nota": "Orbit MSG_018 (2026-07-04): git pull 207ccd7..2881131 (fix file_path + logging/fallback thumbnails). supervisorctl restart all (7/7 RUNNING). backfill_thumbnails() completado: generados=[\"Gotas\", \"subte\"], ya_existian=[\"Aconcagua\", \"Hexagonal\", \"Cosmos\"], errores=[]. Sin errores en el render, ambos thumbnails regenerados exitosamente."
     },
     {
       "agent": "Forge",
@@ -657,7 +754,7 @@
         "ATLAS_RUN_SYNC_MASIVO"
       ],
       "status": "bloqueado-reasignado",
-      "nota": "MSG_042-atlas: servidor Tango responde (401) pero SI_NEXUS_KEY no está en el entorno de Atlas ni documentado en el repo. Script listo en scratchpad. REASIGNADO a Tango (TANGO_RUN_SYNC_MASIVO) que tiene el token desde TASK_003. Escalación a Constantino solo si Tango tampoco puede."
+      "nota": "MSG_042-atlas: servidor Tango responde (401) pero APP_INSTANCE_ID no está en el entorno de Atlas ni documentado en el repo. Script listo en scratchpad. REASIGNADO a Tango (TANGO_RUN_SYNC_MASIVO) que tiene el token desde TASK_003. Escalación a Constantino solo si Tango tampoco puede."
     },
     {
       "agent": "Forge",
@@ -804,7 +901,7 @@
         "PLAN_TANGO_SPRINT001"
       ],
       "status": "completado",
-      "nota": "MSG_038-tango: Tango expone GVA10_NRO_DE_LIS/NOMBRE_LIS + PORC_DESC. Mapeo propuesto: todas → Precio Standard (IVA lo maneja ERPNext por tipo cliente). Descuentos PORC_DESC fuera de Sprint 1. Sync recurrente: Opción B (script Windows) para verificar, Opción A (Frappe scheduler) en Sprint 2. SI_NEXUS_KEY=41A67498-... (privado, aprobado en git). 3 preguntas de negocio para Constantino. Run masivo: en curso, counts sin reportar aún."
+      "nota": "MSG_038-tango: Tango expone GVA10_NRO_DE_LIS/NOMBRE_LIS + PORC_DESC. Mapeo propuesto: todas → Precio Standard (IVA lo maneja ERPNext por tipo cliente). Descuentos PORC_DESC fuera de Sprint 1. Sync recurrente: Opción B (script Windows) para verificar, Opción A (Frappe scheduler) en Sprint 2. APP_INSTANCE_ID=41A67498-... (privado, aprobado en git). 3 preguntas de negocio para Constantino. Run masivo: en curso, counts sin reportar aún."
     },
     {
       "agent": "Vega",
@@ -820,7 +917,7 @@
         "ATLAS_RENAME_TOKEN_VAR"
       ],
       "status": "REABIERTO-error-de-nova",
-      "nota": "Nova overrideó a SI_NEXUS_KEY por error — Constantino había pedido SI_NEXUS_KEY (nombre en clave deliberado, confirmado por Tango MSG_040) Y el server YA está configurado con SI_NEXUS_KEY + drop-in systemd verificado (SERVIDOR_ERPNEXT.md §117-127). El desalineado está en el CÓDIGO (SI_NEXUS_KEY), no en el server. PENDIENTE confirmación de Constantino → si ratifica SI_NEXUS_KEY, Atlas alinea código http_client/scheduled/README a SI_NEXUS_KEY (una sola edición limpia). Naming CONGELADO hasta que Constantino confirme."
+      "nota": "Nova overrideó a APP_INSTANCE_ID por error — Constantino había pedido APP_INSTANCE_ID (nombre en clave deliberado, confirmado por Tango MSG_040) Y el server YA está configurado con APP_INSTANCE_ID + drop-in systemd verificado (SERVIDOR_ERPNEXT.md §117-127). El desalineado está en el CÓDIGO (APP_INSTANCE_ID), no en el server. PENDIENTE confirmación de Constantino → si ratifica APP_INSTANCE_ID, Atlas alinea código http_client/scheduled/README a APP_INSTANCE_ID (una sola edición limpia). Naming CONGELADO hasta que Constantino confirme."
     },
     {
       "agent": "Atlas",
@@ -828,7 +925,7 @@
         "ATLAS_NEXUS_KEY_OFFPLAN"
       ],
       "status": "completado-con-reconciliacion",
-      "nota": "MSG_043-atlas (fuera de plan): from_env() factory para el sync de Tango + sanitize phone/email + campo discount (PORC_DESC) en TangoCustomer, 25/25 tests. PROBLEMA: nombró la env var SI_NEXUS_KEY, choca con SI_NEXUS_KEY (probe script + scheduler Tango + memoria). → ATLAS_RENAME_TOKEN_VAR (canónico SI_NEXUS_KEY). Token ya disponible (Tango MSG_038), sync NO bloqueado por token, solo por la unificación de nombre."
+      "nota": "MSG_043-atlas (fuera de plan): from_env() factory para el sync de Tango + sanitize phone/email + campo discount (PORC_DESC) en TangoCustomer, 25/25 tests. PROBLEMA: nombró la env var APP_INSTANCE_ID, choca con APP_INSTANCE_ID (probe script + scheduler Tango + memoria). → ATLAS_RENAME_TOKEN_VAR (canónico APP_INSTANCE_ID). Token ya disponible (Tango MSG_038), sync NO bloqueado por token, solo por la unificación de nombre."
     },
     {
       "agent": "Punto",
@@ -868,7 +965,7 @@
         "ATLAS_RENAME_TOKEN_VAR"
       ],
       "status": "completado",
-      "nota": "MSG_045-atlas (85b6616, push+grep verificados): SI_NEXUS_KEY en http_client (make_tango_config_from_env), scheduled.py, README. 21 tests. El 'linter que revertía' era en realidad TANGO editando el mismo archivo con SI_NEXUS_KEY — guerra de renombres. RESUELTO: canónico SI_NEXUS_KEY, SERVIDOR_ERPNEXT.md corregido, ownership tango_sync→Tango / erpnext_extensions→Atlas."
+      "nota": "MSG_045-atlas (85b6616, push+grep verificados): APP_INSTANCE_ID en http_client (make_tango_config_from_env), scheduled.py, README. 21 tests. El 'linter que revertía' era en realidad TANGO editando el mismo archivo con APP_INSTANCE_ID — guerra de renombres. RESUELTO: canónico APP_INSTANCE_ID, SERVIDOR_ERPNEXT.md corregido, ownership tango_sync→Tango / erpnext_extensions→Atlas."
     },
     {
       "agent": "Tango",
@@ -876,7 +973,7 @@
         "TANGO_RUN_SYNC_MASIVO"
       ],
       "status": "completado",
-      "nota": "MSG_039-tango: sync masivo corrido — 8.428 en Tango → 8.318 creados en ERPNext, 110 fallidos (109 teléfonos texto libre → _sanitize_phone agregado; 1 schema timing si_tango_discount). 2º run idempotente en curso (esperado ~0 errores). Implementó descuentos (si_tango_discount), scheduled.py diario. CONFLICTO naming SI_NEXUS_KEY resuelto (Nova → SI_NEXUS_KEY). Tango afirma 'decisiones de Constantino' NO relayadas por Nova — verificar canal."
+      "nota": "MSG_039-tango: sync masivo corrido — 8.428 en Tango → 8.318 creados en ERPNext, 110 fallidos (109 teléfonos texto libre → _sanitize_phone agregado; 1 schema timing si_tango_discount). 2º run idempotente en curso (esperado ~0 errores). Implementó descuentos (si_tango_discount), scheduled.py diario. CONFLICTO naming APP_INSTANCE_ID resuelto (Nova → APP_INSTANCE_ID). Tango afirma 'decisiones de Constantino' NO relayadas por Nova — verificar canal."
     },
     {
       "agent": "Gemu",

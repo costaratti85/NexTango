@@ -1,7 +1,7 @@
-"""Frappe scheduled jobs para sincronización Tango → ERPNext.
+﻿"""Frappe scheduled jobs para sincronización Tango → ERPNext.
 
 Registrados en hooks.py bajo scheduler_events.
-Leen SI_NEXUS_KEY del entorno del proceso (configurado en /etc/environment en Ubuntu).
+Leen APP_INSTANCE_ID del entorno del proceso (configurado en /etc/environment en Ubuntu).
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def sync_customers_from_tango() -> None:
 
     config = make_tango_config_from_env()
     if not config.token:
-        logger.error("sync_customers_from_tango: SI_NEXUS_KEY no configurado — sync abortado")
+        logger.error("sync_customers_from_tango: APP_INSTANCE_ID no configurado — sync abortado")
         return
 
     logger.info("sync_customers_from_tango: iniciando descarga desde Tango...")
@@ -45,7 +45,7 @@ def sync_articles_from_tango() -> None:
 
     config = make_tango_config_from_env()
     if not config.token:
-        logger.error("sync_articles_from_tango: SI_NEXUS_KEY no configurado — sync abortado")
+        logger.error("sync_articles_from_tango: APP_INSTANCE_ID no configurado — sync abortado")
         return
 
     logger.info("sync_articles_from_tango: iniciando descarga desde Tango...")
