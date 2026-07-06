@@ -92,7 +92,9 @@ class ArcSegment:
         return result
 
     def export_dxf(self, msp):
-        span = abs(self.end_angle - self.start_angle) % 360
+        # CCW span: (end - start) % 360. abs() gives wrong result for arcs
+        # crossing 0° (e.g. start=350, end=10 → abs gives 340, not 20).
+        span = (self.end_angle - self.start_angle) % 360
         if span == 0 or span >= 350:
             # near-complete arc → output as CIRCLE (cleaner laser path, no tiny gap)
             msp.add_circle(

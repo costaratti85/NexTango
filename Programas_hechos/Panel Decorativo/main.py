@@ -142,6 +142,16 @@ def load_pattern(settings):
             settings.input_file
         )
 
+        # Normalize bbox center to origin so tiling is symmetric on all 4 edges.
+        # Without this, a pattern whose bbox is off-center tiles asymmetrically
+        # (e.g. full figures on right/top, clipped figures on left/bottom).
+        bbox = piece.bbox()
+        if bbox is not None:
+            cx = (bbox.min_x + bbox.max_x) / 2.0
+            cy = (bbox.min_y + bbox.max_y) / 2.0
+            if abs(cx) > 1e-6 or abs(cy) > 1e-6:
+                piece = piece.translated(-cx, -cy)
+
         return (
             piece,
             settings.step_x,

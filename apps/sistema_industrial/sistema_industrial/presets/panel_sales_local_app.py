@@ -1049,15 +1049,13 @@ def _render_panel_thumbnail(
                 for e in geom.entities:
                     _draw(e)
             elif hasattr(geom, "cx") and hasattr(geom, "radius"):
-                span = geom.end_angle - geom.start_angle
-                if span < 0:
-                    span += 360
-                if abs(span) >= 359.9:
+                span = (geom.end_angle - geom.start_angle) % 360
+                if span == 0 or span >= 359.9:
                     n, total = 64, 2 * _math.pi
                 else:
-                    rad_span = _math.radians(span) % (2 * _math.pi)
-                    n = max(8, int(abs(rad_span) / (2 * _math.pi) * 64))
-                    total = _math.radians(span)
+                    rad_span = _math.radians(span)
+                    n = max(8, int(rad_span / (2 * _math.pi) * 64))
+                    total = rad_span
                 a0 = _math.radians(geom.start_angle)
                 angles = [a0 + total * i / n for i in range(n + 1)]
                 ax.plot(
@@ -1182,17 +1180,14 @@ def generate_pattern_thumbnail(pattern_name: str, pattern_data: dict) -> "Path |
                     _draw(e)
             elif hasattr(geom, "cx") and hasattr(geom, "radius"):
                 # ArcSegment
-                span = geom.end_angle - geom.start_angle
-                if span < 0:
-                    span += 360  # arcos DXF son siempre CCW
-                full_circle = abs(span) >= 359.9
+                span = (geom.end_angle - geom.start_angle) % 360
                 a0 = _math.radians(geom.start_angle)
-                if full_circle:
+                if span == 0 or span >= 359.9:
                     n, total = 64, 2 * _math.pi
                 else:
-                    rad_span = _math.radians(span) % (2 * _math.pi)
-                    n = max(8, int(abs(rad_span) / (2 * _math.pi) * 64))
-                    total = _math.radians(span)
+                    rad_span = _math.radians(span)
+                    n = max(8, int(rad_span / (2 * _math.pi) * 64))
+                    total = rad_span
                 angles = [a0 + total * i / n for i in range(n + 1)]
                 ax.plot(
                     [geom.cx + _math.cos(a) * geom.radius for a in angles],
