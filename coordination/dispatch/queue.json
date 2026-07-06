@@ -1,13 +1,44 @@
 {
   "pending": [
     {
+      "agent": "Punto",
+      "task": "PUNTO_BUG_FILE_PATH_VECTORIZADO",
+      "descripcion": "BUG CONFIRMADO (no hipótesis, causa raíz ya localizada): al agregar un lote con un patrón vectorizado ('Gotas', primer patrón hecho con el vectorizador nuevo), error 'El patrón DXF no tiene ruta de archivo'. Causa: api/patrones.py:180, _patron_doc_to_row() solo llena file_path cuando tipo=='Archivo'; los patrones tipo 'Vectorizado' caen en el else (tratados como Paramétrico) y quedan con file_path=''. Fix: cambiar a 'if tipo in (\"Archivo\", \"Vectorizado\"):' — mismo criterio que ya usa correctamente backfill_thumbnails en la línea 122 del mismo archivo. Pedido extra: auditar el resto de patrones.py (delete_pattern, get_patron/resolver, upload) por checks equivalentes que también deberían incluir Vectorizado. Distinto del bug de thumbnails de MSG_034 (no relacionado, no asumir que un fix resuelve el otro). Ver MSG_035 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_035_nova_bug_file_path_vectorizado.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "alta",
+      "nota": "Punto commit 2881131 (erpnext, push verificado): _patron_doc_to_row() L180 cambiado a 'if tipo in (\"Archivo\", \"Vectorizado\")'. Auditoría del resto: delete_pattern (no usa tipo, OK), get_patron/resolver (usa archivo_dxf directo sin distinción por tipo, OK), upload_pattern (siempre tipo=Archivo, fuera de scope). Solo el L180 era el bug. Pendiente deploy por Orbit (solo bench restart)."
+    },
+    {
+      "agent": "Punto",
+      "task": "PUNTO_THUMBNAILS_GOTAS_SUBTE",
+      "descripcion": "Constantino reportó (screenshot 2026-07-05): 'Gotas' y 'subte' sin thumbnail en el selector de patrones (placeholder rectángulo vacío). Subte ya había fallado en backfill_thumbnails (Orbit MSG_009: '1 error de render en Subte — tolerado') pero nunca se investigó la causa, solo se toleró. 'Gotas' es patrón nuevo sin ningún historial en coordinación — probablemente subido directo por Constantino vía admin-patrones, mismo síntoma. Pedido: reproducir _generate_and_save_thumbnail contra los DXF reales de ambos, encontrar causa real (no asumir que es la misma en los dos), evaluar fallback más robusto si la geometría no renderiza, y asegurar que el error quede logueado (no tragado en silencio). NO volver a correr backfill a ciegas sin antes entender la causa. Ver MSG_034 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_034_nova_thumbnails_gotas_subte.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "media",
+      "nota": "Punto commit 2881131 (mismo que MSG_035, erpnext, push verificado): _generate_and_save_thumbnail ahora: (1) loguea el traceback real vía frappe.log_error(title='thumbnail_render:{nombre}') en vez de tragar la excepción; (2) fallback PIL — si el render ezdxf+matplotlib falla, genera un placeholder gris 216x216 con el nombre del patrón para que la UI muestre algo. El error específico queda en Frappe Error Log para diagnóstico. Causa raíz exacta (Subte vs Gotas) se verá al correr backfill_thumbnails post-deploy — el log ahora captura el traceback real. Pendiente deploy + backfill por Orbit."
+    },
+    {
       "agent": "Forge",
       "task": "FORGE_SYNC_MANUAL_CLIENTES",
       "descripcion": "Tarea de Constantino (2026-07-03): endpoint whitelisted que dispara sync_customers_from_tango() on-demand (mismo proceso del scheduler diario, manual) para un botón 'Actualizar' junto a los selectores de cliente. Debe devolver resultado usable por la UI (creados/actualizados/fallidos), no fire-and-forget. Resolver antes de exponerlo: performance del sync completo (~8.400 clientes) para un uso pensado en 'traer 1 cliente nuevo ya' — evaluar filtro incremental en Tango API o correr como background job (frappe.enqueue). Coordinar con Tango antes de tocar tango_sync/ (ownership suyo). Ver MSG_024 de su canal.",
       "msg": "coordination/channel/Forge/MSG_024_nova_sync_manual_clientes.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-rebanada",
-      "prioridad": "media"
+      "prioridad": "media",
+      "nota": "Forge MSG_055 (commits 69eed3d, 8dda7e1, 6b7c822, b92f0a3 — debug logging final): endpoint POST /api/method/sistema_industrial.tango_sync.api.manual_sync_customers, async vía frappe.enqueue (no bloquea el request), devuelve {job_id, message, status:queued}, resultado real {creados,actualizados,fallidos,errores} queda en el output del job. Deployado, 7/7 servicios. Tango aún no confirmó filtro incremental — por ahora sync completo de ~8.400 en background. Vega necesita ajustar su integración al contrato async (VEGA_CONECTAR_POLLING_SYNC, MSG_025) porque su contrato provisorio era síncrono."
+    },
+    {
+      "agent": "Vega",
+      "task": "VEGA_CONECTAR_POLLING_SYNC",
+      "descripcion": "El endpoint de Forge (FORGE_SYNC_MANUAL_CLIENTES) quedó async con background job, distinto del contrato provisorio síncrono que Vega había armado en VEGA_BOTON_SYNC_CLIENTES. Ajustar public/js/customer_sync.js: POST a manual_sync_customers → guardar job_id → polling cada 2-3s contra el status del Background Job → mostrar resultado final (creados/actualizados/fallidos) cuando termine. Si no existe un endpoint de status para pollear, pedirle a Forge que lo agregue (lo ofreció en MSG_055). Aplica a las 4 páginas vía el helper compartido. Ver MSG_025 de su canal.",
+      "msg": "coordination/channel/Vega/MSG_025_nova_conectar_polling_sync.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "media",
+      "nota": "Forge fix commit 86867e0 (job_id -> sync_job_id, evita colision con parametro reservado de frappe.enqueue). Vega verifico end-to-end de forma independiente (2 corridas reales en el servidor): el job ya NO explota con TypeError, ejecuta el codigo real, y ante un error real (conectividad Tango) el manejo de fallo funciona correcto -- Redis status pasa a failed con el error especifico, el polling (cada 2.5s) lo detecta y muestra el alert sin quedar trabado. Mecanismo confirmado de punta a punta. HALLAZGO NUEVO Y URGENTE (no bloquea el cierre de esta tarea, es infraestructura separada): server-t:17000 (tango_base_url) no resuelve por DNS desde el servidor ahora mismo (SERVFAIL confirmado con ping/nslookup a nivel de SO, sin VPN activa, sin entrada en /etc/hosts) -- esto tambien rompe el sync nocturno automatico, no solo el boton manual. Reportado a Nova en MSG_073 y confirmado cruzado con Forge (que ya lo habia visto, MSG_029) en MSG_030."
     },
     {
       "agent": "Vega",
@@ -44,9 +75,10 @@
       "task": "ORBIT_DEPLOY_CORTE_BARRAS",
       "descripcion": "Deploy de página corte-barras (commit b1b8722 en erpnext). Requiere: git pull + bench migrate (crea el Page doc) + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. No hay DocTypes nuevos. Verificar: la URL /corte-barras carga y el botón Calcular no da 404.",
       "msg": "coordination/channel/Gemu/MSG_005_gemu_entrega_corte_barras.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "002-corte-barras",
-      "prioridad": "alta"
+      "prioridad": "alta",
+      "nota": "Orbit MSG_013 (2026-07-04): git pull fc6c111..b1b8722 (1080 líneas, api/corte_barras.py + cutting/nest_1d.py + page/corte_barras/). bench migrate OK, build 553ms, bump_page_cache bumpeó 6 páginas. 7/7 RUNNING. Página accessible en /app/corte-barras."
     },
     {
       "agent": "Vega",
@@ -104,10 +136,10 @@
       "task": "ORBIT_DEPLOY_COMPOSER_SPLINE",
       "descripcion": "Deploy del composer con SPLINEs reales (a44b34f). Solo bench restart — sin bench migrate. El DXF de patrones vectorizados ahora emite entidades SPLINE (degree=3, clamped knots) en vez de LINE segments. compose_pattern() actualiza spline_count correctamente → badge 'Tiene Splines' aparece en admin-patrones → Constantino puede correr 'Convertir a arcos'. Ver MSG_070 de Nova.",
       "msg": "coordination/channel/Nova/MSG_070_punto_composer_spline.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-rebanada",
       "prioridad": "alta",
-      "comando": "cd /home/costa/Nextango-erpnext && git pull && supervisorctl restart all"
+      "nota": "Orbit MSG_014 (2026-07-04): git pull 2a7d16c..a44b34f (composer reescrito para emitir SPLINE reales). supervisorctl restart all (7/7 RUNNING). Galería funciona, API compose_pattern() OK. has_splines campo presente, será True cuando vectorize detecte curves Bezier."
     },
     {
       "agent": "Orbit",
@@ -196,6 +228,25 @@
       "sprint": "001-rebanada",
       "prioridad": "media",
       "nota": "Vega commit ebb1684 (erpnext), deployado y verificado en el servidor (bench execute, no requiere migrate/build/bump_page_cache). ensure_home_shortcut_panel_decorativo() en deploy.py agrega el shortcut como PRIMERO en la sección 'Your Shortcuts' del Workspace Home nativo — antes de Item/Customer/Supplier/Sales Invoice. Idempotente (verificado: 2da corrida = changed:false). Opción elegida sobre forzar Sistema Industrial como default global (afectaría a todos los roles). Ver MSG_068 en Nova."
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_MSG034_035_THUMBNAILS_FILEPATH",
+      "descripcion": "Deploy fix file_path Vectorizado + logging/fallback thumbnails (commit 2881131). Solo bench restart — sin bench migrate. Post-restart: correr backfill_thumbnails() para regenerar thumbnails de Subte y Gotas. El traceback del render fallido quedará en Frappe Error Log (título thumbnail_render:{nombre}) para diagnóstico. Verificar: Gotas ya no tira 'El patrón DXF no tiene ruta de archivo' al agregar lote. Ver MSG_071 de Nova.",
+      "msg": "coordination/channel/Nova/MSG_071_punto_fix_file_path_thumbnails.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "alta",
+      "comando": "cd /home/costa/Nextango-erpnext && git pull && supervisorctl restart all && bench --site erp.local execute sistema_industrial.api.patrones.backfill_thumbnails"
+    },
+    {
+      "agent": "Forge",
+      "task": "FORGE_TANGO_CONECTIVIDAD_CAIDA",
+      "descripcion": "URGENTE, operativo (no de código): server-t:17000 (tango_base_url en site_config.json) no resuelve por DNS desde el servidor ERPNext ahora mismo. Confirmado a nivel de sistema operativo por Vega y Forge de forma independiente (ping/nslookup dan SERVFAIL, sin interfaz VPN activa, sin entrada en /etc/hosts). Esto rompe tanto el boton de sync manual como el scheduled.py nocturno -- clientes nuevos/actualizados en Tango YA NO estan llegando a ERPNext desde que esto empezo a fallar. Revisar: VPN/red al servidor Tango, si el servidor fisico esta encendido, o si cambio el hostname/IP. Detectado durante VEGA_CONECTAR_POLLING_SYNC (ver MSG_073 de Vega a Nova, MSG_029/030 en canal Forge).",
+      "msg": "coordination/channel/Nova/MSG_073_VEGA_polling_verificado_cierre.md",
+      "status": "pendiente",
+      "sprint": "001-fase1",
+      "prioridad": "alta"
     }
   ],
   "foco_2026-07-02": {
