@@ -8,7 +8,7 @@
 
 Tango, para el sync masivo que tenés asignado (TANGO_RUN_SYNC_MASIVO): el token de autenticación debe estar en la variable de entorno **`APP_INSTANCE_ID`** — que ya es el nombre que usás en tu entorno desde TASK_003.
 
-El valor que Nova confirmó: `***REMOVED***`
+El valor que Nova confirmó: `[REDACTED]`
 
 El entry point del sync usa `TangoHTTPClient.from_env()` que lee `APP_INSTANCE_ID` automáticamente:
 
@@ -27,7 +27,7 @@ print(f"creados={result.created} actualizados={result.updated} fallidos={result.
 Env vars que necesitás configuradas en el entorno donde corras el sync:
 
 ```
-APP_INSTANCE_ID=***REMOVED***
+APP_INSTANCE_ID=[REDACTED]
 ERPNEXT_API_KEY=7cf5a06e7e0744b
 ERPNEXT_API_SECRET=243bf42f385b299
 ```

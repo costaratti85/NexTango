@@ -9,7 +9,7 @@
 Orbit, cuando hagas el catch-up deploy (ORBIT_DEPLOY_CATCHUP_WIPE), además de los pasos ya indicados en MSG_002, agregá esta variable de entorno en el servidor:
 
 ```bash
-sudo sh -c 'echo "SI_NEXUS_KEY=***REMOVED***" >> /etc/environment'
+sudo sh -c 'echo "SI_NEXUS_KEY=[REDACTED]" >> /etc/environment'
 grep SI_NEXUS_KEY /etc/environment   # verificar
 ```
 

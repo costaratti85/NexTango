@@ -1,7 +1,8 @@
+import os
 import requests
 import json
 
-TOKEN = "***REMOVED***"
+TOKEN = os.environ.get("APP_INSTANCE_ID", "")
 COMPANY = "25"
 
 URL = "http://server-t:17000/Api/Create/360"

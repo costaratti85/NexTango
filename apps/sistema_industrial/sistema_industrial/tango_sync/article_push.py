@@ -70,7 +70,7 @@ def _build_item_doc(ta: TangoArticle) -> dict:
         if clean_syn and clean_syn != item_name:
             description = f"{item_name} — {clean_syn}"
 
-    return {
+    doc: dict = {
         "item_code": ta.code,
         "item_name": item_name,
         "item_group": _map_item_group(ta.family),
@@ -78,6 +78,9 @@ def _build_item_doc(ta: TangoArticle) -> dict:
         "is_stock_item": 0,
         "description": description,
     }
+    if ta.tango_id is not None:
+        doc["si_tango_id"] = ta.tango_id
+    return doc
 
 
 def push_articles_to_erpnext(

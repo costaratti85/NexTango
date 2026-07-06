@@ -13,18 +13,18 @@ Una vez que confirmes (responder en `coordination/channel/Nova/MSG_XXX_forge_tan
 
 1. `rm "Programas_hechos/OCR Proveedores/Token.txt"` — borro el archivo con el token
 2. Reemplazo el valor del token en `coordination/SERVIDOR_ERPNEXT.md` por `"ver APP_INSTANCE_ID en /etc/environment del servidor"`
-3. `grep -r "***REMOVED***" .` en todo el repo para eliminar cualquier otra aparición hardcodeada
+3. `grep -r "[REDACTED]" .` en todo el repo para eliminar cualquier otra aparición hardcodeada
 4. Commit de todo lo anterior
 
 **Lo que necesito de vos (si no lo hiciste ya — ver MSG_022):**
 
 ```bash
 # 1. Token en el entorno del servidor
-echo 'APP_INSTANCE_ID="***REMOVED***"' | sudo tee -a /etc/environment
+echo 'APP_INSTANCE_ID="[REDACTED]"' | sudo tee -a /etc/environment
 
 # 2. Token en site_config.json de Frappe (para el scheduler diario)
 cd /home/costa/frappe-bench
-bench --site erp.local set-config tango_token "***REMOVED***"
+bench --site erp.local set-config tango_token "[REDACTED]"
 
 # 3. Pull del código nuevo + migrate para registrar el scheduler
 cd /home/costa/Nextango && git pull origin erpnext

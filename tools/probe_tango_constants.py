@@ -24,7 +24,7 @@ import sys
 _APP = os.path.join(os.path.dirname(__file__), "..", "apps", "sistema_industrial")
 sys.path.insert(0, os.path.abspath(_APP))
 
-os.environ.setdefault("APP_INSTANCE_ID", "***REMOVED***")
+os.environ.setdefault("APP_INSTANCE_ID", "")  # set externally
 os.environ.setdefault("TANGO_URL", "http://server-t:17000")
 os.environ.setdefault("TANGO_COMPANY", "25")
 

@@ -106,13 +106,13 @@ Si se regeneran los configs con `bench setup nginx` o `bench setup supervisor`, 
 | Campo | Valor |
 |---|---|
 | Servidor | `http://server-t:17000` |
-| APP_INSTANCE_ID (ApiAuthorization) | `***REMOVED***` |
+| APP_INSTANCE_ID (ApiAuthorization) | *(ver variable de entorno en servidor)* |
 | Company | `25` |
 | Process clientes (GVA14) | `2117` |
 | Process artículos (STA11) | `87` |
 | Process movimientos stock | `12567` (endpoint `GetApiLiveQueryData`) |
 
-Token encontrado 2026-07-01 en `Programas_hechos/OCR Proveedores/Token.txt`.
+Token original encontrado 2026-07-01 en `Programas_hechos/OCR Proveedores/Token.txt` (eliminado del repo).
 
 ### Token como variable de entorno `APP_INSTANCE_ID` (2026-07-02)
 
