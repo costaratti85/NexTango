@@ -75,9 +75,15 @@ def _thumbnail_url(filename):
 def _generate_and_save_thumbnail(nombre: str, dxf_path) -> "str | None":
     """Renderiza DXF a PNG y lo guarda en public/pattern_thumbnails/{safe_name}.png.
 
-    Usa ezdxf + matplotlib. Retorna la URL pública o None si falla (matplotlib
-    ausente, DXF inválido, etc.) — el caller puede ignorar el error.
+    Intenta ezdxf + matplotlib primero; si falla, genera un placeholder PIL con el
+    nombre del patrón. Retorna la URL pública o None si ambos métodos fallan.
     """
+    thumb_dir = Path(__file__).resolve().parents[1] / "public" / "pattern_thumbnails"
+    thumb_dir.mkdir(parents=True, exist_ok=True)
+    safe = _safe_name(nombre)
+    out_path = thumb_dir / f"{safe}.png"
+
+    # --- Intento 1: render completo con ezdxf + matplotlib ---
     try:
         import ezdxf
         from ezdxf.addons.drawing import RenderContext, Frontend
@@ -96,15 +102,44 @@ def _generate_and_save_thumbnail(nombre: str, dxf_path) -> "str | None":
         out = MatplotlibBackend(ax)
         Frontend(ctx, out).draw_layout(msp, finalize=True)
 
-        thumb_dir = Path(__file__).resolve().parents[1] / "public" / "pattern_thumbnails"
-        thumb_dir.mkdir(parents=True, exist_ok=True)
-        safe = _safe_name(nombre)
-        out_path = thumb_dir / f"{safe}.png"
         fig.savefig(str(out_path), dpi=72, bbox_inches="tight",
                     facecolor="white", edgecolor="none")
         plt.close(fig)
         return f"{_THUMBNAIL_BASE}/{safe}.png"
     except Exception:
+        import traceback
+        frappe.log_error(
+            title=f"thumbnail_render:{nombre}",
+            message=traceback.format_exc(),
+        )
+
+    # --- Intento 2: placeholder PIL con nombre del patrón ---
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        SIZE = 216
+        img = Image.new("RGB", (SIZE, SIZE), color=(230, 230, 230))
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([4, 4, SIZE - 5, SIZE - 5], outline=(180, 180, 180), width=2)
+        label = nombre[:20]
+        try:
+            font = ImageFont.truetype("DejaVuSans.ttf", 16)
+        except Exception:
+            font = ImageFont.load_default()
+        try:
+            bbox = draw.textbbox((0, 0), label, font=font)
+            tw = bbox[2] - bbox[0]
+            th = bbox[3] - bbox[1]
+        except AttributeError:
+            tw, th = draw.textsize(label, font=font)
+        draw.text(((SIZE - tw) / 2, (SIZE - th) / 2), label, fill=(80, 80, 80), font=font)
+        img.save(str(out_path))
+        return f"{_THUMBNAIL_BASE}/{safe}.png"
+    except Exception:
+        import traceback
+        frappe.log_error(
+            title=f"thumbnail_placeholder:{nombre}",
+            message=traceback.format_exc(),
+        )
         return None
 
 
@@ -177,7 +212,7 @@ def _patron_doc_to_row(doc):
     step_x = parametros.get("step_x")
     step_y = parametros.get("step_y")
 
-    if tipo == "Archivo":
+    if tipo in ("Archivo", "Vectorizado"):
         file_path = str(doc.get("archivo_dxf") or "")
         # Frappe Attach stores URLs like /files/... or full paths; check existence via Path
         try:
