@@ -137,8 +137,8 @@ function perfiles_plegados_init() {
 	  }
 	  return {steps:steps};
 	}
-	function simulateOrder(fl,an,dr,order,V,s){
-	  var done=[]; for(var i=0;i<an.length;i++) done.push(false);
+	function simulateOrder(fl,an,dr,order,V,s,preDone){
+	  var done=preDone?preDone.slice():[]; if(!preDone){ for(var i=0;i<an.length;i++) done.push(false); }
 	  var totalDev=0; for(var t=0;t<fl.length;t++) totalDev+=(fl[t]||0);
 	  var minOp=Math.max(25, 0.20*totalDev);   // L. MÍN. CONTRA OPERARIO: lo que necesita para sostener
 	  var steps=[], prevMx=null, prevMy=null, prevGauge=null, flips=0, giras=0, collisions=0, totalX=0, opViol=0, unstable=0, refChg=0;
@@ -182,11 +182,11 @@ function perfiles_plegados_init() {
 	  var out=[]; for(var i=0;i<arr.length;i++){ var rest=arr.slice(0,i).concat(arr.slice(i+1)); var sub=permsOf(rest); for(var j=0;j<sub.length;j++) out.push([arr[i]].concat(sub[j])); }
 	  return out;
 	}
-	function buscarOrden(fl,an,dr,V,s){
-	  var idx=[]; for(var i=0;i<an.length;i++) idx.push(i);
+	function buscarOrden(fl,an,dr,V,s,preDone){
+	  var idx=[]; for(var i=0;i<an.length;i++){ if(!preDone||!preDone[i]) idx.push(i); }
 	  var best=null, feasibleCount=0, tried=0, all=permsOf(idx);
 	  for(var p=0;p<all.length && tried<=40320;p++){ tried++;
-	    var r=simulateOrder(fl,an,dr,all[p],V,s);
+	    var r=simulateOrder(fl,an,dr,all[p],V,s,preDone);
 	    if(r.collisions===0&&r.opViol===0&&r.unstable===0) feasibleCount++;
 	    // prioridad Cybelec: sin choque > operario sostiene > apoyo plano > mínimo voltear > mínimo girar > menos recolocar tope > tope cercano
 	    r.score=r.collisions*1e9 + r.opViol*1e7 + r.unstable*5e6 + r.flips*1e5 + r.giras*2e3 + r.refChg*1e3 + r.totalX*0.5;
@@ -221,6 +221,60 @@ function perfiles_plegados_init() {
 	    label:'Aplaste del pliegue provisorio',
 	    hint:'Girar la pieza (forma W). Colocar el pliegue central sobre el PUNZÓN PLANO + MATRIZ PLANA y aplastar → perfil U final.',
 	    X:((webLen/2)+xg).toFixed(1), Y:'—', punch:flatNom, die:'Matriz plana'});
+	  return steps;
+	}
+	// Técnica de escalón (joggle): dos pliegues opuestos pegados con ala corta en el medio no
+	// salen directo. Se pre-pliegan LOS DOS a 135° con la chapa plana (topeando del extremo
+	// final, X desarrollado) y se cierran a 90° después; el resto de los pliegues se secuencia
+	// normal con los escalones ya dados por hechos.
+	function tryJoggle(fl,an,dr,V,ri,s,cal,sb){
+	  if(an.length<2) return null;
+	  var pairs=[];
+	  for(var i=0;i<an.length-1;i++){
+	    if(dr[i]!==dr[i+1] && (fl[i+1]||0)<=V*1.25){ pairs.push(i); i++; }   // pares sin solapar
+	  }
+	  if(!pairs.length) return null;
+	  var preDone=[]; for(var d0=0;d0<an.length;d0++) preDone.push(false);
+	  for(var q0=0;q0<pairs.length;q0++){ preDone[pairs[q0]]=true; preDone[pairs[q0]+1]=true; }
+	  // posiciones desarrolladas de las líneas de pliegue sobre chapa plana (DIN 6935)
+	  var vDed=an.map(function(a){return din6935_v(180-a,ri,s);});   // negativo = descuento
+	  var Ldev=0; for(var t=0;t<fl.length;t++) Ldev+=(fl[t]||0);
+	  for(var t2=0;t2<vDed.length;t2++) Ldev+=vDed[t2];
+	  function devX(k){ var x=0; for(var i2=0;i2<=k;i2++) x+=fl[i2]||0; for(var j=0;j<k;j++) x+=vDed[j]; return x+vDed[k]/2; }
+	  var xg=(cal&&cal.xg)||0;
+	  function Yfor(a){ var c=(state.angCorr&&state.angCorr[a])||0; var aF=a-sb-c; return cal.y90+cal.sign*(penetracion(aF,V)-penetracion(90-sb,V)); }
+	  function cara(k){ return dr[k]<0?'cara ABAJO (dada vuelta)':'cara ARRIBA'; }
+	  var pNom=curPunch?curPunch.name:'Recto', dNom=curDie?curDie.name:('V'+V+' 90°');
+	  var endL=nodeLetter(fl.length);
+	  var steps=[], paso=1;
+	  for(var q=0;q<pairs.length;q++){
+	    var i1=pairs[q], ib=i1+1;   // topeando del extremo final: primero el pliegue más lejos de ese borde (i1)
+	    var L1=nodeLetter(i1+1), L2=nodeLetter(ib+1);
+	    var X1=(Ldev-devX(i1)+xg), X2=(Ldev-devX(ib)+xg);
+	    steps.push({paso:paso++,tipo:'pre',label:'Escalón '+L1+'-'+L2+' — pre-pliegue en '+L1+' a 135°',
+	      hint:cara(i1)+' · tope: borde '+endL+' · chapa plana (X desarrollado)',
+	      X:X1.toFixed(1), Y:Yfor(135).toFixed(2), punch:pNom, die:dNom});
+	    steps.push({paso:paso++,tipo:'pre',label:'Pre-pliegue en '+L2+' a 135°',
+	      hint:cara(ib)+' · tope: borde '+endL+' · chapa plana (X desarrollado)',
+	      X:X2.toFixed(1), Y:Yfor(135).toFixed(2), punch:pNom, die:dNom});
+	    steps.push({paso:paso++,tipo:'cierre',label:'Cierre de '+L2+' a 90°',
+	      hint:'misma posición que el paso anterior — solo baja más la Y',
+	      X:X2.toFixed(1), Y:Yfor(90).toFixed(2), punch:pNom, die:dNom});
+	    steps.push({paso:paso++,tipo:'cierre',label:'Cierre de '+L1+' a 90°',
+	      hint:cara(i1)+' · tope: contra el escalón recién cerrado en '+L2,
+	      X:((fl[ib]||0)+xg).toFixed(1), Y:Yfor(90).toFixed(2), punch:pNom, die:dNom});
+	  }
+	  // el resto de los pliegues, con los escalones ya dados por hechos
+	  var res=buscarOrden(fl,an,dr,V,s,preDone);
+	  if(res.best){ var rs=res.best.steps;
+	    for(var r2=0;r2<rs.length;r2++){ var st=rs[r2];
+	      var man=(st.mx?'girá la pieza':'')+((st.mx&&st.my)?' y ':'')+(st.my?'dala vuelta':'');
+	      steps.push({paso:paso++,tipo:'bend',
+	        label:'Pliegue b'+(st.bend+1)+' — '+(an[st.bend]*(dr[st.bend]<0?-1:1))+'°',
+	        hint:(st.ok?'':'⚠ '+(st.why||'choque')+' · ')+(man?man+' · ':'')+'tope: '+(st.gauge!=null?nodeLetter(st.gauge):'—'),
+	        X:(st.X+xg).toFixed(1), Y:Yfor(an[st.bend]).toFixed(2), punch:pNom, die:dNom});
+	    }
+	  }
 	  return steps;
 	}
 
@@ -480,7 +534,7 @@ function perfiles_plegados_init() {
 	    var xFine=(st.bend!=null&&state.xCorr&&state.xCorr[st.bend])||0;
 	    return {orderNo:st.order, bendIndex:st.bend, alpha:st.alpha, Xraw:st.X, X:(st.bend!=null?st.X+(cal.xg||0)+xFine:st.X), Y:(st.bend!=null?Yfor(st.alpha):0), mx:st.mx, my:st.my, ok:st.ok, warns:warns, gaugeNode:st.gauge};
 	  }
-	  var steps, cerebro, wPlan=null;
+	  var steps, cerebro, wPlan=null, wTipo=null;
 	  if(state.manual && state.manSeq){
 	    steps=simulateManual(flanges,angles,dirs,state.manSeq,V,s).steps.map(enrich);
 	    var col=0; for(var i=0;i<steps.length;i++) if(!steps[i].ok) col++;
@@ -491,9 +545,12 @@ function perfiles_plegados_init() {
 	    cerebro={manual:false, tried:res.tried, feasibleCount:res.feasibleCount, collisions:res.best.collisions, manips:res.best.manips, flips:res.best.flips, giras:res.best.giras, opViol:res.best.opViol};
 	    // Técnica W solo si TODOS los órdenes chocan (best tiene el mínimo de choques):
 	    // apoyo inestable o poco sostén del operario NO justifican la técnica W.
-	    wPlan=(!state.manual&&res.best.collisions>0)?tryWBend(flanges,angles,dirs,V,ri,s,cal,sb):null;
+	    if(!state.manual&&res.best.collisions>0){
+	      wPlan=tryWBend(flanges,angles,dirs,V,ri,s,cal,sb); wTipo=wPlan?'w':null;
+	      if(!wPlan){ wPlan=tryJoggle(flanges,angles,dirs,V,ri,s,cal,sb); wTipo=wPlan?'escalon':null; }
+	    }
 	  }
-	  return {s:s,L:L,V:V,ri:ri,sb:sb,minA:minA,manual:state.manual,nbends:angles.length,nnodes:flanges.length+1,punch:(curPunch?curPunch.name:''),die:(curDie?curDie.name:''),flanges:flanges,angles:angles,dirs:dirs,devel:d.dev,totalFlat:d.alas,steps:steps,ton:tonelaje(L,s,RmN,V),cal:cal,cerebro:cerebro,wPlan:wPlan};
+	  return {s:s,L:L,V:V,ri:ri,sb:sb,minA:minA,manual:state.manual,nbends:angles.length,nnodes:flanges.length+1,punch:(curPunch?curPunch.name:''),die:(curDie?curDie.name:''),flanges:flanges,angles:angles,dirs:dirs,devel:d.dev,totalFlat:d.alas,steps:steps,ton:tonelaje(L,s,RmN,V),cal:cal,cerebro:cerebro,wPlan:wPlan,wTipo:wTipo};
 	}
 
 	/* ===== RESUMEN ===== */
@@ -511,7 +568,7 @@ function perfiles_plegados_init() {
 	  document.getElementById('pp-resumen').innerHTML=res;
 	  drawFinished('pp-resultPart',p.flanges,p.angles,p.dirs);
 	  var useW=!!(state.useW&&p.wPlan);
-	  document.getElementById('pp-seqTitle').textContent = useW?'Secuencia (técnica W)':(man?'Secuencia (manual)':'Secuencia (automática)');
+	  document.getElementById('pp-seqTitle').textContent = useW?(p.wTipo==='escalon'?'Secuencia (técnica de escalón)':'Secuencia (técnica W)'):(man?'Secuencia (manual)':'Secuencia (automática)');
 	  document.getElementById('pp-btnManual').textContent = man?'↩︎ Volver a automático':'✏️ Editar a mano';
 	  document.getElementById('pp-btnManual').style.display = useW?'none':'';
 	  document.getElementById('pp-seqBody').closest('table').style.display = useW?'none':'';
@@ -539,11 +596,16 @@ function perfiles_plegados_init() {
 	  var wc=document.getElementById('pp-wbendCard');
 	  if(p.wPlan){
 	    var bC=useW?'#19a86c':'#e89c1a', bg=useW?'#eefcf5':'#fff8ec', tc=useW?'#0c7a4d':'#a56200';
+	    var isEsc=(p.wTipo==='escalon');
+	    var tecNom=isEsc?'Técnica de escalón — pre-plegado a 135°':'Técnica W — plegado en etapas';
+	    var tecDesc=isEsc
+	      ?'La secuencia directa choca en '+cb.collisions+' paso(s). Los escalones cortos no salen directo: se <b>pre-pliegan los dos pliegues del escalón a 135°</b> con la chapa todavía plana, y se cierran a 90° después. El resto de los pliegues se secuencia normal con los escalones ya hechos.'
+	      :'La secuencia directa choca en '+cb.collisions+' paso(s). La pieza se puede fabricar con la <b>técnica W</b>: pliegue provisorio en el centro del alma, luego las alas normales, y finalmente se aplasta el provisorio sobre el punzón plano → queda el perfil U final.';
 	    var wh2='<div style="background:'+bg+';border:2px solid '+bC+';border-radius:10px;padding:14px 14px 10px;margin-top:14px;">'
-	      +'<div style="font-weight:800;font-size:15px;color:'+tc+';margin-bottom:6px;">'+(useW?'✔ Técnica W — secuencia activa':'⚠ Técnica W — plegado en etapas')+'</div>'
+	      +'<div style="font-weight:800;font-size:15px;color:'+tc+';margin-bottom:6px;">'+(useW?'✔ '+tecNom.split(' — ')[0]+' — secuencia activa':'⚠ '+tecNom)+'</div>'
 	      +(useW
 	        ?'<div class="muted" style="margin-bottom:10px;font-size:13px;">Esta es la secuencia a ejecutar. "Empezar a plegar" recorre estos pasos.</div>'
-	        :'<div class="muted" style="margin-bottom:10px;font-size:13px;">La secuencia directa choca en '+cb.collisions+' paso(s). La pieza se puede fabricar con la <b>técnica W</b>: pliegue provisorio en el centro del alma, luego las alas normales, y finalmente se aplasta el provisorio sobre el punzón plano → queda el perfil U final.</div>')
+	        :'<div class="muted" style="margin-bottom:10px;font-size:13px;">'+tecDesc+'</div>')
 	      +'<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:'+(useW?'#d7f3e6':'#f5e9d0')+';">'
 	      +'<th style="padding:5px 7px;text-align:left;">Paso</th><th style="padding:5px 7px;text-align:left;">Operación</th>'
 	      +'<th style="padding:5px 7px;text-align:right;">X (mm)</th><th style="padding:5px 7px;text-align:right;">Y</th>'
@@ -564,7 +626,7 @@ function perfiles_plegados_init() {
 	      +'<div class="btnbar" style="margin-top:10px;">'
 	      +(useW
 	        ?'<button class="ghost" id="pp-btnNoW" type="button" style="flex:1 1 auto;padding:9px 12px;">↩ Volver a la secuencia directa</button>'
-	        :'<button id="pp-btnUseW" type="button" style="flex:1 1 auto;padding:10px 12px;">✔ Usar técnica W — armar esta secuencia</button>')
+	        :'<button id="pp-btnUseW" type="button" style="flex:1 1 auto;padding:10px 12px;">✔ Usar esta técnica — armar la secuencia</button>')
 	      +'</div></div>';
 	    wc.innerHTML=wh2; wc.style.display='block';
 	    var bw=document.getElementById('pp-btnUseW'); if(bw) bw.addEventListener('click',function(){ state.useW=true; state.step=0; showResult(); });
@@ -713,7 +775,7 @@ function perfiles_plegados_init() {
 	/* ===== OPERACIÓN ===== */
 	function showStepW(){
 	  var p=state.plan, ws=p.wPlan[state.step], n=p.wPlan.length;
-	  document.getElementById('pp-stepTitle').textContent='Paso '+(state.step+1)+' de '+n+' — técnica W';
+	  document.getElementById('pp-stepTitle').textContent='Paso '+(state.step+1)+' de '+n+' — '+(p.wTipo==='escalon'?'técnica de escalón':'técnica W');
 	  document.getElementById('pp-angleLine').innerHTML='<b>'+ws.label+'</b>';
 	  document.getElementById('pp-valX').textContent=ws.X;
 	  document.getElementById('pp-uX').textContent='mm';
