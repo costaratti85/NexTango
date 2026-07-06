@@ -46,9 +46,31 @@ class CorteBarras {
 				// ANDados de "like 01-%" + "like 02-%" es una condición imposible,
 				// siempre devolvía 0 resultados. Resuelto con query function propia.
 				get_query: () => ({ query: 'sistema_industrial.api.corte_barras.item_query' }),
+				onchange: () => this._on_item_selected(),
 			},
 			render_input: true,
 		});
+	}
+
+	_on_item_selected() {
+		const item_code = this.item_ctrl.get_value();
+		if (!item_code) return;
+		frappe.db.get_value('Item', item_code, 'item_name').then(r => {
+			if (!r?.message?.item_name) return;
+			const { tipo, medida } = this._parse_item_name(r.message.item_name);
+			if (tipo) $('#cb-tipo-material').val(tipo);
+			if (medida) $('#cb-medida').val(medida);
+		});
+	}
+
+	_parse_item_name(item_name) {
+		// "CAÑO RECT. 80X40X1.5 MM" → {tipo: "CAÑO RECT.", medida: "80X40X1.5"}
+		// Split point: primer dígito. Texto antes = tipo, dígitos en adelante = medida.
+		const m = item_name.trim().match(/^(.*?)\s*(\d.*)$/);
+		if (!m) return { tipo: item_name.trim(), medida: '' };
+		const tipo = m[1].trim();
+		const medida = m[2].trim().replace(/\s*(MM|M|KG|M2)\s*$/i, '').trim();
+		return { tipo, medida };
 	}
 
 	// ── Eventos ───────────────────────────────────────────────────────────────
