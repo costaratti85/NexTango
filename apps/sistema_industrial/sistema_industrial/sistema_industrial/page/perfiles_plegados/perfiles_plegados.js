@@ -630,17 +630,14 @@ function perfiles_plegados_init() {
 	  for(var j=0;j<step;j++) done[p.steps[j].bendIndex]=true;
 	  var pl=place(p.flanges,p.angles,p.dirs,done,bi,st.mx,st.my,p.s);
 	  var pen=penClamp(st.alpha,p.V);
-	  // La matriz y el punzón MASTICAN la chapa: el vértice baja a la V y AMBOS brazos suben
-	  // simétricamente, con el mismo ángulo (mitad del ángulo exterior cada uno).
-	  // El SIGNO del giro no se adivina mirando un punto suelto (fallaba con mx+my combinados:
-	  // podía salir un brazo para cada lado). Se obtiene comparando contra place() con el pliegue
-	  // bi ya hecho (done[bi]=true), que es la geometría validada por el resto de la app.
-	  var doneAfter=done.slice(); doneAfter[bi]=true;
-	  var plAfter=place(p.flanges,p.angles,p.dirs,doneAfter,bi,st.mx,st.my,p.s);
-	  var refIdx=Math.min(bi+2,pl.P.length-1);
-	  var v0={x:pl.P[refIdx].x, y:pl.P[refIdx].y-pl.rest}, v1={x:plAfter.P[refIdx].x, y:plAfter.P[refIdx].y-pl.rest};
-	  var fullAngle=Math.atan2(v0.x*v1.y-v0.y*v1.x, v0.x*v1.x+v0.y*v1.y)/DEG;   // ángulo con signo real del pliegue completo
-	  var half=foldFrac*fullAngle/2, leftAng=-half, rightAng=half;
+	  // La matriz y el punzón MASTICAN la chapa: el vértice baja a la V y AMBOS brazos SUBEN
+	  // siempre (el punzón baja al centro de la V), cada uno la mitad del ángulo exterior.
+	  // El signo del giro de cada brazo depende del lado del vértice donde quedó tras el espejado
+	  // mx de place(): el brazo a -x gira horario, el de +x antihorario. Con mx los índices bajos
+	  // (idx<=bi) quedan a +x, así que se decide por geometría colocada, no por índice ni por el
+	  // signo del giro del perfil (eso fallaba con la pieza girada: ambos brazos caían).
+	  var half=foldFrac*(180-st.alpha)/2;
+	  var sideL=(pl.P[bi].x<=pl.P[bi+1].x)?-1:1, leftAng=sideL*half, rightAng=-sideL*half;
 	  var P=pl.P.map(function(pt,idx){
 	    var a = (idx<=bi)? leftAng : (idx>=bi+2? rightAng : 0);    // ambos brazos suben; el vértice (bi+1) no rota
 	    var dx=pt.x, dy=pt.y-pl.rest, c=Math.cos(a*DEG), sn=Math.sin(a*DEG);
