@@ -249,7 +249,9 @@ def convert_dxf_splines_clean(dxf_path: str, output_path: str, tolerance: float 
     line_count = 0
 
     for spline in splines:
-        arcs, lines = converter.discretize_and_convert_spline(spline, out_msp, target_layer)
+        arcs, lines = converter.discretize_and_convert_spline(
+            spline, out_msp, target_layer, fit_tol=tolerance
+        )
         if arcs or lines:
             converted_count += 1
             arc_count += len(arcs)

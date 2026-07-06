@@ -22,6 +22,7 @@ from pathlib import Path
 
 
 PRESETS = [
+    {"name": "Esquinas",     "turdsize": 2,  "alphamax": 0.0, "opttolerance": 0.1, "threshold": 128},
     {"name": "Ultra-Fino",   "turdsize": 2,  "alphamax": 0.5, "opttolerance": 0.1, "threshold": 128},
     {"name": "Fino",         "turdsize": 5,  "alphamax": 0.8, "opttolerance": 0.2, "threshold": 128},
     {"name": "Medio",        "turdsize": 10, "alphamax": 1.0, "opttolerance": 0.3, "threshold": 128},
