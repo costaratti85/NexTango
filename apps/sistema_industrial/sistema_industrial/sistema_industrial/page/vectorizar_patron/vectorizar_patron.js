@@ -374,6 +374,7 @@ class Vectorizador {
 
 		const d = new frappe.ui.Dialog({
 			title: __('Elegir preset para esta figura'),
+			size: 'large',
 			fields: [{ fieldtype: 'HTML', fieldname: 'variants_html', options: '<div class="vp-variant-grid">' + cardsHtml + '</div>' }],
 		});
 
