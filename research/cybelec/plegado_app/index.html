@@ -402,7 +402,7 @@ function feasible(pl,alpha,V,s){
 }
 /* ===== MODO MANUAL: colocar para un pliegue y un nodo de apoyo elegidos ===== */
 function placeManual(fl,an,dr,done,bi,gn,V,s){
-  var myF=(dr[bi]<0); var opts=[[false,myF],[true,!myF]], best=null;   // mx XOR my == signo del pliegue
+  var myF=(dr[bi]<0); var opts=[[false,myF],[true,myF]], best=null;   // my == signo del pliegue; girar (mx) no cambia el lado del pliegue
   for(var o=0;o<opts.length;o++){
     var pl=place(fl,an,dr,done,bi,opts[o][0],opts[o][1],s);
     if(gn>=pl.P.length) continue;
@@ -434,8 +434,11 @@ function simulateOrder(fl,an,dr,order,V,s){
   var steps=[], prevMx=null, prevMy=null, prevGauge=null, flips=0, giras=0, collisions=0, totalX=0, opViol=0, unstable=0, refChg=0;
   for(var k=0;k<order.length;k++){
     var bi=order[k], myF=(dr[bi]<0), feas=[], fallback=null;
-    // 2 orientaciones válidas: mx XOR my == signo del pliegue (la máquina siempre pliega hacia arriba)
-    var opts=[[false,myF],[true,!myF]];
+    // 2 orientaciones válidas: my == signo del pliegue. La máquina siempre pliega hacia arriba:
+    // dar vuelta la pieza (my) invierte de qué lado sale el pliegue; girarla (mx, otro extremo
+    // al tope) NO lo cambia. La regla vieja (mx XOR my) permitía girada+dada vuelta para
+    // pliegues positivos y el pliegue salía del lado contrario al dibujado.
+    var opts=[[false,myF],[true,myF]];
     for(var o=0;o<opts.length;o++){
       var pl=place(fl,an,dr,done,bi,opts[o][0],opts[o][1],s); var f=feasible(pl,an[bi],V,s);
       if(f.ok) feas.push({mx:opts[o][0],my:opts[o][1],X:f.X,gauge:f.gauge,op:f.op,stable:f.stable});
