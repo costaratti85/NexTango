@@ -331,7 +331,7 @@ def _find_curvature_valleys(points, min_peak_ratio=2.0):
     return sorted(splits)
 
 
-def _find_hard_nodes(points, threshold_rad_mm=0.5):
+def _find_hard_nodes(points, threshold_rad_mm=0.2):
     """Return sorted list of indices where curvature jumps sharply.
 
     A jump in curvature between consecutive interior points signals that the
@@ -578,8 +578,98 @@ def _emit_arc_or_line(result, p_start, p_end, modelspace, layer_name,
             pass
 
 
+def _bezier_inflection_splits(spline_entity, n_points):
+    """Find point indices corresponding to analytic inflection t-values of a
+    cubic Bézier SPLINE.
+
+    A cubic Bézier B(t) = (1-t)³P0 + 3t(1-t)²P1 + 3t²(1-t)P2 + t³P3 has
+    inflection points where B'×B'' = 0 (cross product of first and second
+    derivative vectors, i.e. the signed curvature changes sign).
+
+    For potrace-generated SPLINEs where alphamax > 0 causes a corner to be
+    represented as a smooth Bézier (G1 continuous at junctions), the inflection
+    within the Bézier coincides with where the original shape changes direction.
+    Detecting it analytically (from control points) is more accurate than the
+    numerical curvature estimate on flattened points.
+
+    Returns sorted list of point indices in [1, n_points-2] where an inflection
+    t in (0, 1) maps to.  An empty list means no analytic inflection was found.
+    """
+    try:
+        cps = list(spline_entity.control_points)
+        if len(cps) != 4:
+            return []
+        # Bézier first derivative at t=0 direction (tangent): 3*(P1-P0)
+        # Second derivative: 6*[(P2-P1)-(P1-P0)] at t=0 → irrelevant, we use the polynomial form
+        p0x, p0y = cps[0][0], cps[0][1]
+        p1x, p1y = cps[1][0], cps[1][1]
+        p2x, p2y = cps[2][0], cps[2][1]
+        p3x, p3y = cps[3][0], cps[3][1]
+
+        # Auxiliary vectors (de Casteljau basis):
+        #   a = P1 - P0,  b = P2 - P1,  c = P3 - P2
+        ax, ay = p1x - p0x, p1y - p0y
+        bx, by = p2x - p1x, p2y - p1y
+        cx, cy = p3x - p2x, p3y - p2y
+
+        # B'(t) = 3[(a + 2(b-a)t + (a-2b+c)t²)]  (quadratic in t)
+        # Coefficients of B' in standard form:
+        #   B'(t) = A + 2Bt + Ct²   (A,B,C are 2D vectors)
+        Ax, Ay = ax, ay
+        Bx, By = bx - ax, by - ay
+        Cx, Cy = ax - 2*bx + cx, ay - 2*by + cy
+
+        # B''(t) = 2B + 2Ct  (linear in t)
+        # Inflection: B'(t) × B''(t) = 0 (2D cross product = scalar)
+        # B'(t) = A + 2Bt + Ct²
+        # B''(t) = 2B + 2Ct
+        # Cross product: (A + 2Bt + Ct²) × (2B + 2Ct)
+        # = A×(2B) + A×(2Ct) + 2Bt×(2B) + 2Bt×(2Ct) + Ct²×(2B) + Ct²×(2Ct)
+        # Note: v×v = 0 for any v, and cross product is anti-symmetric.
+        # = 2(A×B) + 2(A×C)t + 0 + 4(B×C)t² + 2(C×B)t² + 0
+        # = 2(A×B) + 2(A×C)t + [4(B×C) + 2(-B×C)]t²  (since C×B = -B×C)
+        # = 2(A×B) + 2(A×C)t + 2(B×C)t²
+        # Divide by 2:
+        # (A×B) + (A×C)t + (B×C)t² = 0
+
+        def cross2d(ux, uy, vx, vy):
+            return ux * vy - uy * vx
+
+        a_coeff = cross2d(Ax, Ay, Bx, By)   # A×B
+        b_coeff = cross2d(Ax, Ay, Cx, Cy)   # A×C
+        c_coeff = cross2d(Bx, By, Cx, Cy)   # B×C
+
+        # Solve: c_coeff·t² + b_coeff·t + a_coeff = 0
+        t_vals = []
+        if abs(c_coeff) > 1e-12:
+            disc = b_coeff * b_coeff - 4.0 * c_coeff * a_coeff
+            if disc >= 0:
+                sqrt_d = math.sqrt(disc)
+                for sign in (+1, -1):
+                    t = (-b_coeff + sign * sqrt_d) / (2.0 * c_coeff)
+                    if 0.05 < t < 0.95:  # skip inflections very near endpoints
+                        t_vals.append(t)
+        elif abs(b_coeff) > 1e-12:
+            t = -a_coeff / b_coeff
+            if 0.05 < t < 0.95:
+                t_vals.append(t)
+
+        if not t_vals:
+            return []
+
+        # Map t values to flattened-point indices
+        # Assume the n_points are uniformly distributed in t (approximation —
+        # actual arc-length distribution differs but is close enough for splitting).
+        return sorted(set(
+            max(1, min(n_points - 2, int(round(t * (n_points - 1)))))
+            for t in t_vals
+        ))
+    except Exception:
+        return []
+
+
 def discretize_and_convert_spline(spline_entity, modelspace, layer_name,
-                                  flatten_tol=0.01, fit_tol=0.5,
+                                  flatten_tol=0.01, fit_tol=0.1,
                                   min_sagitta_mm=0.01):
     """Convert a SPLINE entity to ARC and LINE entities in *layer_name*.
 
@@ -623,6 +713,14 @@ def discretize_and_convert_spline(spline_entity, modelspace, layer_name,
             if points[-1] is not last:
                 points = list(points) + [last]
 
+        # Phase 0 — analytic Bézier inflections: for clamped cubic Bézier SPLINEs
+        # (as produced by the potrace composer), compute exact inflection t-values
+        # from the control points.  This is more accurate than the numerical
+        # signed-curvature estimate on flattened points, especially for SPLINEs
+        # whose potrace alphamax > 0 has smoothed a genuine corner into a high-
+        # curvature Bézier that crosses or nearly crosses its own inflection.
+        bezier_inflections = _bezier_inflection_splits(spline_entity, len(points))
+
         # Phase 1 — hard nodes: abrupt jumps in curvature (second-derivative
         # discontinuities) that signal corners or tips with potentially
         # discontinuous tangent directions.  No arc ever crosses these.
@@ -641,7 +739,8 @@ def discretize_and_convert_spline(spline_entity, modelspace, layer_name,
 
         # Merge all split points and process each sub-segment independently
         split_indices = sorted(set(
-            [0] + hard_nodes + valley_splits + inflection_pts + [len(points) - 1]
+            [0] + bezier_inflections + hard_nodes + valley_splits
+            + inflection_pts + [len(points) - 1]
         ))
         for seg_idx in range(len(split_indices) - 1):
             i_start = split_indices[seg_idx]
