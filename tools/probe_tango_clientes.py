@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Probe the Tango API to discover the process number for customers (GVA14).
 
@@ -8,13 +8,13 @@ so you can identify which one contains customer data (NOMBRE, CUIT, etc.).
 
 Usage:
     # Use env vars:
-    SI_NEXUS_KEY=<token> python tools/probe_tango_clientes.py
+    APP_INSTANCE_ID=<token> python tools/probe_tango_clientes.py
 
     # Or pass args:
     python tools/probe_tango_clientes.py --base-url http://server-t:17000 --token <token> --company 25
 
     # Full scan (slow, tries 1-300):
-    SI_NEXUS_KEY=<token> python tools/probe_tango_clientes.py --full-scan
+    APP_INSTANCE_ID=<token> python tools/probe_tango_clientes.py --full-scan
 """
 
 import argparse
@@ -136,7 +136,7 @@ def probe_processes(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Probe Tango API for customer process (GVA14)")
     parser.add_argument("--base-url", default=os.environ.get("TANGO_BASE_URL", BASE_URL_DEFAULT))
-    parser.add_argument("--token", default=os.environ.get("SI_NEXUS_KEY", ""))
+    parser.add_argument("--token", default=os.environ.get("APP_INSTANCE_ID", ""))
     parser.add_argument("--company", default=os.environ.get("TANGO_COMPANY", COMPANY_DEFAULT))
     parser.add_argument("--full-scan", action="store_true", help="Scan all process IDs 1-300 (slow)")
     parser.add_argument("--range", help="Custom range, e.g. '50-150'")
@@ -144,7 +144,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if not args.token:
-        print("ERROR: SI_NEXUS_KEY env var or --token required", file=sys.stderr)
+        print("ERROR: APP_INSTANCE_ID env var or --token required", file=sys.stderr)
         sys.exit(1)
 
     if args.full_scan:

@@ -1,7 +1,7 @@
-"""Frappe scheduled jobs para sincronización Tango → ERPNext.
+﻿"""Frappe scheduled jobs para sincronización Tango → ERPNext.
 
 Registrados en hooks.py bajo scheduler_events.
-Leen SI_NEXUS_KEY del entorno del proceso (configurado en /etc/environment en Ubuntu).
+Leen APP_INSTANCE_ID del entorno del proceso (configurado en /etc/environment en Ubuntu).
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def sync_customers_from_tango() -> None:
 
     config = make_tango_config_from_env()
     if not config.token:
-        logger.error("sync_customers_from_tango: SI_NEXUS_KEY no configurado — sync abortado")
+        logger.error("sync_customers_from_tango: APP_INSTANCE_ID no configurado — sync abortado")
         return
 
     logger.info("sync_customers_from_tango: iniciando descarga desde Tango...")
@@ -35,3 +35,30 @@ def sync_customers_from_tango() -> None:
     if result.errors:
         for code, err in result.errors[:10]:
             logger.warning("  cliente %s: %s", code, err[:200])
+
+
+def sync_articles_from_tango() -> None:
+    """Sincroniza el catálogo de artículos Tango (STA11) → ERPNext Item. Corre diariamente."""
+    from sistema_industrial.tango_sync.http_client import TangoHTTPClient, make_tango_config_from_env
+    from sistema_industrial.erpnext_extensions.client import ERPNextClient
+    from sistema_industrial.tango_sync.article_push import push_articles_to_erpnext
+
+    config = make_tango_config_from_env()
+    if not config.token:
+        logger.error("sync_articles_from_tango: APP_INSTANCE_ID no configurado — sync abortado")
+        return
+
+    logger.info("sync_articles_from_tango: iniciando descarga desde Tango...")
+    tango = TangoHTTPClient(config)
+
+    articles = tango.get_articles()
+    logger.info("sync_articles_from_tango: %d artículos descargados", len(articles))
+
+    result = push_articles_to_erpnext(articles, ERPNextClient())
+    logger.info(
+        "sync_articles_from_tango: creados=%d actualizados=%d fallidos=%d",
+        result.created, result.updated, result.failed,
+    )
+    if result.errors:
+        for code, err in result.errors[:10]:
+            logger.warning("  artículo %s: %s", code, err[:200])

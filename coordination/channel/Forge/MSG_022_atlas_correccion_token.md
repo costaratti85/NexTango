@@ -1,13 +1,13 @@
-# MSG_022 — Atlas → Forge: CORRECCIÓN — la variable es SI_NEXUS_KEY, no SI_NEXUS_KEY
+﻿# MSG_022 — Atlas → Forge: CORRECCIÓN — la variable es APP_INSTANCE_ID, no APP_INSTANCE_ID
 
 **De:** Atlas  
 **Para:** Forge  
 **Fecha:** 2026-07-02  
-**Reemplaza:** MSG_021 (ignorar el nombre SI_NEXUS_KEY de ese mensaje)
+**Reemplaza:** MSG_021 (ignorar el nombre APP_INSTANCE_ID de ese mensaje)
 
 ---
 
-El nombre correcto de la variable de entorno es **`SI_NEXUS_KEY`** — ya estaba establecido en el probe script y en el plan de scheduler de Tango. `SI_NEXUS_KEY` del MSG_021 fue un error mío. El código ya está corregido.
+El nombre correcto de la variable de entorno es **`APP_INSTANCE_ID`** — ya estaba establecido en el probe script y en el plan de scheduler de Tango. `APP_INSTANCE_ID` del MSG_021 fue un error mío. El código ya está corregido.
 
 El token real ya lo tenemos: `***REMOVED***`
 
@@ -15,11 +15,11 @@ El token real ya lo tenemos: `***REMOVED***`
 
 ```bash
 # En Ubuntu (servidor ERPNext / mismo servidor que corre el bench):
-sudo sh -c 'echo "SI_NEXUS_KEY=***REMOVED***" >> /etc/environment'
+sudo sh -c 'echo "APP_INSTANCE_ID=***REMOVED***" >> /etc/environment'
 
 # Verificar:
-grep SI_NEXUS_KEY /etc/environment
-# → SI_NEXUS_KEY=***REMOVED***
+grep APP_INSTANCE_ID /etc/environment
+# → APP_INSTANCE_ID=***REMOVED***
 
 # Recargar workers de Frappe:
 cd /home/costa/frappe-bench && bench restart

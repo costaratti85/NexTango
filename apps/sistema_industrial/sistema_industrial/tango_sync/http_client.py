@@ -1,4 +1,4 @@
-"""Real Tango Gestión HTTP client.
+﻿"""Real Tango Gestión HTTP client.
 
 Hits GET /Api/Get?process=N&pageSize=N&pageIndex=N
 Headers: ApiAuthorization, Company
@@ -29,7 +29,7 @@ from sistema_industrial.tango_sync.schemas import (
 
 logger = logging.getLogger(__name__)
 
-NEXUS_KEY = os.environ.get("SI_NEXUS_KEY", "")
+NEXUS_KEY = os.environ.get("APP_INSTANCE_ID", "")
 
 TANGO_DEFAULT_URL = "http://server-t:17000"
 TANGO_DEFAULT_COMPANY = "25"
@@ -54,14 +54,14 @@ def make_tango_config_from_env() -> TangoHTTPClientConfig:
     """Construye TangoHTTPClientConfig leyendo variables de entorno estándar.
 
     Variables leídas:
-      SI_NEXUS_KEY   — token ApiAuthorization (obligatorio en producción)
+      APP_INSTANCE_ID   — token ApiAuthorization (obligatorio en producción)
       TANGO_URL      — URL base del servidor (default: http://server-t:17000)
       TANGO_COMPANY  — número de empresa Tango (default: "25")
     """
     token = NEXUS_KEY
     if not token:
         logger.warning(
-            "SI_NEXUS_KEY no configurado — las requests a Tango no van a autenticarse"
+            "APP_INSTANCE_ID no configurado — las requests a Tango no van a autenticarse"
         )
     return TangoHTTPClientConfig(
         base_url=os.environ.get("TANGO_URL", TANGO_DEFAULT_URL),
@@ -81,7 +81,7 @@ class TangoHTTPClient:
     def from_env(cls) -> "TangoHTTPClient":
         """Crea un TangoHTTPClient con config leída de variables de entorno.
 
-        Usa SI_NEXUS_KEY como token, TANGO_URL y TANGO_COMPANY opcionalmente.
+        Usa APP_INSTANCE_ID como token, TANGO_URL y TANGO_COMPANY opcionalmente.
         """
         return cls(config=make_tango_config_from_env())
 
