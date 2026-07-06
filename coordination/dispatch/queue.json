@@ -5,7 +5,8 @@
       "task": "ORBIT_DEPLOY_THUMBNAILS",
       "descripcion": "Deploy de commit 3bac589 (erpnext) — thumbnails: fondo blanco + force-regenerate. Pasos: (1) git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin bench migrate. (2) Correr: bench execute sistema_industrial.api.patrones.backfill_thumbnails --args '[true, [\"Corazon\",\"Gotas\",\"subte\",\"Cosmos\"]]' para force-regenerar los 4 patrones con placeholder PIL viejo. (3) Correr: bench execute sistema_industrial.api.patrones.verify_thumbnails --args '[[\"Corazon\",\"Gotas\",\"subte\",\"Cosmos\"]]' y reportar el JSON completo con bg_color, center_color, pixels_con_contenido, es_placeholder, fondo_negro para cada patrón. CRÍTICO: la tarea NO está resuelta hasta que el reporte de verify_thumbnails muestre es_placeholder=false y fondo_negro=false para los 4 patrones. Ya fallamos 2 veces declarando thumbnails resueltos sin verificar el contenido real del PNG.",
       "msg": "coordination/channel/Nova/MSG_081_punto_thumbnails_done.md",
-      "status": "pendiente",
+      "status": "completado",
+      "nota": "Orbit MSG_029 (2026-07-06): git pull (Fast-forward, 7 objects). bench build 564ms. 6 páginas bumpeadas. supervisorctl restart all: 7/7 RUNNING. backfill_thumbnails --kwargs '{\"force\":1}' → 8 patrones regenerados (Panel 2, Panel 1, Corazon, Gotas, subte, Aconcagua, Hexagonal, Cosmos). verify_thumbnails JSON: TODOS con bg_color=[255,255,255], es_placeholder=false, fondo_negro=false, pixels_con_contenido 115k-155k (contenido real). VERIFICADO pixel-level. Tercera iteración: esta vez confirmado.",
       "sprint": "001-rebanada",
       "prioridad": "alta"
     },
@@ -14,7 +15,8 @@
       "task": "GEMU_BUG_CRITICO_NEST1D_DESINCRONIZADO",
       "descripcion": "BUG CRÍTICO en producción (2026-07-06): corte-barras no puede calcular NADA — TypeError: calculate_purchase_plan() got an unexpected keyword argument 'angular'. Causa confirmada: main/cutting/nest_1d.py tiene angular:bool=False en la firma (GEMU_CORTES_ANGULO), pero la copia de erpnext/cutting/nest_1d.py es vieja, sin ese parámetro — api/corte_barras.py (solo erpnext) ya llama con angular=angular asumiendo la firma nueva. Deploy a medias: el caller llegó, el motor no. Cuarta vez que main/erpnext quedan desincronizados (arc_segment.py, main.py x2). Portar nest_1d.py completo de main a erpnext, hacer una pasada de chequeo por otros archivos compartidos con el mismo riesgo, avisar a Orbit para deploy urgente. Ver MSG_015 de su canal.",
       "msg": "coordination/channel/Gemu/MSG_015_nova_bug_critico_nest1d_desincronizado.md",
-      "status": "pendiente",
+      "status": "completado",
+      "nota": "Gemu commit 5657196 (erpnext): nest_1d.py copiado completo desde main (commit e6f6ab6). calculate_purchase_plan ahora tiene angular:bool=False. Auditoría rápida: legacy_panel_adapter.py difiere (dominio Punto, flaggeado). Para Orbit: git pull + supervisorctl restart all (sin bench build ni migrate — solo .py). Ver MSG_014 canal Gemu.",
       "sprint": "002-corte-barras",
       "prioridad": "alta"
     },
@@ -93,9 +95,10 @@
       "task": "VEGA_MOSTRAR_VERSION_EN_PAGINAS",
       "descripcion": "Agregar indicador chico y discreto de versión (footer esquina, ej. 'v a223b74 · 06/07 14:32') en las 6 páginas del sistema, leyendo el stamp que genera Forge (FORGE_VERSION_STAMP_DEPLOY, en curso). Valorar helper compartido entre páginas en vez de repetir. Esperar confirmación de Forge del mecanismo antes de integrar, puede preparar HTML/CSS mientras tanto. Ver MSG_035 de su canal.",
       "msg": "coordination/channel/Vega/MSG_035_nova_mostrar_version_en_paginas.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-rebanada",
-      "prioridad": "media"
+      "prioridad": "media",
+      "nota": "Vega commit 404754c (erpnext), deployado y verificado (generate_version_stamp + build + bump_page_cache + restart). Footer auto-adjuntado a document.body via public/js/version_footer.js, sin integracion por page (a diferencia de customer_sync.js) -- alcanza con listarlo en app_include_js. IMPORTANTE: tools/generate_version_stamp.py de Forge (MSG_061) nunca llego a produccion -- no commiteado/pusheado, escribia a una ruta que Frappe no sirve, y corria contra rama main (sistema_industrial desincronizado del real). Reimplementado en sistema_industrial.deploy.generate_version_stamp(), verificado en servidor real (hash correcto, coincide con lo pusheado). Ver MSG_083 en Nova y MSG_012 en Forge (segunda vez que un mecanismo de Forge resulta probado contra main en vez de erpnext, tras el bug de esbuild)."
     },
     {
       "agent": "Orbit",
