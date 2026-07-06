@@ -2,18 +2,26 @@
 """
 Motor de optimización de corte lineal 1D.
 
-Extraído de Programas_hechos/1DNest/1DnestOut.py — solo cortes rectos (angular no es prioridad).
+Extraído de Programas_hechos/1DNest/1DnestOut.py.
 No importa tkinter ni ninguna dependencia de GUI.
 
 Uso:
-    from sistema_industrial.cutting.nest_1d import calculate_plan
+    from sistema_industrial.cutting.nest_1d import calculate_plan, calculate_purchase_plan
 
     result = calculate_plan(
         bar_len=6000,
         cuts=[(3, 1500), (2, 800), (5, 400)],
         kerf_mm=2.0,
     )
-    print(result.bars_needed, result.total_saw_operations)
+
+    # Modo angular: cada corte = (qty, largo, izq, der, cara, disp)
+    # Ángulos en convención máquina: 0° = recto, máximo 60°.
+    result = calculate_purchase_plan(
+        bar_len=6000,
+        cuts=[(2, 1000, 45, 0, 80, '//'), (3, 800, 0, 0, 0, '//')],
+        price_per_bar=5000, price_per_meter=900,
+        angular=True,
+    )
 """
 
 from collections import Counter
@@ -179,6 +187,124 @@ def _elegir_mejor(bar_len, piezas, kerf_mm):
     return mejor
 
 
+# ── Angular bin-packing ───────────────────────────────────────────────────────
+# Piezas angulares: tupla (largo, izq, der, cara, disp).
+# El bin-packing solo usa largo = p[0]; izq/der/cara/disp solo afectan el texto.
+
+def _norm_ang(b):
+    return tuple(sorted(b, key=lambda x: (-x[0], x)))
+
+
+def _ocu_ang(bin_piezas, kerf_mm):
+    n = len(bin_piezas)
+    return sum(p[0] for p in bin_piezas) + max(0, n - 1) * kerf_mm
+
+
+def _fits_ang(bar_len, bin_piezas, new_piece, kerf_mm):
+    k = len(bin_piezas)
+    return sum(p[0] for p in bin_piezas) + new_piece[0] + k * kerf_mm <= bar_len
+
+
+def _ff_ang(bar_len, pieces, kerf_mm):
+    bins = []
+    for p in pieces:
+        placed = False
+        for b in bins:
+            if _fits_ang(bar_len, b, p, kerf_mm):
+                b.append(p); placed = True; break
+        if not placed:
+            bins.append([p])
+    return [list(_norm_ang(b)) for b in bins]
+
+
+def _bf_ang(bar_len, pieces, kerf_mm):
+    bins = []
+    for p in pieces:
+        mejor_idx = None
+        menor_resto = None
+        for i, b in enumerate(bins):
+            if _fits_ang(bar_len, b, p, kerf_mm):
+                resto = bar_len - (_ocu_ang(b, kerf_mm) + p[0] + len(b) * kerf_mm)
+                if menor_resto is None or resto < menor_resto:
+                    menor_resto = resto; mejor_idx = i
+        if mejor_idx is None:
+            bins.append([p])
+        else:
+            bins[mejor_idx].append(p)
+    return [list(_norm_ang(b)) for b in bins]
+
+
+def _wf_ang(bar_len, pieces, kerf_mm):
+    bins = []
+    for p in pieces:
+        mejor_idx = None
+        mayor_resto = None
+        for i, b in enumerate(bins):
+            if _fits_ang(bar_len, b, p, kerf_mm):
+                resto = bar_len - _ocu_ang(b, kerf_mm)
+                if mayor_resto is None or resto > mayor_resto:
+                    mayor_resto = resto; mejor_idx = i
+        if mejor_idx is None:
+            bins.append([p])
+        else:
+            bins[mejor_idx].append(p)
+    return [list(_norm_ang(b)) for b in bins]
+
+
+def _ord_ang(pieces, modo):
+    if modo == "desc":
+        return sorted(pieces, key=lambda x: -x[0])
+    if modo == "asc":
+        return sorted(pieces, key=lambda x: x[0])
+    if modo == "por_frecuencia":
+        conteo = Counter(p[0] for p in pieces)
+        return sorted(pieces, key=lambda x: (-conteo[x[0]], -x[0]))
+    if modo == "alternado":
+        ordenadas = sorted(pieces, key=lambda x: -x[0])
+        resultado, izq, der = [], 0, len(ordenadas) - 1
+        while izq <= der:
+            resultado.append(ordenadas[izq]); izq += 1
+            if izq <= der:
+                resultado.append(ordenadas[der]); der -= 1
+        return resultado
+    return list(pieces)
+
+
+def _variantes_ang(bar_len, piezas, kerf_mm):
+    variantes = []
+    for modo in ("desc", "asc", "alternado", "por_frecuencia"):
+        p = _ord_ang(piezas, modo)
+        variantes.append(_ff_ang(bar_len, p, kerf_mm))
+        variantes.append(_bf_ang(bar_len, p, kerf_mm))
+        variantes.append(_wf_ang(bar_len, p, kerf_mm))
+    rnd = random.Random(12345)
+    base = list(piezas)
+    for _ in range(200):
+        shuffled = base[:]
+        rnd.shuffle(shuffled)
+        variantes.append(_ff_ang(bar_len, shuffled, kerf_mm))
+        variantes.append(_bf_ang(bar_len, shuffled, kerf_mm))
+    return variantes
+
+
+def _puntuar_ang(bar_len, bins, kerf_mm):
+    patrones = Counter(_norm_ang(b) for b in bins)
+    grupos_repetidos = sum(1 for c in patrones.values() if c > 1)
+    mayor_grupo = max(patrones.values()) if patrones else 0
+    desperdicio = sum(bar_len - _ocu_ang(b, kerf_mm) for b in bins)
+    return (len(bins), len(patrones), -mayor_grupo, -grupos_repetidos, desperdicio)
+
+
+def _elegir_mejor_ang(bar_len, piezas, kerf_mm):
+    variantes = _variantes_ang(bar_len, piezas, kerf_mm)
+    mejor, mejor_score = None, None
+    for bins in variantes:
+        score = _puntuar_ang(bar_len, bins, kerf_mm)
+        if mejor is None or score < mejor_score:
+            mejor, mejor_score = bins, score
+    return mejor
+
+
 # ── API pública ───────────────────────────────────────────────────────────────
 
 def calculate_plan(
@@ -279,20 +405,24 @@ def calculate_purchase_plan(
     price_per_bar: float,
     price_per_meter: float,
     kerf_mm: float = 2.0,
+    angular: bool = False,
 ) -> PurchasePlanResult:
     """
     Calcula el plan de compra óptimo con modelo mixto.
 
     Para cada grupo de piezas que caben en una barra, elige la opción más barata:
     - Comprar la barra entera (costo = price_per_bar)
-    - Comprar cada pieza de ese grupo como tramo suelto (costo = sum_mm / 1000 * price_per_meter)
+    - Comprar cada pieza del grupo como tramo suelto (costo = sum_mm / 1000 * price_per_meter)
 
     Args:
         bar_len:         Largo de barra estándar en mm (ej. 6000).
-        cuts:            Lista de (cantidad: int, largo: float) en mm.
-        price_per_bar:   Precio de una barra entera.
-        price_per_meter: Precio por metro lineal de tramo suelto.
+        cuts:            Modo recto: [(qty, largo), ...].
+                         Modo angular: [(qty, largo, izq, der, cara, disp), ...].
+                         Ángulos en convención máquina: 0° = recto, máx 60°.
+        price_per_bar:   Precio de una barra entera (0 = ese modo no disponible).
+        price_per_meter: Precio por metro lineal de tramo suelto (0 = no disponible).
         kerf_mm:         Ancho de sierra en mm (default 2).
+        angular:         Si True, usa el modelo de pieza angular.
 
     Returns:
         PurchasePlanResult con desglose barras enteras + tramos sueltos + costo total.
@@ -306,23 +436,52 @@ def calculate_purchase_plan(
         )
 
     piezas = []
-    for qty, length in cuts:
-        if length > bar_len:
-            return PurchasePlanResult(
-                full_bars=0, full_bar_cost=0,
-                tramo_total_mm=0, tramo_total_meters=0, tramo_cost=0, total_cost=0,
-                bar_patterns=[], tramo_pieces=[], global_efficiency_pct=0,
-                error=(
-                    f"Una pieza de {length:.0f} mm es más larga "
-                    f"que la barra de {bar_len:.0f} mm."
-                ),
-            )
-        piezas.extend([float(length)] * qty)
+    if angular:
+        for cut in cuts:
+            qty = int(cut[0])
+            largo = float(cut[1])
+            izq = float(cut[2])
+            der = float(cut[3])
+            cara = float(cut[4])
+            disp = str(cut[5])
+            if largo > bar_len:
+                return PurchasePlanResult(
+                    full_bars=0, full_bar_cost=0,
+                    tramo_total_mm=0, tramo_total_meters=0, tramo_cost=0, total_cost=0,
+                    bar_patterns=[], tramo_pieces=[], global_efficiency_pct=0,
+                    error=(
+                        f"Una pieza de {largo:.0f} mm es más larga "
+                        f"que la barra de {bar_len:.0f} mm."
+                    ),
+                )
+            piezas.extend([(largo, izq, der, cara, disp)] * qty)
+    else:
+        for qty, length in cuts:
+            if length > bar_len:
+                return PurchasePlanResult(
+                    full_bars=0, full_bar_cost=0,
+                    tramo_total_mm=0, tramo_total_meters=0, tramo_cost=0, total_cost=0,
+                    bar_patterns=[], tramo_pieces=[], global_efficiency_pct=0,
+                    error=(
+                        f"Una pieza de {length:.0f} mm es más larga "
+                        f"que la barra de {bar_len:.0f} mm."
+                    ),
+                )
+            piezas.extend([float(length)] * qty)
 
-    bins = _elegir_mejor(bar_len, piezas, kerf_mm)
+    if angular:
+        bins = _elegir_mejor_ang(bar_len, piezas, kerf_mm)
+        def _bin_largo(b): return sum(p[0] for p in b)
+        def _bin_ocu(b): return _ocu_ang(b, kerf_mm)
+        def _norm_b(b): return _norm_ang(b)
+    else:
+        bins = _elegir_mejor(bar_len, piezas, kerf_mm)
+        def _bin_largo(b): return sum(b)
+        def _bin_ocu(b): return _largo_ocupado(b, kerf_mm)
+        def _norm_b(b): return _normalizar(b)
 
     bar_bins = []
-    tramo_pieces = []
+    tramo_piezas = []
 
     # precio=0 actúa como sentinel "ese modo no disponible":
     #   price_per_bar=0   → todo a tramos (no se pueden comprar barras enteras)
@@ -333,22 +492,22 @@ def calculate_purchase_plan(
 
     for b in bins:
         if only_tramos:
-            tramo_pieces.extend(b)
+            tramo_piezas.extend(b)
         elif only_bars:
             bar_bins.append(b)
         else:
-            cost_tramo = sum(b) / 1000.0 * price_per_meter
+            cost_tramo = _bin_largo(b) / 1000.0 * price_per_meter
             if price_per_bar <= cost_tramo:
                 bar_bins.append(b)
             else:
-                tramo_pieces.extend(b)
+                tramo_piezas.extend(b)
 
     # Patrones de barras enteras
-    freq = Counter(_normalizar(b) for b in bar_bins)
+    freq = Counter(_norm_b(b) for b in bar_bins)
     bar_patterns = []
     for patron_tuple, count in sorted(freq.items(), key=lambda x: -x[1]):
         patron = list(patron_tuple)
-        used = _largo_ocupado(patron, kerf_mm)
+        used = _bin_ocu(patron)
         waste = bar_len - used
         bar_patterns.append(BarPattern(
             pieces=patron,
@@ -360,16 +519,21 @@ def calculate_purchase_plan(
 
     full_bars = len(bar_bins)
     full_bar_cost = round(full_bars * price_per_bar, 2)
-    tramo_total_mm = round(sum(tramo_pieces), 2)
+    tramo_total_mm = round(sum(p[0] if angular else p for p in tramo_piezas), 2)
     tramo_total_meters = round(tramo_total_mm / 1000.0, 4)
     tramo_cost = round(tramo_total_meters * price_per_meter, 2)
     total_cost = round(full_bar_cost + tramo_cost, 2)
 
     if bar_bins:
-        neto = sum(_largo_ocupado(b, kerf_mm) for b in bar_bins)
+        neto = sum(_bin_ocu(b) for b in bar_bins)
         global_eff = round(neto / (full_bars * bar_len) * 100, 1)
     else:
         global_eff = 0.0
+
+    if angular:
+        tramo_sorted = sorted(tramo_piezas, key=lambda x: -x[0])
+    else:
+        tramo_sorted = sorted(tramo_piezas, reverse=True)
 
     return PurchasePlanResult(
         full_bars=full_bars,
@@ -379,6 +543,6 @@ def calculate_purchase_plan(
         tramo_cost=tramo_cost,
         total_cost=total_cost,
         bar_patterns=bar_patterns,
-        tramo_pieces=sorted(tramo_pieces, reverse=True),
+        tramo_pieces=tramo_sorted,
         global_efficiency_pct=global_eff,
     )
