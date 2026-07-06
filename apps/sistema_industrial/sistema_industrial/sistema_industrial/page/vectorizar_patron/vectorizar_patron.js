@@ -274,13 +274,13 @@ class Vectorizador {
 	}
 
 	_zoom_at(clientX, clientY, factor) {
-		const container = document.getElementById('vp-viewer');
-		const rect = container.getBoundingClientRect();
 		const v = this.viewBox;
-		const fx = (clientX - rect.left) / rect.width;
-		const fy = (clientY - rect.top) / rect.height;
-		const svgX = v.x + fx * v.w;
-		const svgY = v.y + fy * v.h;
+		// Punto SVG bajo el cursor (correcto con letterboxing, ver client_to_view).
+		const p = this.client_to_view(clientX, clientY);
+		// Su fracción DENTRO del viewBox actual — esto es pura geometría de
+		// viewBox, no depende de la pantalla, así que no hay bug de letterboxing acá.
+		const fx = (p.x - v.x) / v.w;
+		const fy = (p.y - v.y) / v.h;
 		let newW = v.w * factor;
 		let newH = v.h * factor;
 		// límites: no alejar más que 4x el original, no acercar más de 40x
@@ -289,8 +289,8 @@ class Vectorizador {
 		newW = Math.min(maxW, Math.max(minW, newW));
 		newH = Math.min(maxW * (this.origViewBox.h / this.origViewBox.w), Math.max(minW * (this.origViewBox.h / this.origViewBox.w), newH));
 		this.viewBox = {
-			x: svgX - fx * newW,
-			y: svgY - fy * newH,
+			x: p.x - fx * newW,
+			y: p.y - fy * newH,
 			w: newW,
 			h: newH,
 		};
@@ -299,14 +299,22 @@ class Vectorizador {
 
 	// Convierte coordenadas de pantalla (clientX/Y) a unidades del viewBox
 	// (= "SVG display units", las mismas que espera escala_display del backend).
-	client_to_view(clientX, clientY) {
-		const container = document.getElementById('vp-viewer');
-		const rect = container.getBoundingClientRect();
-		const v = this.viewBox;
-		return {
-			x: v.x + ((clientX - rect.left) / rect.width) * v.w,
-			y: v.y + ((clientY - rect.top) / rect.height) * v.h,
-		};
+	//
+	// getScreenCTM() (matriz real pantalla->SVG) en vez de calcular a mano con
+	// getBoundingClientRect() del contenedor: el <svg> no tiene
+	// preserveAspectRatio="none", así que con el default (xMidYMid meet) el
+	// navegador agrega letterboxing/pillarboxing cuando la proporción del
+	// viewBox no coincide con la del contenedor (520px fijo) — la cuenta a
+	// mano asumía que el SVG llena el rect completo sin franjas, y el clic
+	// quedaba corrido (bug reportado por Constantino, MSG_032 de Nova).
+	// getScreenCTM() contempla el letterboxing automáticamente.
+	client_to_view(clientX, clientY, ctm) {
+		const pt = this.svgEl.createSVGPoint();
+		pt.x = clientX;
+		pt.y = clientY;
+		const screenCTM = ctm || this.svgEl.getScreenCTM();
+		const svgPt = pt.matrixTransform(screenCTM.inverse());
+		return { x: svgPt.x, y: svgPt.y };
 	}
 
 	wire_viewer_events() {
@@ -345,7 +353,17 @@ class Vectorizador {
 		if (this.mode === 'pan') {
 			container.setPointerCapture(e.pointerId);
 			container.classList.add('panning');
-			this._drag = { type: 'pan', startClientX: e.clientX, startClientY: e.clientY, startView: Object.assign({}, this.viewBox) };
+			// CTM congelada al empezar el arrastre: el pan va actualizando
+			// this.viewBox (y por lo tanto la CTM real del <svg>) en cada
+			// pointermove, así que recalcular getScreenCTM() en el medio del
+			// gesto compararía puntos en dos sistemas de referencia distintos.
+			// Con la CTM fija, start/current quedan en el mismo sistema.
+			this._drag = {
+				type: 'pan',
+				startClientX: e.clientX, startClientY: e.clientY,
+				startView: Object.assign({}, this.viewBox),
+				startCTM: this.svgEl.getScreenCTM(),
+			};
 			return;
 		}
 		if (this.mode === 'calibrate' && this.calibArm) {
@@ -368,14 +386,15 @@ class Vectorizador {
 	on_pointer_move(e) {
 		if (!this._drag) return;
 		if (this._drag.type === 'pan') {
-			const container = document.getElementById('vp-viewer');
-			const rect = container.getBoundingClientRect();
 			const v0 = this._drag.startView;
-			const dxPx = e.clientX - this._drag.startClientX;
-			const dyPx = e.clientY - this._drag.startClientY;
-			const dxUnits = (dxPx / rect.width) * v0.w;
-			const dyUnits = (dyPx / rect.height) * v0.h;
-			this.viewBox = { x: v0.x - dxUnits, y: v0.y - dyUnits, w: v0.w, h: v0.h };
+			// Mismo principio que client_to_view (CTM en vez de rect a mano),
+			// pero con la CTM congelada en pointerdown para no comparar contra
+			// un sistema de referencia que se mueve durante el propio gesto.
+			const startSvg = this.client_to_view(this._drag.startClientX, this._drag.startClientY, this._drag.startCTM);
+			const curSvg = this.client_to_view(e.clientX, e.clientY, this._drag.startCTM);
+			const dx = curSvg.x - startSvg.x;
+			const dy = curSvg.y - startSvg.y;
+			this.viewBox = { x: v0.x - dx, y: v0.y - dy, w: v0.w, h: v0.h };
 			this.apply_viewbox();
 		} else if (this._drag.type === 'calib') {
 			this.draw_calib_preview(this._drag.start, this.client_to_view(e.clientX, e.clientY), this._drag.line);
