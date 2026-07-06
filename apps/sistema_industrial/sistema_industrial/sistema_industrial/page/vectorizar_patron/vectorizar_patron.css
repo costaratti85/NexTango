@@ -61,5 +61,35 @@
 .si-page .vp-calib-line.vertical { stroke:#c0392b; }
 .si-page .vp-status-row { display:flex; justify-content:space-between; font-size:12px; color:var(--si-muted); margin-top:8px; }
 
-/* Paso 4: confirmar */
+/* Paso 4: preset por figura */
+.si-page .vp-figuras-grid { display:flex; flex-wrap:wrap; gap:10px; }
+.si-page .vp-figura-card { width:110px; border:2px solid var(--si-line); border-radius:8px; background:#fff;
+                           padding:6px; text-align:center; }
+.si-page .vp-figura-card.vp-custom { border-color:var(--si-brand); }
+.si-page .vp-figura-thumb { width:100%; height:70px; background:#fafcfd; border-radius:5px; overflow:hidden;
+                           display:flex; align-items:center; justify-content:center; }
+.si-page .vp-figura-thumb svg { width:100%; height:100%; display:block; }
+.si-page .vp-figura-thumb path { fill:none; stroke:#555; vector-effect:non-scaling-stroke; }
+.si-page .vp-figura-preset { font-size:11px; font-weight:700; color:var(--si-ink); margin-top:4px; }
+.si-page .vp-figura-card.vp-custom .vp-figura-preset { color:var(--si-brand); }
+.si-page .vp-figura-cambiar { font-size:10px; padding:2px 8px; margin-top:4px; border:1px solid var(--si-line);
+                              border-radius:4px; background:#fafcfd; cursor:pointer; color:var(--si-muted); }
+.si-page .vp-figura-cambiar:hover { border-color:var(--si-brand); color:var(--si-brand); }
+
+/* Popover de variantes (frappe.ui.Dialog — no está bajo .si-page, se renderiza
+ * en el body; sin scope a propósito, igual que si-customer-sync-row). */
+.vp-variant-grid { display:flex; flex-wrap:wrap; gap:10px; }
+.vp-variant-card { width:110px; border:2px solid #e0e6ed; border-radius:8px; background:#fff;
+                   padding:6px; text-align:center; cursor:pointer; transition:border-color .15s; }
+.vp-variant-card:hover { border-color:#176b87; }
+.vp-variant-card.selected { border-color:#176b87; background:#e8f4f8; }
+.vp-variant-card.disabled { opacity:.45; cursor:default; }
+.vp-variant-thumb { width:100%; height:70px; background:#fafcfd; border-radius:5px; overflow:hidden;
+                    display:flex; align-items:center; justify-content:center; }
+.vp-variant-thumb svg { width:100%; height:100%; display:block; }
+.vp-variant-thumb path { fill:none; stroke:#555; vector-effect:non-scaling-stroke; }
+.vp-variant-na { font-size:10px; color:#888; }
+.vp-variant-name { font-size:11px; font-weight:700; color:#1a1a2e; margin-top:4px; }
+
+/* Paso 5: confirmar */
 .si-page .vp-confirm-grid { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; }

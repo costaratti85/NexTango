@@ -29,6 +29,13 @@ class Vectorizador {
 		// drag/rubber-band/pan state
 		this._drag = null;
 
+		// Paso 4 — preset por figura (PUNTO_PRESET_POR_FIGURA, MSG_033 de Punto).
+		// entityOverrides: { [sourceEntityId]: { preset, entity_id } } — solo
+		// entradas para figuras que el usuario cambió del preset global; las que
+		// no están acá usan el preset del paso 2 tal cual.
+		this.entityOverrides = {};
+		this._presetSvgCache = {};   // preset.name -> <svg> ya parseado (para no reparsear svg_full)
+
 		this.make_customer_control();
 		this.bind_events();
 		this.setup_paste_and_drop();
@@ -201,9 +208,11 @@ class Vectorizador {
 		$('#vp-preset-grid .vp-preset-card').removeClass('selected');
 		$('#vp-preset-grid .vp-preset-card[data-idx="' + idx + '"]').addClass('selected');
 
-		// Cambiar de preset resetea selección y calibración (geometría distinta).
+		// Cambiar de preset resetea selección, calibración y overrides por
+		// figura (los entity_id del preset viejo ya no significan nada acá).
 		this.calib = { vLine: null, hLine: null, vMm: null, escala_display: null };
 		this.calibArm = null;
+		this.entityOverrides = {};
 		this.set_mode('select');
 
 		const preset = this.presets[idx];
@@ -230,6 +239,159 @@ class Vectorizador {
 		$('#vp-section-visor').removeClass('hidden');
 		$('#vp-section-confirmar').removeClass('hidden');
 		this.update_create_button();
+	}
+
+	// ------------------------------------------------------------------
+	// Paso 4 — preset por figura (override puntual sobre el global)
+	// ------------------------------------------------------------------
+
+	// Matching client-side por bbox-center (Punto, MSG_033) — sin llamada al
+	// backend, ya tenemos this.presets completo desde vectorize_image.
+	find_entity_in_preset(sourceEntityId, sourcePresetName, targetPresetName) {
+		const srcPreset = this.presets.find((p) => p.name === sourcePresetName);
+		const srcEntity = srcPreset && (srcPreset.entities || []).find((e) => e.id === sourceEntityId);
+		if (!srcEntity || !srcEntity.bbox_approx) return null;
+
+		const bb = srcEntity.bbox_approx;
+		const refCx = bb.x + bb.w / 2;
+		const refCy = bb.y + bb.h / 2;
+		const tol = Math.max(Math.max(bb.w, bb.h) * 0.10, 5);
+
+		const targetPreset = this.presets.find((p) => p.name === targetPresetName);
+		const targetEntities = (targetPreset && targetPreset.entities) || [];
+		let best = null;
+		let bestDist = Infinity;
+		targetEntities.forEach((e) => {
+			if (!e.bbox_approx) return;
+			const ebb = e.bbox_approx;
+			const cx = ebb.x + ebb.w / 2;
+			const cy = ebb.y + ebb.h / 2;
+			const dist = Math.hypot(cx - refCx, cy - refCy);
+			if (dist < bestDist) {
+				bestDist = dist;
+				best = e;
+			}
+		});
+		return best && bestDist <= tol ? best : null;
+	}
+
+	// SVG del preset ya parseado (cacheado) — para extraer un <path id="eN">
+	// puntual sin reparsear svg_full en cada miniatura.
+	get_parsed_preset_svg(preset) {
+		if (!this._presetSvgCache[preset.name]) {
+			const div = document.createElement('div');
+			div.innerHTML = preset.svg_full || '';
+			this._presetSvgCache[preset.name] = div.querySelector('svg');
+		}
+		return this._presetSvgCache[preset.name];
+	}
+
+	// Miniatura de UNA figura puntual — recorta al bbox_approx de esa entidad
+	// (mismo espacio de coordenadas que el d del path, antes del <g transform>
+	// translate/scale de potrace: no lo replicamos porque para comparar calidad
+	// de trazo entre presets no hace falta que coincida la orientación con el
+	// visor principal — puede verse espejado/rotado respecto a este, es un
+	// costo cosmético aceptado, no un bug).
+	entity_thumb_svg(preset, entityId) {
+		const entityMeta = (preset.entities || []).find((e) => e.id === entityId);
+		if (!entityMeta || !entityMeta.bbox_approx) return '';
+		const parsedSvg = this.get_parsed_preset_svg(preset);
+		const pathEl = parsedSvg && parsedSvg.querySelector('#' + CSS.escape(entityId));
+		if (!pathEl) return '';
+		const bb = entityMeta.bbox_approx;
+		const pad = Math.max(bb.w, bb.h, 1) * 0.15;
+		const vb = (bb.x - pad) + ' ' + (bb.y - pad) + ' ' + (bb.w + pad * 2) + ' ' + (bb.h + pad * 2);
+		return '<svg viewBox="' + vb + '" xmlns="http://www.w3.org/2000/svg">' + pathEl.outerHTML + '</svg>';
+	}
+
+	// Preset+entity_id efectivamente asignado a una figura seleccionada —
+	// el override si el usuario lo cambió, si no el global del paso 2.
+	get_entity_assignment(sourceEntityId) {
+		const override = this.entityOverrides[sourceEntityId];
+		if (override) return override;
+		return { preset: this.presets[this.preset_idx].name, entity_id: sourceEntityId };
+	}
+
+	render_figuras_grid() {
+		const ids = this.get_selected_ids();
+		const $grid = $('#vp-figuras-grid').empty();
+		if (!ids.length) {
+			$('#vp-section-figuras').addClass('hidden');
+			return;
+		}
+		$('#vp-section-figuras').removeClass('hidden');
+
+		ids.forEach((sourceId) => {
+			const isCustom = !!this.entityOverrides[sourceId];
+			const assignment = this.get_entity_assignment(sourceId);
+			const presetObj = this.presets.find((p) => p.name === assignment.preset);
+			const thumb = presetObj ? this.entity_thumb_svg(presetObj, assignment.entity_id) : '';
+
+			const card = $(
+				'<div class="vp-figura-card' + (isCustom ? ' vp-custom' : '') + '">' +
+					'<div class="vp-figura-thumb">' + thumb + '</div>' +
+					'<div class="vp-figura-preset">' + frappe.utils.escape_html(assignment.preset) + '</div>' +
+					'<button type="button" class="vp-figura-cambiar">' + __('Cambiar') + '</button>' +
+					'</div>'
+			);
+			card.find('.vp-figura-cambiar').on('click', () => this.open_entity_preset_picker(sourceId));
+			$grid.append(card);
+		});
+	}
+
+	// Debounce: con selecciones grandes (recuadro sobre una retícula de
+	// decenas/cientos de figuras) no queremos re-renderizar la grilla completa
+	// en cada tick del arrastre — solo cuando la selección se asienta.
+	schedule_figuras_render() {
+		clearTimeout(this._figurasRenderTimer);
+		this._figurasRenderTimer = setTimeout(() => this.render_figuras_grid(), 250);
+	}
+
+	open_entity_preset_picker(sourceId) {
+		const sourcePresetName = this.presets[this.preset_idx].name;
+		const currentAssignment = this.get_entity_assignment(sourceId);
+
+		const cardsHtml = this.presets.map((p) => {
+			const match = this.find_entity_in_preset(sourceId, sourcePresetName, p.name);
+			const isSelected = p.name === currentAssignment.preset;
+			if (!match) {
+				return (
+					'<div class="vp-variant-card disabled" data-preset="' + frappe.utils.escape_html(p.name) + '">' +
+						'<div class="vp-variant-thumb"><span class="vp-variant-na">' + __('no disponible') + '</span></div>' +
+						'<div class="vp-variant-name">' + frappe.utils.escape_html(p.name) + '</div>' +
+						'</div>'
+				);
+			}
+			const thumb = this.entity_thumb_svg(p, match.id);
+			return (
+				'<div class="vp-variant-card' + (isSelected ? ' selected' : '') + '" data-preset="' +
+					frappe.utils.escape_html(p.name) + '" data-entity="' + frappe.utils.escape_html(match.id) + '">' +
+					'<div class="vp-variant-thumb">' + thumb + '</div>' +
+					'<div class="vp-variant-name">' + frappe.utils.escape_html(p.name) + '</div>' +
+					'</div>'
+			);
+		}).join('');
+
+		const d = new frappe.ui.Dialog({
+			title: __('Elegir preset para esta figura'),
+			fields: [{ fieldtype: 'HTML', fieldname: 'variants_html', options: '<div class="vp-variant-grid">' + cardsHtml + '</div>' }],
+		});
+
+		d.$wrapper.find('.vp-variant-card:not(.disabled)').on('click', (e) => {
+			const $card = $(e.currentTarget);
+			const presetName = $card.data('preset');
+			const entityId = $card.data('entity');
+			if (presetName === sourcePresetName && entityId === sourceId) {
+				// Volver al global — sin override.
+				delete this.entityOverrides[sourceId];
+			} else {
+				this.entityOverrides[sourceId] = { preset: presetName, entity_id: entityId };
+			}
+			d.hide();
+			this.render_figuras_grid();
+		});
+
+		d.show();
 	}
 
 	// ------------------------------------------------------------------
@@ -468,6 +630,7 @@ class Vectorizador {
 		const n = this.svgEl ? this.svgEl.querySelectorAll('path.vp-selected').length : 0;
 		$('#vp-sel-count').text(n + ' ' + __('entidades seleccionadas'));
 		this.update_create_button();
+		this.schedule_figuras_render();
 	}
 
 	get_selected_ids() {
@@ -574,12 +737,16 @@ class Vectorizador {
 		status.text(__('Creando patrón…'));
 		const btn = $('#vp-btn-crear').prop('disabled', true);
 
+		// selected_items en vez de preset + selected_entity_ids (contrato nuevo,
+		// MSG_033 de Punto): cada figura lleva su propio preset asignado —
+		// el override del paso 4 si el usuario lo cambió, si no el global.
+		const selected_items = selected_entity_ids.map((id) => this.get_entity_assignment(id));
+
 		frappe.call({
 			method: 'sistema_industrial.api.vectorizer.compose_pattern',
 			args: {
 				run_id: this.run_id,
-				preset: this.presets[this.preset_idx].name,
-				selected_entity_ids: selected_entity_ids,
+				selected_items: selected_items,
 				escala_display: this.calib.escala_display,
 				step_x_mm: this.calib.step_x_mm,
 				step_y_mm: this.calib.step_y_mm,
