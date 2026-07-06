@@ -106,9 +106,10 @@ function perfiles_plegados_init() {
 	}
 	function feasible(pl,alpha,V,s){
 	  var c=clearCheck(pl,alpha,V,s);
-	  // el tope para donde topa el material más atrás que el dedo alcanza (dentro de su altura FINGER_H)
+	  // el tope para donde topa el material más atrás que el dedo alcanza: el dedo trabaja a la
+	  // altura de la mesa (banda [mesa, mesa+FINGER_H]) — un nodo COLGANDO por debajo no topea
 	  var xr=-1e9, gi=-1;
-	  for(var m=0;m<pl.P.length;m++){ var p=pl.P[m]; if(p.y<=pl.rest+FINGER_H && p.x>xr){ xr=p.x; gi=m; } }
+	  for(var m=0;m<pl.P.length;m++){ var p=pl.P[m]; if(p.y>=-1.5 && p.y<=pl.rest+FINGER_H && p.x>xr){ xr=p.x; gi=m; } }
 	  if(gi<0){ xr=pl.P[0].x; gi=0; for(var m2=1;m2<pl.P.length;m2++) if(pl.P[m2].x>xr){ xr=pl.P[m2].x; gi=m2; } }
 	  var X=xr, stable=nodeFlat(pl,gi);   // ¿apoya sobre algo plano? (criterio Cybelec: no apoyar en segmento inclinado)
 	  // longitud del lado del OPERARIO (lo que sobresale hacia adelante/izquierda para sostener)
@@ -125,7 +126,7 @@ function perfiles_plegados_init() {
 	  for(var o=0;o<opts.length;o++){
 	    var pl=place(fl,an,dr,done,bi,opts[o][0],opts[o][1],s);
 	    if(gn>=pl.P.length) continue;
-	    var node=pl.P[gn], atLevel=(node.y<=pl.rest+1.5), cl=clearCheck(pl,an[bi],V,s);
+	    var node=pl.P[gn], atLevel=(node.y>=-1.5 && node.y<=pl.rest+1.5), cl=clearCheck(pl,an[bi],V,s);
 	    var X=node.x, ok=cl.clear&&atLevel&&X>=X_MIN&&X<=X_MAX;
 	    var why = !cl.clear ? cl.why : (!atLevel? 'el nodo '+nodeLetter(gn)+' no queda apoyado en el tope para este pliegue' : (X<X_MIN?'apoyo muy cerca de la línea de pliegue':(X>X_MAX?'fuera del recorrido del tope':'')));
 	    var score=(ok?0:10000)+(atLevel?0:5000)+(cl.clear?0:3000)+Math.max(0,X_MIN-X)+Math.max(0,X-X_MAX)-X*0.001;
