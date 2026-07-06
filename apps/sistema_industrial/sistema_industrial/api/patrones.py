@@ -98,6 +98,11 @@ def _generate_and_save_thumbnail(nombre: str, dxf_path) -> "str | None":
         fig = plt.figure(figsize=(3, 3), dpi=72)
         ax = fig.add_axes([0, 0, 1, 1])
         ax.set_aspect("equal")
+        # Explicit white background on the axes — ezdxf/MatplotlibBackend
+        # defaults to a dark CAD-style viewport; fig.savefig(facecolor="white")
+        # only covers the area OUTSIDE the axes, which is zero here since
+        # add_axes([0,0,1,1]) fills the entire figure.
+        ax.set_facecolor("white")
         ctx = RenderContext(dxf_doc)
         out = MatplotlibBackend(ax)
         Frontend(ctx, out).draw_layout(msp, finalize=True)
@@ -144,17 +149,32 @@ def _generate_and_save_thumbnail(nombre: str, dxf_path) -> "str | None":
 
 
 @frappe.whitelist(allow_guest=False)
-def backfill_thumbnails():
-    """Genera thumbnails faltantes para todos los SI Patron con archivo DXF.
+def backfill_thumbnails(force=False, names=None):
+    """Genera thumbnails para SI Patron con archivo DXF.
 
-    Recorre tipo Archivo y Vectorizado con archivo_dxf definido y sin thumbnail
-    en public/pattern_thumbnails/. Útil tras migración o al arreglar nombres.
+    force: si truthy (pasa "1" desde la API), re-genera aunque el archivo PNG
+    ya exista — necesario para sobreescribir placeholders PIL previos.
+    names: lista JSON de nombres a procesar; si None/vacío, procesa todos.
 
     Retorna: {"generados": [...], "ya_existian": [...], "errores": [...]}
     """
+    # Frappe pasa parámetros como strings desde HTTP; normalizar.
+    if isinstance(force, str):
+        force = force.lower() in ("1", "true", "yes")
+    if isinstance(names, str):
+        import json as _json
+        try:
+            names = _json.loads(names)
+        except Exception:
+            names = [n.strip() for n in names.split(",") if n.strip()]
+
+    filters: dict = {"tipo": ["in", ["Archivo", "Vectorizado"]], "activo": 1}
+    if names:
+        filters["name"] = ["in", names]
+
     patrones = frappe.db.get_all(
         "SI Patron",
-        filters={"tipo": ["in", ["Archivo", "Vectorizado"]], "activo": 1},
+        filters=filters,
         fields=["name", "archivo_dxf"],
     )
 
@@ -171,7 +191,7 @@ def backfill_thumbnails():
         safe = _safe_name(nombre)
         out_path = thumb_dir / f"{safe}.png"
 
-        if out_path.exists():
+        if out_path.exists() and not force:
             ya_existian.append(nombre)
             continue
 
@@ -186,6 +206,74 @@ def backfill_thumbnails():
             errores.append({"name": nombre, "error": "render falló (ver logs)"})
 
     return {"generados": generados, "ya_existian": ya_existian, "errores": errores}
+
+
+@frappe.whitelist(allow_guest=False)
+def verify_thumbnails(names=None):
+    """Verifica el contenido pixel de los PNGs generados.
+
+    Retorna para cada patrón: background_color (pixel de esquina superior-
+    izquierda), has_content (si algún pixel difiere del bg), y si es
+    placeholder PIL o render real.
+
+    Requiere Pillow. Si no está instalado retorna error descriptivo.
+    """
+    try:
+        from PIL import Image as _Image
+    except ImportError:
+        return {"error": "Pillow no está instalado"}
+
+    if isinstance(names, str):
+        import json as _json
+        try:
+            names = _json.loads(names)
+        except Exception:
+            names = [n.strip() for n in names.split(",") if n.strip()]
+
+    thumb_dir = Path(__file__).resolve().parents[1] / "public" / "pattern_thumbnails"
+    resultados = []
+
+    target = names if names else [
+        p["name"]
+        for p in frappe.db.get_all(
+            "SI Patron",
+            filters={"tipo": ["in", ["Archivo", "Vectorizado"]], "activo": 1},
+            fields=["name"],
+        )
+    ]
+
+    for nombre in target:
+        safe = _safe_name(nombre)
+        png_path = thumb_dir / f"{safe}.png"
+        if not png_path.exists():
+            resultados.append({"name": nombre, "estado": "sin_archivo"})
+            continue
+
+        try:
+            img = _Image.open(str(png_path)).convert("RGB")
+            w, h = img.size
+            corner = img.getpixel((0, 0))
+            center = img.getpixel((w // 2, h // 2))
+            # Cuenta píxeles que difieran del color de esquina (contenido visible)
+            pixels = list(img.getdata())
+            diff = sum(1 for px in pixels if px != corner)
+            # Placeholder PIL: fondo gris claro (220,220,220) aprox.
+            is_placeholder = all(abs(c - 220) < 20 for c in corner)
+            is_black_bg = all(c < 30 for c in corner)
+            resultados.append({
+                "name": nombre,
+                "estado": "ok",
+                "size": f"{w}x{h}",
+                "bg_color": corner,
+                "center_color": center,
+                "pixels_con_contenido": diff,
+                "es_placeholder": is_placeholder,
+                "fondo_negro": is_black_bg,
+            })
+        except Exception as exc:
+            resultados.append({"name": nombre, "estado": "error", "detalle": str(exc)})
+
+    return {"resultados": resultados}
 
 
 def _find_pattern_library():
