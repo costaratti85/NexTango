@@ -222,3 +222,72 @@ def test_ambos_precios_cero_solo_plan_barras():
     assert r.error == ""
     assert r.full_bars >= 1
     assert r.total_cost == 0.0
+
+
+# ── Angular ───────────────────────────────────────────────────────────────────
+
+def test_angular_recto_equivalente_a_modo_recto():
+    """Piezas angulares con izq=der=0 deben dar el mismo resultado que modo recto."""
+    # Recto
+    r_recto = calculate_purchase_plan(
+        6000, [(7, 950)], price_per_bar=5000, price_per_meter=900, kerf_mm=2,
+    )
+    # Angular con ángulos 0 (recto en ambos extremos)
+    r_ang = calculate_purchase_plan(
+        6000, [(7, 950, 0, 0, 0, '//')], price_per_bar=5000, price_per_meter=900,
+        kerf_mm=2, angular=True,
+    )
+    assert r_ang.error == ""
+    assert r_ang.full_bars == r_recto.full_bars
+    assert r_ang.tramo_pieces.__len__() == r_recto.tramo_pieces.__len__()
+    assert abs(r_ang.total_cost - r_recto.total_cost) < 0.01
+
+
+def test_angular_piezas_distintos_angulos():
+    """Piezas con ángulos distintos: la pieza angular tiene el largo correcto."""
+    r = calculate_purchase_plan(
+        6000, [(3, 1000, 45, 0, 80, '//'), (2, 800, 0, 30, 60, '\\')],
+        price_per_bar=5000, price_per_meter=0,
+        kerf_mm=2, angular=True,
+    )
+    assert r.error == ""
+    assert r.full_bars >= 1
+    # Las piezas en los patrones son tuplas de 5 elementos
+    for patron in r.bar_patterns:
+        for p in patron.pieces:
+            assert len(p) == 5, "pieza angular debe tener 5 campos"
+    # Piezas angulares distintas no deben mezclarse en el mismo "slot" de largo
+    all_pieces = [p for pat in r.bar_patterns for p in pat.pieces]
+    for p in all_pieces:
+        largo, izq, der, cara, disp = p
+        assert largo in (1000.0, 800.0)
+
+
+def test_angular_tramo_suelto_precio_barra_cero():
+    """angular + price_per_bar=0 → todo a tramos sueltos (piezas angulares)."""
+    r = calculate_purchase_plan(
+        6000, [(2, 1000, 45, 0, 80, '//'), (1, 800, 0, 0, 0, '//')],
+        price_per_bar=0, price_per_meter=900,
+        kerf_mm=2, angular=True,
+    )
+    assert r.error == ""
+    assert r.full_bars == 0
+    assert len(r.tramo_pieces) == 3
+    # Ordenados por largo desc
+    assert r.tramo_pieces[0][0] >= r.tramo_pieces[-1][0]
+
+
+def test_angular_pieza_mas_larga_que_barra():
+    """angular: pieza más larga que la barra → error."""
+    r = calculate_purchase_plan(
+        6000, [(1, 7000, 45, 0, 80, '//')],
+        price_per_bar=5000, price_per_meter=900,
+        kerf_mm=2, angular=True,
+    )
+    assert r.error != ""
+    assert r.full_bars == 0
+
+
+def test_angular_lista_vacia():
+    r = calculate_purchase_plan(6000, [], price_per_bar=5000, price_per_meter=900, angular=True)
+    assert r.error != ""
