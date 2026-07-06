@@ -1,6 +1,34 @@
 {
   "pending": [
     {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_THUMBNAILS",
+      "descripcion": "Deploy de commit 3bac589 (erpnext) — thumbnails: fondo blanco + force-regenerate. Pasos: (1) git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin bench migrate. (2) Correr: bench execute sistema_industrial.api.patrones.backfill_thumbnails --args '[true, [\"Corazon\",\"Gotas\",\"subte\",\"Cosmos\"]]' para force-regenerar los 4 patrones con placeholder PIL viejo. (3) Correr: bench execute sistema_industrial.api.patrones.verify_thumbnails --args '[[\"Corazon\",\"Gotas\",\"subte\",\"Cosmos\"]]' y reportar el JSON completo con bg_color, center_color, pixels_con_contenido, es_placeholder, fondo_negro para cada patrón. CRÍTICO: la tarea NO está resuelta hasta que el reporte de verify_thumbnails muestre es_placeholder=false y fondo_negro=false para los 4 patrones. Ya fallamos 2 veces declarando thumbnails resueltos sin verificar el contenido real del PNG.",
+      "msg": "coordination/channel/Nova/MSG_081_punto_thumbnails_done.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Gemu",
+      "task": "GEMU_BUG_CRITICO_NEST1D_DESINCRONIZADO",
+      "descripcion": "BUG CRÍTICO en producción (2026-07-06): corte-barras no puede calcular NADA — TypeError: calculate_purchase_plan() got an unexpected keyword argument 'angular'. Causa confirmada: main/cutting/nest_1d.py tiene angular:bool=False en la firma (GEMU_CORTES_ANGULO), pero la copia de erpnext/cutting/nest_1d.py es vieja, sin ese parámetro — api/corte_barras.py (solo erpnext) ya llama con angular=angular asumiendo la firma nueva. Deploy a medias: el caller llegó, el motor no. Cuarta vez que main/erpnext quedan desincronizados (arc_segment.py, main.py x2). Portar nest_1d.py completo de main a erpnext, hacer una pasada de chequeo por otros archivos compartidos con el mismo riesgo, avisar a Orbit para deploy urgente. Ver MSG_015 de su canal.",
+      "msg": "coordination/channel/Gemu/MSG_015_nova_bug_critico_nest1d_desincronizado.md",
+      "status": "pendiente",
+      "sprint": "002-corte-barras",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Punto",
+      "task": "PUNTO_THUMBNAILS_DOS_BUGS_REALES",
+      "descripcion": "Constantino sigue viendo thumbnails rotos (Corazon/Gotas/subte con placeholder gris de siempre + patrón nuevo 'Panel 1' con fondo negro y líneas rojas) pese al fix de matplotlib de ORBIT_INSTALL_MATPLOTLIB_REGENERAR. Causas encontradas y verificadas en código: (1) backfill_thumbnails() api/patrones.py:174 solo chequea si el archivo PNG existe, no si es un render real o el placeholder PIL viejo — una vez que el fallback escribió el PNG, backfill nunca más lo regenera aunque matplotlib ya funcione; necesita force/lista explícita para re-renderizar Corazon/Gotas/subte/Cosmos. (2) _generate_and_save_thumbnail() hace fig.savefig(facecolor='white') pero eso solo pinta fuera de los ejes, que ocupan el 100% de la figura (add_axes([0,0,1,1])) — el fondo real es el de RenderContext/MatplotlibBackend de ezdxf, que por default es negro estilo CAD, nunca sobreescrito; hace falta ax.set_facecolor('white') explícito. Exigir verificación VISUAL real de los PNG resultantes antes de reportar resuelto (no alcanza con 'sin errores' — ya se declaró resuelto 2 veces sin serlo). Ver MSG_047 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_047_nova_thumbnails_dos_bugs_reales.md",
+      "status": "completado",
+      "nota": "Punto commit 3bac589 (erpnext): Bug 1 — backfill_thumbnails(force, names): cuando force es truthy omite out_path.exists(), permite sobreescribir placeholders PIL. names filtra a lista específica. Bug 2 — ax.set_facecolor('white') antes de draw_layout: fig.savefig(facecolor='white') solo pinta fuera de los ejes; con add_axes([0,0,1,1]) al 100% no había 'afuera' — MatplotlibBackend dejaba fondo negro (CAD default). Nuevo endpoint verify_thumbnails: abre PNG con Pillow, reporta bg_color/center_color/pixels_con_contenido/es_placeholder/fondo_negro. FALTA: Orbit deploy + backfill_thumbnails(force=1, names=['Corazon','Gotas','subte','Cosmos']) + verify_thumbnails y reporte de resultados pixel-level antes de cerrar.",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
       "agent": "Punto",
       "task": "PUNTO_BBOX_APPROX_COMANDOS_RELATIVOS",
       "descripcion": "Constantino reportó que en el modal 'Elegir preset para esta figura' (ya agrandado por Vega), 5 de 6 opciones muestran la figura chica y metida en una esquina del recuadro, resto vacío — no es tamaño, es posición. Hipótesis de alta confianza: _bbox_from_d() en vectorize/runner.py:128 extrae todos los números del d y asume que alternan x,y — válido solo para comandos SVG absolutos (M,L,C,Q mayúscula). El propio código cuenta comandos relativos (mlcq minúscula, línea de al lado) — si una entidad los usa, cada número es un desplazamiento relativo, no coordenada absoluta, y el bbox calculado sale agrupado cerca de valores chicos/arbitrarios mientras el navegador dibuja el path real en su posición absoluta correcta — coincide con el síntoma. Confirmar si las entidades afectadas tienen comandos relativos; si es así, _bbox_from_d necesita parsear acumulando posición absoluta (o normalizar el d a absoluto antes, ej. con svgpathtools/svg.path) en vez de extraer números crudos. Evaluar alcance: puede afectar también el rubber-band de selección y el matching de find_entity_in_preset (frontend) si usan el mismo bbox_approx. Ver MSG_046 de su canal.",
@@ -25,7 +53,8 @@
       "task": "ORBIT_DEPLOY_BBOX_CENTERING_VECTORIZADOR",
       "descripcion": "Deploy de commit 29dd28d (erpnext): fix bbox_approx comandos relativos en runner.py + centering de compose_dxf en composer.py. Requiere: git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin bench migrate. Verificar: /vectorizar-patron carga OK, crear un patrón nuevo y abrir el DXF — origen debe quedar centrado. Ver MSG_080 de canal Nova.",
       "msg": "coordination/channel/Nova/MSG_080_punto_bbox_centering_done.md",
-      "status": "pendiente",
+      "status": "completado",
+      "nota": "Orbit MSG_028 (2026-07-06): git pull (Already up to date). bench build 555ms. 6 páginas bumpeadas. supervisorctl restart all: 7/7 RUNNING. Commit 29dd28d + ba7b10d deployados exitosamente. bbox_approx comandos relativos + centering de compose_dxf activos en erpnext. Página /vectorizar-patron operativa.",
       "sprint": "001-rebanada",
       "prioridad": "alta"
     },
@@ -131,8 +160,8 @@
     {
       "agent": "Gemu",
       "task": "GEMU_AUTOCOMPLETAR_DESDE_ITEM",
-      "descripcion": "Idea de seguimiento de Constantino (2026-07-06) sobre MSG_010: una vez arreglada la búsqueda por prefijo, usar el código jerárquico del Item seleccionado para autocompletar los campos hoy manuales de corte-barras — Tipo de material, Medida, y evaluar Largo de barra / Precio por barra / Precio por metro lineal. Investigar ANTES de implementar: qué datos reales tienen los Items sincronizados (item_name, item_group, custom fields) — ¿alcanzan para derivar tipo/medida sin parsing frágil? Confirmar formato real mirando Items 01-/02- reales en el servidor, no asumir. Campos sin dato confiable de origen quedan manuales como hoy — no forzar autocompletar los 5 si solo algunos tienen sentido. Depende de GEMU_BUG_BUSQUEDA_PRODUCTO_PREFIJO resuelto primero. Ver MSG_011 de su canal.",
-      "msg": "coordination/channel/Gemu/MSG_011_nova_autocompletar_desde_item.md",
+      "descripcion": "CONCRETADO por Constantino (2026-07-06, MSG_014): regla de parseo explícita para Tipo de material / Medida al elegir un Item — separar el nombre/descripción por letras (Tipo de material, ej. 'Caño') vs. números+separadores (Medida, ej. '80 x 80 x 1.6'). Ya no es investigación abierta para estos 2 campos — verificar contra 2-3 Items reales que el criterio letra/número separe bien (casos raros tipo fracciones '1/8') y luego implementar. Precios (por barra/por metro) siguen para más adelante, no bloqueante, sin dato confiable identificado todavía — no forzar. Depende de GEMU_BUG_BUSQUEDA_PRODUCTO_PREFIJO resuelto primero. Ver MSG_011 y MSG_014 de su canal.",
+      "msg": "coordination/channel/Gemu/MSG_014_nova_regla_parseo_tipo_medida.md",
       "status": "pendiente",
       "sprint": "002-corte-barras",
       "prioridad": "media"
