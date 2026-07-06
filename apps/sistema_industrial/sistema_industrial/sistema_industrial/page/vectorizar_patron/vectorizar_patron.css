@@ -36,6 +36,10 @@
 .si-page .vp-hint { font-size:12px; color:var(--si-muted); margin-bottom:8px; }
 .si-page .vp-calib-panel { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:#fff8ec; border:1px solid #f0c95a; border-radius:6px; padding:10px 12px; margin-bottom:10px; }
 .si-page .vp-calib-line-btn.done { border-color:var(--si-green); color:var(--si-green); }
+.si-page .vp-calib-line-group { display:flex; gap:4px; align-items:center; }
+.si-page .vp-calib-clear { border:1px solid #e0b4b4; border-radius:4px; background:#fff; color:var(--si-red);
+                           font-size:12px; padding:2px 7px; cursor:pointer; line-height:1.4; }
+.si-page .vp-calib-clear:hover { background:#fdecea; }
 .si-page .vp-calib-measure { display:flex; align-items:center; gap:8px; }
 .si-page .vp-viewer-wrap { border:1px solid var(--si-line); border-radius:8px; overflow:hidden; background:#fafcfd; }
 .si-page .vp-viewer { width:100%; height:520px; position:relative; touch-action:none; }

@@ -45,8 +45,14 @@
       <div class="vp-hint" id="vp-mode-hint">Modo Seleccionar: clic en una entidad para incluirla/excluirla. Arrastrá sobre el fondo para seleccionar varias (recuadro).</div>
 
       <div class="vp-calib-panel hidden" id="vp-calib-panel">
-        <button class="btn btn-default vp-calib-line-btn" data-line="v" id="vp-calib-btn-v">📏 Dibujar línea VERTICAL</button>
-        <button class="btn btn-default vp-calib-line-btn" data-line="h" id="vp-calib-btn-h">📏 Dibujar línea HORIZONTAL</button>
+        <span class="vp-calib-line-group">
+          <button class="btn btn-default vp-calib-line-btn" data-line="v" id="vp-calib-btn-v">📏 Dibujar línea VERTICAL</button>
+          <button class="vp-calib-clear hidden" id="vp-calib-clear-v" title="Borrar línea vertical">✕</button>
+        </span>
+        <span class="vp-calib-line-group">
+          <button class="btn btn-default vp-calib-line-btn" data-line="h" id="vp-calib-btn-h">📏 Dibujar línea HORIZONTAL</button>
+          <button class="vp-calib-clear hidden" id="vp-calib-clear-h" title="Borrar línea horizontal">✕</button>
+        </span>
         <span id="vp-calib-lines-status" class="dimmed"></span>
         <div class="vp-calib-measure hidden" id="vp-calib-measure">
           <label style="display:inline;margin:0 8px 0 0">Medida real de la línea vertical (mm)</label>

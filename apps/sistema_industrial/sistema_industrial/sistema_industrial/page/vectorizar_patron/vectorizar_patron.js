@@ -70,6 +70,8 @@ class Vectorizador {
 
 		$('#vp-calib-btn-v').on('click', () => this.arm_calib_line('v'));
 		$('#vp-calib-btn-h').on('click', () => this.arm_calib_line('h'));
+		$('#vp-calib-clear-v').on('click', () => this.clear_calib_line('v'));
+		$('#vp-calib-clear-h').on('click', () => this.clear_calib_line('h'));
 		$('#vp-calib-apply').on('click', () => this.apply_calibration());
 	}
 
@@ -513,20 +515,19 @@ class Vectorizador {
 		const container = document.getElementById('vp-viewer');
 		const isPath = !!e.target.closest('path');
 
+		// Botón central (rueda) del mouse: pan disponible en CUALQUIER modo
+		// activo, sin tener que cambiar a "Mover vista" primero — convención
+		// estándar CAD/diseño (AutoCAD, Illustrator, Figma). MSG_037 de Nova.
+		// preventDefault evita el autoscroll nativo que algunos navegadores
+		// abren con el botón central sobre contenido normal.
+		if (e.button === 1) {
+			e.preventDefault();
+			this._start_pan(e);
+			return;
+		}
+
 		if (this.mode === 'pan') {
-			container.setPointerCapture(e.pointerId);
-			container.classList.add('panning');
-			// CTM congelada al empezar el arrastre: el pan va actualizando
-			// this.viewBox (y por lo tanto la CTM real del <svg>) en cada
-			// pointermove, así que recalcular getScreenCTM() en el medio del
-			// gesto compararía puntos en dos sistemas de referencia distintos.
-			// Con la CTM fija, start/current quedan en el mismo sistema.
-			this._drag = {
-				type: 'pan',
-				startClientX: e.clientX, startClientY: e.clientY,
-				startView: Object.assign({}, this.viewBox),
-				startCTM: this.svgEl.getScreenCTM(),
-			};
+			this._start_pan(e);
 			return;
 		}
 		if (this.mode === 'calibrate' && this.calibArm) {
@@ -544,6 +545,25 @@ class Vectorizador {
 				containerRect: rect,
 			};
 		}
+	}
+
+	// Arranca un drag de pan — compartido entre el modo "Mover vista" y el
+	// botón central del mouse (disponible en cualquier modo).
+	_start_pan(e) {
+		const container = document.getElementById('vp-viewer');
+		container.setPointerCapture(e.pointerId);
+		container.classList.add('panning');
+		// CTM congelada al empezar el arrastre: el pan va actualizando
+		// this.viewBox (y por lo tanto la CTM real del <svg>) en cada
+		// pointermove, así que recalcular getScreenCTM() en el medio del
+		// gesto compararía puntos en dos sistemas de referencia distintos.
+		// Con la CTM fija, start/current quedan en el mismo sistema.
+		this._drag = {
+			type: 'pan',
+			startClientX: e.clientX, startClientY: e.clientY,
+			startView: Object.assign({}, this.viewBox),
+			startCTM: this.svgEl.getScreenCTM(),
+		};
 	}
 
 	on_pointer_move(e) {
@@ -646,9 +666,38 @@ class Vectorizador {
 		this.update_calib_buttons();
 	}
 
+	// MSG_036 de Nova: el botón se ponía verde ("done") al dibujar una línea,
+	// pero el texto no cambiaba — se leía como "paso terminado" en vez de
+	// "click para rehacer" (el mecanismo de reemplazo YA funcionaba, era
+	// puramente descubribilidad). Ahora el texto lo dice explícito, y aparece
+	// un botón ✕ para borrar la línea sin necesariamente redibujar otra.
 	update_calib_buttons() {
-		$('#vp-calib-btn-v').toggleClass('done', !!this.calib.vLine);
-		$('#vp-calib-btn-h').toggleClass('done', !!this.calib.hLine);
+		const $v = $('#vp-calib-btn-v');
+		const $h = $('#vp-calib-btn-h');
+		$v.toggleClass('done', !!this.calib.vLine)
+			.text(this.calib.vLine ? __('🔄 Rehacer línea VERTICAL') : __('📏 Dibujar línea VERTICAL'));
+		$h.toggleClass('done', !!this.calib.hLine)
+			.text(this.calib.hLine ? __('🔄 Rehacer línea HORIZONTAL') : __('📏 Dibujar línea HORIZONTAL'));
+		$('#vp-calib-clear-v').toggleClass('hidden', !this.calib.vLine);
+		$('#vp-calib-clear-h').toggleClass('hidden', !this.calib.hLine);
+	}
+
+	// Borra una línea de calibración sin redibujar otra (MSG_036, pedido
+	// opcional). Invalida la escala si ya estaba calculada — sigue viva pero
+	// con una sola línea es inválida.
+	clear_calib_line(which) {
+		const key = which === 'v' ? 'vLine' : 'hLine';
+		this.calib[key] = null;
+		this.calib.escala_display = null;
+		this.calib.step_x_mm = null;
+		this.calib.step_y_mm = null;
+		$('#vp-stepx, #vp-stepy').val('');
+		const previewLine = document.getElementById('vp-calib-preview-' + which);
+		if (previewLine) previewLine.remove();
+		if (this.calibArm === which) this.calibArm = null;
+		this.update_calib_buttons();
+		this.update_calib_ui();
+		this.update_create_button();
 	}
 
 	draw_calib_preview(start, end, which) {
@@ -668,9 +717,20 @@ class Vectorizador {
 		const len = Math.sqrt(dx * dx + dy * dy);
 		if (len < 1e-6) return; // línea de largo cero — ignorar
 		this.calib[which === 'v' ? 'vLine' : 'hLine'] = { start, end, len };
+		// BUG real encontrado revisando MSG_036: redibujar una línea sobreescribía
+		// vLine/hLine pero dejaba escala_display/step_x/step_y calculados con
+		// las líneas VIEJAS — "Calibración: escala X ✓" seguía mostrándose como
+		// completa y el botón Crear patrón quedaba habilitado con una escala
+		// que ya no correspondía a las líneas actuales. Invalidar fuerza a
+		// aplicar la calibración de nuevo con los datos correctos.
+		this.calib.escala_display = null;
+		this.calib.step_x_mm = null;
+		this.calib.step_y_mm = null;
+		$('#vp-stepx, #vp-stepy').val('');
 		this.calibArm = null;
 		this.update_calib_buttons();
 		this.update_calib_ui();
+		this.update_create_button();
 	}
 
 	update_calib_ui() {
