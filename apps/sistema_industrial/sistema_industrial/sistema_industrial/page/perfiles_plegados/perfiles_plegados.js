@@ -81,12 +81,21 @@ function perfiles_plegados_init() {
 	  var segs=[]; for(var i=0;i<fl.length;i++) segs.push({a:P[i],b:P[i+1],tip:(i===bi||i===bi+1),idx:i});
 	  return {P:P,segs:segs,rest:rest};
 	}
-	function clearCheck(pl,alpha,V,s){   // sólo choques: con la matriz (abajo) y con el punzón
+	var DIE_SEGS=(function(){ var s=[]; for(var i=0;i<DIE.length-1;i++) s.push([DIE[i],DIE[i+1]]); s.push([DIE[DIE.length-1],DIE[0]]); return s; })();
+	function clearCheck(pl,alpha,V,s){   // sólo choques: con la matriz/bancada (abajo) y con el punzón
 	  var pen=penClamp(alpha,V), tipY=-pen;
 	  var PS=punchSegs(); var punch=[]; for(var u=0;u<PS.length;u++){ var g=PS[u]; if(Math.min(g[0][1],g[1][1])<=95) punch.push([{x:g[0][0],y:g[0][1]+tipY},{x:g[1][0],y:g[1][1]+tipY}]); }
-	  var DR=dieRot(),DS=(DR&&DR.segs)?DR.segs:null;
-	  for(var i=0;i<pl.P.length;i++){ var p=pl.P[i]; if(p.y<-1.0){ var col=DS?pointInPoly(p,DS):(Math.abs(p.x)<TABLE_HALF); if(col) return {clear:false,why:'una parte de la pieza apunta hacia abajo (chocaría con la matriz)'}; } }
-	  for(var k=0;k<pl.segs.length;k++){ var sg=pl.segs[k]; if(sg.tip) continue; for(var q=0;q<punch.length;q++){ if(segInt(sg.a,sg.b,punch[q][0],punch[q][1])) return {clear:false,why:'una parte ya plegada choca con el punzón'}; } }
+	  var DR=dieRot(),DS=(DR&&DR.segs)?DR.segs:DIE_SEGS;
+	  // 1) nodos DENTRO del perfil CAD de la matriz (incluye bancada)
+	  for(var i=0;i<pl.P.length;i++){ var p=pl.P[i]; if(p.y<-1.0 && pointInPoly(p,DS)) return {clear:false,why:'una parte de la pieza queda dentro de la matriz/bancada'}; }
+	  // 2) tramos de la pieza que ATRAVIESAN el perfil (alas colgando que cruzan matriz o bancada
+	  //    sin dejar ningún nodo adentro — el chequeo por nodos solo no lo ve)
+	  for(var k=0;k<pl.segs.length;k++){ var sg=pl.segs[k]; if(sg.tip) continue;
+	    if(Math.min(sg.a.y,sg.b.y)>=-1.0) continue;                       // no baja del nivel de mesa: no puede cruzar
+	    for(var q=0;q<DS.length;q++){ var dd=DS[q];
+	      if(segInt(sg.a,sg.b,{x:dd[0][0],y:dd[0][1]},{x:dd[1][0],y:dd[1][1]})) return {clear:false,why:'una parte de la pieza atraviesa la matriz o la bancada'}; } }
+	  // 3) choque con el punzón
+	  for(var k2=0;k2<pl.segs.length;k2++){ var sg2=pl.segs[k2]; if(sg2.tip) continue; for(var q2=0;q2<punch.length;q2++){ if(segInt(sg2.a,sg2.b,punch[q2][0],punch[q2][1])) return {clear:false,why:'una parte ya plegada choca con el punzón'}; } }
 	  return {clear:true};
 	}
 	function nodeFlat(pl,gi){   // ¿el nodo gi tiene un segmento horizontal apoyado a nivel de mesa? (apoyo estable, no inclinado)
