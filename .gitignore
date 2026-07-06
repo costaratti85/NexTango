@@ -31,6 +31,9 @@ Paneles decorativos funcionando/
 # Thumbnails generados
 apps/sistema_industrial/sistema_industrial/static/pattern_thumbnails/
 
+# Version stamp regenerado en cada deploy (deploy.generate_version_stamp)
+apps/sistema_industrial/sistema_industrial/public/js/version_stamp.js
+
 # Archivos generados / sensibles en Programas_hechos
 *.db
 *.log
