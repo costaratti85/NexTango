@@ -486,7 +486,9 @@ function perfiles_plegados_init() {
 	    var res=buscarOrden(flanges,angles,dirs,V,s);
 	    steps=res.best.steps.map(enrich);
 	    cerebro={manual:false, tried:res.tried, feasibleCount:res.feasibleCount, collisions:res.best.collisions, manips:res.best.manips, flips:res.best.flips, giras:res.best.giras, opViol:res.best.opViol};
-	    wPlan=(!state.manual&&res.feasibleCount===0)?tryWBend(flanges,angles,dirs,V,ri,s,cal,sb):null;
+	    // Técnica W solo si TODOS los órdenes chocan (best tiene el mínimo de choques):
+	    // apoyo inestable o poco sostén del operario NO justifican la técnica W.
+	    wPlan=(!state.manual&&res.best.collisions>0)?tryWBend(flanges,angles,dirs,V,ri,s,cal,sb):null;
 	  }
 	  return {s:s,L:L,V:V,ri:ri,sb:sb,minA:minA,manual:state.manual,nbends:angles.length,nnodes:flanges.length+1,punch:(curPunch?curPunch.name:''),die:(curDie?curDie.name:''),flanges:flanges,angles:angles,dirs:dirs,devel:d.dev,totalFlat:d.alas,steps:steps,ton:tonelaje(L,s,RmN,V),cal:cal,cerebro:cerebro,wPlan:wPlan};
 	}
@@ -505,8 +507,11 @@ function perfiles_plegados_init() {
 	  if(state.xCorr){ for(var xc in state.xCorr){ if(state.xCorr.hasOwnProperty(xc)) res+=line('Corrección X pliegue b'+(+xc+1),(state.xCorr[xc]>0?'+':'')+state.xCorr[xc].toFixed(2)+' mm'); } }
 	  document.getElementById('pp-resumen').innerHTML=res;
 	  drawFinished('pp-resultPart',p.flanges,p.angles,p.dirs);
-	  document.getElementById('pp-seqTitle').textContent = man?'Secuencia (manual)':'Secuencia (automática)';
+	  var useW=!!(state.useW&&p.wPlan);
+	  document.getElementById('pp-seqTitle').textContent = useW?'Secuencia (técnica W)':(man?'Secuencia (manual)':'Secuencia (automática)');
 	  document.getElementById('pp-btnManual').textContent = man?'↩︎ Volver a automático':'✏️ Editar a mano';
+	  document.getElementById('pp-btnManual').style.display = useW?'none':'';
+	  document.getElementById('pp-seqBody').closest('table').style.display = useW?'none':'';
 	  document.getElementById('pp-manualHint').style.display = man?'block':'none';
 	  // opciones de los desplegables
 	  function bendOpts(sel){ var h=''; for(var b=0;b<p.nbends;b++) h+='<option value="'+b+'"'+(b===sel?' selected':'')+'>b'+(b+1)+'</option>'; return h; }
@@ -522,23 +527,28 @@ function perfiles_plegados_init() {
 	    sb.appendChild(tr); }
 	  if(man){ var sels=sb.querySelectorAll('.mansel'); for(var s2=0;s2<sels.length;s2++){ sels[s2].addEventListener('change',onManSel); } }
 	  var wd=document.getElementById('pp-warnings'), wh='';
-	  if(cb.collisions>0) wh+='<div class="warn bad">⚠︎ '+cb.collisions+' paso(s) con choque (marcados con ⚠ abajo). Quizás haga falta otro útil o partir la pieza.</div>';
-	  if(!man && cb.opViol>0) wh+='<div class="warn">⚠︎ '+cb.opViol+' paso(s) dejan poco de dónde sostener la pieza del lado del operario. Probá el modo manual o revisá las medidas.</div>';
-	  if(!wh) wh='<div class="muted"><span class="ok-pill">✓</span> Secuencia sin choques y sostenible.</div>';
+	  if(!useW){
+	    if(cb.collisions>0) wh+='<div class="warn bad">⚠︎ '+cb.collisions+' paso(s) con choque (marcados con ⚠ abajo). Quizás haga falta otro útil o partir la pieza.</div>';
+	    if(!man && cb.opViol>0) wh+='<div class="warn">⚠︎ '+cb.opViol+' paso(s) dejan poco de dónde sostener la pieza del lado del operario. Probá el modo manual o revisá las medidas.</div>';
+	    if(!wh) wh='<div class="muted"><span class="ok-pill">✓</span> Secuencia sin choques y sostenible.</div>';
+	  }
 	  wd.innerHTML=wh;
 	  var wc=document.getElementById('pp-wbendCard');
 	  if(p.wPlan){
-	    var wh2='<div style="background:#fff8ec;border:2px solid #e89c1a;border-radius:10px;padding:14px 14px 10px;margin-top:14px;">'
-	      +'<div style="font-weight:800;font-size:15px;color:#a56200;margin-bottom:6px;">⚠ Técnica W — plegado en etapas</div>'
-	      +'<div class="muted" style="margin-bottom:10px;font-size:13px;">La pieza no tiene secuencia directa. Se puede fabricar con la <b>técnica W</b>: pliegue provisorio en el centro del alma, luego las alas normales, y finalmente se aplasta el provisorio sobre el punzón plano → queda el perfil U final.</div>'
-	      +'<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f5e9d0;">'
+	    var bC=useW?'#19a86c':'#e89c1a', bg=useW?'#eefcf5':'#fff8ec', tc=useW?'#0c7a4d':'#a56200';
+	    var wh2='<div style="background:'+bg+';border:2px solid '+bC+';border-radius:10px;padding:14px 14px 10px;margin-top:14px;">'
+	      +'<div style="font-weight:800;font-size:15px;color:'+tc+';margin-bottom:6px;">'+(useW?'✔ Técnica W — secuencia activa':'⚠ Técnica W — plegado en etapas')+'</div>'
+	      +(useW
+	        ?'<div class="muted" style="margin-bottom:10px;font-size:13px;">Esta es la secuencia a ejecutar. "Empezar a plegar" recorre estos pasos.</div>'
+	        :'<div class="muted" style="margin-bottom:10px;font-size:13px;">La secuencia directa choca en '+cb.collisions+' paso(s). La pieza se puede fabricar con la <b>técnica W</b>: pliegue provisorio en el centro del alma, luego las alas normales, y finalmente se aplasta el provisorio sobre el punzón plano → queda el perfil U final.</div>')
+	      +'<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:'+(useW?'#d7f3e6':'#f5e9d0')+';">'
 	      +'<th style="padding:5px 7px;text-align:left;">Paso</th><th style="padding:5px 7px;text-align:left;">Operación</th>'
 	      +'<th style="padding:5px 7px;text-align:right;">X (mm)</th><th style="padding:5px 7px;text-align:right;">Y</th>'
 	      +'<th style="padding:5px 7px;text-align:left;">Punzón</th><th style="padding:5px 7px;text-align:left;">Matriz</th>'
 	      +'</tr></thead><tbody>';
 	    for(var ww=0;ww<p.wPlan.length;ww++){
 	      var ws=p.wPlan[ww];
-	      wh2+='<tr style="border-top:1px solid #e8d9b8;">'
+	      wh2+='<tr style="border-top:1px solid '+(useW?'#bfe8d4':'#e8d9b8')+';">'
 	        +'<td style="padding:5px 7px;"><b>'+ws.paso+'</b></td>'
 	        +'<td style="padding:5px 7px;">'+ws.label+'<br><span style="color:#888;font-size:11px;">'+ws.hint+'</span></td>'
 	        +'<td style="padding:5px 7px;text-align:right;">'+ws.X+'</td>'
@@ -547,8 +557,15 @@ function perfiles_plegados_init() {
 	        +'<td style="padding:5px 7px;font-size:11px;">'+ws.die+'</td>'
 	        +'</tr>';
 	    }
-	    wh2+='</tbody></table></div>';
+	    wh2+='</tbody></table>'
+	      +'<div class="btnbar" style="margin-top:10px;">'
+	      +(useW
+	        ?'<button class="ghost" id="pp-btnNoW" type="button" style="flex:1 1 auto;padding:9px 12px;">↩ Volver a la secuencia directa</button>'
+	        :'<button id="pp-btnUseW" type="button" style="flex:1 1 auto;padding:10px 12px;">✔ Usar técnica W — armar esta secuencia</button>')
+	      +'</div></div>';
 	    wc.innerHTML=wh2; wc.style.display='block';
+	    var bw=document.getElementById('pp-btnUseW'); if(bw) bw.addEventListener('click',function(){ state.useW=true; state.step=0; showResult(); });
+	    var bn=document.getElementById('pp-btnNoW'); if(bn) bn.addEventListener('click',function(){ state.useW=false; state.step=0; showResult(); });
 	  } else { wc.innerHTML=''; wc.style.display='none'; }
 	  show('pp-result');
 	}
@@ -620,6 +637,7 @@ function perfiles_plegados_init() {
 	    state.manSeq=state.plan.steps.map(function(st){ return {bend:st.bendIndex, node:st.gaugeNode}; });
 	    state.manual=true;
 	  } else { state.manual=false; state.manSeq=null; }
+	  state.useW=false;
 	  state.plan=buildPlan(); showResult();
 	}
 
@@ -647,6 +665,7 @@ function perfiles_plegados_init() {
 	  return {P:P,segs:segs,pen:pen};
 	}
 	function drawMachine(step){
+	  if(state.useW&&state.plan.wPlan) return;   // técnica W: sin vista de máquina
 	  var p=state.plan, st=p.steps[step];
 	  var gNow=machineGeom(step,0), gPost=machineGeom(step,1);
 	  var tipRest=p.s+10;                 // punzón en reposo (punto muerto superior)
@@ -689,7 +708,22 @@ function perfiles_plegados_init() {
 	}
 
 	/* ===== OPERACIÓN ===== */
+	function showStepW(){
+	  var p=state.plan, ws=p.wPlan[state.step], n=p.wPlan.length;
+	  document.getElementById('pp-stepTitle').textContent='Paso '+(state.step+1)+' de '+n+' — técnica W';
+	  document.getElementById('pp-angleLine').innerHTML='<b>'+ws.label+'</b>';
+	  document.getElementById('pp-valX').textContent=ws.X;
+	  document.getElementById('pp-uX').textContent='mm';
+	  document.getElementById('pp-valY').textContent=ws.Y;
+	  var dots=''; for(var i=0;i<n;i++) dots+='<span class="dot '+(i<state.step?'done':(i===state.step?'cur':''))+'"></span>';
+	  document.getElementById('pp-dots').innerHTML=dots;
+	  document.getElementById('pp-stepWarn').innerHTML='<div class="warn" style="background:#fff8ec;border-color:#e89c1a;color:#a56200;">'+ws.hint+'</div>';
+	  document.getElementById('pp-stepHelp').textContent='Punzón: '+ws.punch+' · Matriz: '+ws.die+'. Cargá X='+ws.X+(ws.Y!=='—'?' e Y='+ws.Y:'')+' en el E21.';
+	  document.getElementById('pp-next').textContent=(state.step===n-1)?'Terminar ✓':'Siguiente ▸';
+	  document.getElementById('pp-machine').innerHTML='<text x="230" y="150" text-anchor="middle" fill="#8aa0bd" font-size="14">Técnica W — seguí la indicación del paso</text>';
+	}
 	function showStep(){
+	  if(state.useW&&state.plan.wPlan){ showStepW(); return; }
 	  var p=state.plan, st=p.steps[state.step], n=p.steps.length;
 	  document.getElementById('pp-stepTitle').textContent='Paso '+(state.step+1)+' de '+n+' — pliegue b'+(st.bendIndex+1);
 	  var _corr=(state.angCorr&&state.angCorr[st.alpha])||0;
@@ -718,7 +752,7 @@ function perfiles_plegados_init() {
 	  if(n<2){ document.getElementById('pp-setupMsg').innerHTML='<div class="warn">Cargá al menos 2 medidas.</div>'; return; }
 	  // descartar alas vacías finales
 	  while(state.segs.length>2 && (state.segs[state.segs.length-1].len==null||isNaN(state.segs[state.segs.length-1].len))){ state.segs.pop(); state.segs[state.segs.length-1].ang=null; }
-	  document.getElementById('pp-setupMsg').innerHTML=''; state.manual=false; state.manSeq=null; state.plan=buildPlan(); state.step=0; showResult();
+	  document.getElementById('pp-setupMsg').innerHTML=''; state.manual=false; state.manSeq=null; state.useW=false; state.plan=buildPlan(); state.step=0; showResult();
 	});
 	document.getElementById('pp-btnCil').addEventListener('click',function(){
 	  var panel=document.getElementById('pp-cilPanel'), vis=panel.style.display!=='none';
@@ -730,7 +764,7 @@ function perfiles_plegados_init() {
 	document.getElementById('pp-back1').addEventListener('click',function(){ show('pp-setup'); });
 	document.getElementById('pp-goRun').addEventListener('click',function(){ state.step=0; state.zoomDie=true; state.punchDown=false; document.getElementById('pp-btnZoom').classList.add('on'); document.getElementById('pp-btnPunchDown').classList.remove('on'); show('pp-run'); showStep(); });
 	document.getElementById('pp-exitRun').addEventListener('click',function(){ show('pp-result'); });
-	document.getElementById('pp-next').addEventListener('click',function(){ if(state.step<state.plan.steps.length-1){ state.step++; showStep(); } else { show('pp-result'); } });
+	document.getElementById('pp-next').addEventListener('click',function(){ var len=(state.useW&&state.plan.wPlan)?state.plan.wPlan.length:state.plan.steps.length; if(state.step<len-1){ state.step++; showStep(); } else { show('pp-result'); } });
 	document.getElementById('pp-prev').addEventListener('click',function(){ if(state.step>0){ state.step--; showStep(); } });
 	document.getElementById('pp-btnZoom').addEventListener('click',function(){ state.zoomDie=!state.zoomDie; this.classList.toggle('on',state.zoomDie); drawMachine(state.step); });
 	document.getElementById('pp-btnPunchDown').addEventListener('click',function(){ state.punchDown=!state.punchDown; this.classList.toggle('on',state.punchDown); drawMachine(state.step); });
@@ -876,7 +910,7 @@ function perfiles_plegados_init() {
 	  if(p.dieId!=null){ var di=toolIndexById(TOOLS.matrices,p.dieId); if(di>=0){ setDie(di); if(p.rot&&curDie&&curDie.rotations){ curRot=p.rot%curDie.rotations.length; var r=dieRot(); if(r) document.getElementById('pp-V').value=r.V; updateToolBtns(); } } }
 	  ['s','V','ri','sb','Rm','L'].forEach(function(k){ if(p[k]!=null&&p[k]!=='') document.getElementById('pp-'+k).value=p[k]; });
 	  state.angCorr=p.angCorr||{}; state.xCorr=p.xCorr||{};   // la pieza guardada trae sus correcciones empíricas ya afinadas
-	  state.plan=null; state.manual=false; state.manSeq=null; state.step=0;
+	  state.plan=null; state.manual=false; state.manSeq=null; state.useW=false; state.step=0;
 	  renderSegs(); previewSetup();
 	  document.getElementById('pp-partsModal').style.display='none'; show('pp-setup');
 	}
