@@ -16,7 +16,7 @@
       "descripcion": "BUG CRÍTICO en producción (2026-07-06): corte-barras no puede calcular NADA — TypeError: calculate_purchase_plan() got an unexpected keyword argument 'angular'. Causa confirmada: main/cutting/nest_1d.py tiene angular:bool=False en la firma (GEMU_CORTES_ANGULO), pero la copia de erpnext/cutting/nest_1d.py es vieja, sin ese parámetro — api/corte_barras.py (solo erpnext) ya llama con angular=angular asumiendo la firma nueva. Deploy a medias: el caller llegó, el motor no. Cuarta vez que main/erpnext quedan desincronizados (arc_segment.py, main.py x2). Portar nest_1d.py completo de main a erpnext, hacer una pasada de chequeo por otros archivos compartidos con el mismo riesgo, avisar a Orbit para deploy urgente. Ver MSG_015 de su canal.",
       "msg": "coordination/channel/Gemu/MSG_015_nova_bug_critico_nest1d_desincronizado.md",
       "status": "completado",
-      "nota": "Gemu commit 5657196 (erpnext): nest_1d.py copiado completo desde main (commit e6f6ab6). calculate_purchase_plan ahora tiene angular:bool=False. Auditoría rápida: legacy_panel_adapter.py difiere (dominio Punto, flaggeado). Para Orbit: git pull + supervisorctl restart all (sin bench build ni migrate — solo .py). Ver MSG_014 canal Gemu.",
+      "nota": "Orbit MSG_030 (2026-07-06): deploy 3 commits Gemu (329027d + fd64971 + 5657196). git pull (Already up to date). bench build 559ms, bump_page_cache 6 páginas, supervisorctl restart 7/7 RUNNING. nest_1d.py sincronizado con main, TypeError angular resuelto. Production operativa.",
       "sprint": "002-corte-barras",
       "prioridad": "alta"
     },
@@ -165,18 +165,20 @@
       "task": "GEMU_AUTOCOMPLETAR_DESDE_ITEM",
       "descripcion": "CONCRETADO por Constantino (2026-07-06, MSG_014): regla de parseo explícita para Tipo de material / Medida al elegir un Item — separar el nombre/descripción por letras (Tipo de material, ej. 'Caño') vs. números+separadores (Medida, ej. '80 x 80 x 1.6'). Ya no es investigación abierta para estos 2 campos — verificar contra 2-3 Items reales que el criterio letra/número separe bien (casos raros tipo fracciones '1/8') y luego implementar. Precios (por barra/por metro) siguen para más adelante, no bloqueante, sin dato confiable identificado todavía — no forzar. Depende de GEMU_BUG_BUSQUEDA_PRODUCTO_PREFIJO resuelto primero. Ver MSG_011 y MSG_014 de su canal.",
       "msg": "coordination/channel/Gemu/MSG_014_nova_regla_parseo_tipo_medida.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "002-corte-barras",
-      "prioridad": "media"
+      "prioridad": "media",
+      "nota": "Orbit MSG_030 (2026-07-06): commit fd64971 deployado exitosamente. Gemu fd64971 (erpnext): autocompletar tipo_material/medida desde item_name implementado. Item code prefix 01-=Perfil/02-=Caño derivable, item_name de Tango con descripción completa parseada. Deploy junto con 329027d y 5657196: git pull, bench build 559ms, bump_page_cache 6 páginas, supervisorctl restart 7/7 RUNNING."
     },
     {
       "agent": "Gemu",
       "task": "GEMU_BUG_BUSQUEDA_PRODUCTO_PREFIJO",
       "descripcion": "BUG confirmado (causa raíz en código, ya localizada): en corte-barras, el buscador de Producto hace match por substring en vez de prefijo. api/corte_barras.py:144, item_query(): like_txt = f'%{txt}%' — debería ser f'{txt}%' (sin comodín a la izquierda). Con substring, escribir '01-02-03' matchea códigos como '01-01-01-02-030' que NO empiezan así (la subcadena aparece en el medio). Con prefijo puro, la jerarquía de filtrado (01=perfiles, 01-02=redondo, 01-02-03=a medida) se resuelve sola a medida que el usuario tipea más dígitos, sin lógica especial. Decidir si item_name (línea 150, mismo patrón) también pasa a prefijo o mantiene substring para búsqueda libre por nombre. Avisar a Vega si cambia la firma. Ver MSG_010 de su canal.",
       "msg": "coordination/channel/Gemu/MSG_010_nova_bug_busqueda_producto_prefijo.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "002-corte-barras",
-      "prioridad": "alta"
+      "prioridad": "alta",
+      "nota": "Orbit MSG_030 (2026-07-06): commit 329027d deployado exitosamente. Gemu 329027d (erpnext): like_txt separado en prefix_txt=f'{txt}%' para name/código y substr_txt=f'%{txt}%' para item_name — código por prefijo (jerarquía progresiva), nombre libre por substring (buscar 'Redondo' en cualquier posición sigue funcionando). Firma sin cambios, Vega no necesitó ajustes. Deploy junto con fd64971 y 5657196: git pull, bench build 559ms, bump_page_cache 6 páginas, supervisorctl restart 7/7 RUNNING."
     },
     {
       "agent": "Punto",
@@ -213,10 +215,10 @@
       "task": "VEGA_PRESET_POR_FIGURA",
       "descripcion": "Nuevo paso 4 en el flujo del vectorizador: después de seleccionar entidades (paso 3, sin cambios), por cada figura seleccionada mostrar las 6 variantes de preset (ahora son 6: Esquinas+Ultra-Fino+Fino+Medio+Grueso+Umbral-Claro) de ESA figura puntual y dejar elegir cuál usar. Contrato de Punto (MSG_033 en canal Vega): selected_items=[{entity_id,preset}] en compose_pattern; endpoint get_entity_variants lazy para el popover; matching también disponible 100% client-side con el manifest (ver snippet JS en MSG_033). Ver diseño UX ya entregado en MSG_076 de canal Nova.",
       "msg": "coordination/channel/Vega/MSG_033_punto_contrato_preset_por_figura.md",
-      "status": "commit-listo-esperando-deploy-orbit",
+      "status": "completado",
       "sprint": "001-rebanada",
       "prioridad": "alta",
-      "nota": "Vega commit 02ca949 (erpnext), PUSHEADO, NO deployado (Nova activa Orbit segun MSG_077). Implementado contra contrato final de Punto (MSG_033/430fc35): paso 4 nuevo con grilla de figuras seleccionadas (default = preset global), boton Cambiar abre dialogo con 6 variantes por bbox-center matching 100% client-side (sin get_entity_variants), miniaturas tambien client-side (svg_full parseado+cacheado, recortado a bbox_approx). selected_items=[{entity_id,preset}] en compose_pattern. Debounce 250ms en el render de la grilla para selecciones grandes. Validado node --check + template compile + cross-ref IDs + simulacion Node del matching bbox-center (5 casos). Pendiente: verificacion en vivo contra servidor real post-deploy de Orbit. Ver MSG_077 en Nova."
+      "nota": "Vega commit 02ca949 (erpnext), deployado en el servidor. Implementado contra contrato final de Punto (MSG_033/430fc35): paso 4 nuevo con grilla de figuras seleccionadas (default = preset global), boton Cambiar abre dialogo con 6 variantes por bbox-center matching 100% client-side (sin get_entity_variants), miniaturas tambien client-side (svg_full parseado+cacheado, recortado a bbox_approx). selected_items=[{entity_id,preset}] en compose_pattern. Debounce 250ms en el render de la grilla para selecciones grandes. Nota lateral resuelta (MSG_080): un error de bench build reportado por Orbit durante el intento de deploy no era un bug de Vega — era el checkout apuntando por error a la rama main (copia vieja/incompatible de sistema_industrial, sin carpeta page/), no a erpnext. Build real contra erpnext compiló limpio (434ms)."
     },
     {
       "agent": "Punto",
@@ -553,9 +555,10 @@
       "task": "TANGO_DOC_TOKEN_Y_SCHEDULER",
       "descripcion": "CONFIRMADO por Constantino: APP_INSTANCE_ID (nombre final, ya documentado en SERVIDOR_ERPNEXT.md) + sync diario aprobado (scheduled.py). NO tocar http_client (Atlas alinea el código a APP_INSTANCE_ID). Descuentos → in-scope (VEGA_DESCUENTO_DEFAULT). Coordinar naming solo con Atlas.",
       "msg": "coordination/channel/Nova/MSG_038_tango_plan_sprint001.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-fase1",
-      "prioridad": "baja"
+      "prioridad": "baja",
+      "nota": "Tango (2026-07-03, commit cdef0a3): APP_INSTANCE_ID documentado en SERVIDOR_ERPNEXT.md (token redactado, ver env var en servidor). Sync diario: sync_customers_from_tango() + sync_articles_from_tango() en scheduled.py, registradas en hooks.py. http_client.py no tocado — Atlas aplicó rename SI_NEXUS_KEY→APP_INSTANCE_ID (commits 95c6a14/74a083f). Descuentos: si_tango_discount en Customer mapeado desde PORC_DESC. Token viejo redactado en los 11 archivos donde aparecía, Token.txt eliminado. Naming coordinado con Atlas vía MSG_010."
     },
     {
       "agent": "Vega",
