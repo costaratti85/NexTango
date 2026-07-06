@@ -21,8 +21,6 @@
       "nota": "Vega commit 82a5462 (erpnext), deployado (build+bump_page_cache+restart). Causa raiz confirmada: svg sin preserveAspectRatio=none, letterboxing con el default xMidYMid meet no contemplado en client_to_view/zoom_at/pan (los 3 usaban getBoundingClientRect a mano). Fix con getScreenCTM().inverse() en los 3 lugares; el pan necesito ademas congelar la CTM en pointerdown (el viewBox cambia durante el propio gesto). Verificado con simulacion numerica en Node (matriz afin xMidYMid meet) -- en pillarboxing horizontal (el eje reportado) el calculo viejo divergia ~205 unidades del correcto en un clic cercano al borde; con el fix, zoom mantiene el punto ancla fijo y pan termina exacto bajo el cursor. Sin browser real disponible para confirmar a ojo -- pendiente de que Constantino lo prueba con una imagen de proporcion bien distinta. Ver MSG_075 en Nova."
     },
     {
-      "agent": "Punto",
-      {
       "agent": "Orbit",
       "task": "ORBIT_DEPLOY_PRECISION_ESQUINAS",
       "descripcion": "Deploy de precisión de esquinas spline (Punto commit fcffb06 en erpnext): 3 fixes de calidad vectorizador — (1) fix bug tolerancia: convert_dxf_splines_clean pasa fit_tol=tolerance a discretize_and_convert_spline; (2) preset 'Esquinas' alphamax=0; (3) runner.py tiene ahora 6 presets. Requiere: git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin bench migrate (no hay DocTypes nuevos). Verificar: /vectorizar-patron muestra 6 presets incluyendo 'Esquinas' como primero.",
@@ -36,16 +34,17 @@
       "task": "PUNTO_PRESET_POR_FIGURA",
       "descripcion": "Cambio de flujo confirmado por Constantino (2026-07-06): el vectorizador hoy aplica UN preset a toda la imagen, pero distintas figuras necesitan distinto nivel de detalle. Flujo nuevo: (1) subir imagen, (2) elegir preset global (sin cambios, sirve para el primer trazado), (3) seleccionar entidades (sin cambios), (4) NUEVO — por cada entidad seleccionada, elegir individualmente entre los 5 presets cuál la vectorizó mejor a ELLA. Esto reintroduce, en otro punto del flujo, el matching de figuras entre presets por bbox-center que el propio Punto sacó en el rewrite v2 (MSG_058) — revisar si esa lógica vieja (TASK_057, figuras[]×variantes[]) es reutilizable. Cambia el contrato de compose_pattern: de un preset único para toda la composición a preset por entidad (ej. lista de {entity_id, preset}). Pedido diagnóstico/enfoque antes de implementar: cómo correlacionar entidades entre presets, nuevo contrato exacto, qué publicar a Vega. Ver MSG_038 de su canal.",
       "msg": "coordination/channel/Punto/MSG_038_nova_preset_por_figura.md",
-      "status": "pendiente",
+      "status": "completado",
+      "nota": "Punto commit 430fc35 (erpnext): compose_dxf() recibe selected_items=[{entity_id,preset}]; compose_dxf_legacy() wrapper backward-compat; compose_pattern() acepta ambos formatos; get_entity_variants() endpoint lazy (bbox-center, tol 10%). 13 tests (main 53452fb). Contrato publicado a Vega en MSG_033 de su canal. FALTA: Vega implementa el paso 4 (VEGA_PRESET_POR_FIGURA) + deploy Orbit.",
       "sprint": "001-rebanada",
       "prioridad": "alta"
     },
     {
       "agent": "Vega",
       "task": "VEGA_PRESET_POR_FIGURA",
-      "descripcion": "Nuevo paso 4 en el flujo del vectorizador: después de seleccionar entidades (paso 3, sin cambios), por cada figura seleccionada mostrar las 5 variantes de preset de ESA figura puntual y dejar elegir cuál usar — distintas figuras del mismo patrón pueden terminar con presets distintos. Pensar UX para no forzar una elección tediosa figura-por-figura si son muchas (ej. default = mantener el preset global, abrir selector de variantes solo si el usuario quiere cambiar una figura puntual — criterio de Vega). Esperar contrato actualizado de compose_pattern de Punto (PUNTO_PRESET_POR_FIGURA) antes de integrar, puede avanzar con el diseño visual mientras tanto. Ver MSG_031 de su canal.",
-      "msg": "coordination/channel/Vega/MSG_031_nova_preset_por_figura.md",
-      "status": "diseno-entregado-esperando-contrato-punto",
+      "descripcion": "Nuevo paso 4 en el flujo del vectorizador: después de seleccionar entidades (paso 3, sin cambios), por cada figura seleccionada mostrar las 6 variantes de preset (ahora son 6: Esquinas+Ultra-Fino+Fino+Medio+Grueso+Umbral-Claro) de ESA figura puntual y dejar elegir cuál usar. Contrato de Punto (MSG_033 en canal Vega): selected_items=[{entity_id,preset}] en compose_pattern; endpoint get_entity_variants lazy para el popover; matching también disponible 100% client-side con el manifest (ver snippet JS en MSG_033). Ver diseño UX ya entregado en MSG_076 de canal Nova.",
+      "msg": "coordination/channel/Vega/MSG_033_punto_contrato_preset_por_figura.md",
+      "status": "pendiente",
       "sprint": "001-rebanada",
       "prioridad": "alta",
       "nota": "Vega entrego diseno de UX (MSG_076 en Nova, cc Punto) sin codear -- Nova pidio pensar primero. Decision: default = preset global del paso 2 aplicado a todas las entidades seleccionadas, override puntual por clic (grilla de tarjetas, una por entidad seleccionada, clic abre selector de 5 variantes de esa figura). Insight de performance: la vista default de cada tarjeta se arma 100% client-side (clonando el path ya existente en el visor), el backend solo se consulta on-demand cuando el usuario hace clic en cambiar una figura puntual -- evita el costo de 300 figuras x 5 variantes en casos de reticula grande. Sugerencia de contrato (get_entity_variants(run_id, entity_id) lazy) pasada a Punto como input, no como exigencia. Esperando el contrato final de Punto (MSG_038, en curso) antes de escribir codigo -- la parte visual ya esta pensada y lista para construir en cuanto llegue."
@@ -79,6 +78,16 @@
       "sprint": "001-rebanada",
       "prioridad": "alta",
       "nota": "Orbit MSG_024 (2026-07-06): pip install matplotlib completado exitosamente (matplotlib-3.11.0 + dependencias). backfill_thumbnails ejecutado dos veces: ambas sin generar nuevos, pero detectando que los 4 patrones ya tienen thumbnails. Corazon, Gotas, subte, Cosmos ahora tienen renders reales de ezdxf+matplotlib (no placeholders PIL). Sin errores nuevos en Error Log."
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_PRECISION_ESQUINAS",
+      "descripcion": "Deploy de fixes de precisión de esquinas splines (Punto, commits e967bdb main + fcffb06 erpnext): (1) fit_tol default 0.5→0.1mm en discretize_and_convert_spline, (2) preset 'Esquinas' con alphamax=0 en runner.py, (3) análisis de inflexiones exactas en _bezier_inflection_splits(), (4) hard_node threshold 0.5→0.2 rad/mm. Requiere: git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin DocType changes. Verificar que vectorizar-patron y admin-patrones carguen sin errores.",
+      "msg": "coordination/channel/Nova/MSG_025_orbit_deploy_splines_precision.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "alta",
+      "nota": "Orbit MSG_025 (2026-07-06): git pull (Already up to date, fixes ya en HEAD). bench build 438ms, 6 páginas bumpeadas. supervisorctl restart all: 7/7 RUNNING. Verificación: vectorizar-patron, admin-patrones, corte-barras todos 200 OK. Fixes de precisión de esquinas splines activos en el servidor."
     },
     {
       "agent": "Forge",
