@@ -41,7 +41,7 @@
     <div class="col"><label>Largo (mm)</label><input id="pp-L" type="number" step="1" value="500"></div>
     <div class="col"><label>σ (kg/mm²)</label><input id="pp-Rm" type="number" step="1" value="45"></div>
     <div class="col"><label>V (mm)</label><input id="pp-V" type="number" step="1" value="20"></div>
-    <div class="col"><label>ri (mm)</label><input id="pp-ri" type="number" step="0.1" value="2.4"></div>
+    <div class="col"><label>ri (mm)</label><input id="pp-ri" type="number" step="0.1" value="" placeholder="auto"></div>
     <div class="col"><label>Retorno (°)</label><input id="pp-sb" type="number" step="0.1" value="1.5"></div>
   </div>
 
@@ -68,6 +68,26 @@
 
   <div class="btnbar" style="margin-top:16px;"><button id="pp-calc">Calcular secuencia ▸</button></div>
   <div id="pp-setupMsg"></div>
+
+  <div class="btnbar" style="margin-top:8px;">
+    <button class="ghost" id="pp-btnCil" type="button" style="flex:1 1 auto;padding:10px 12px;">⌒ Cilindrado (bump bending)</button>
+  </div>
+  <div id="pp-cilPanel" style="display:none;margin-top:12px;">
+    <div class="card" style="background:#f0f4ff;border-color:#8aabdf;">
+      <h3 style="margin:0 0 10px;color:#2563a8;">Cilindrado por golpes múltiples</h3>
+      <div class="muted" style="margin-bottom:10px;font-size:13px;">Curvado continuo aproximando un arco con N pliegues abiertos consecutivos. Indicar el radio y el ángulo total del arco deseado.</div>
+      <div class="row compact">
+        <div class="col"><label>Radio R (mm)</label><input id="pp-cilR" type="number" step="1" value="200" min="10"></div>
+        <div class="col"><label>Ángulo total O (°)</label><input id="pp-cilO" type="number" step="1" value="90" min="5" max="360"></div>
+        <div class="col"><label>Q máx (°/golpe)</label><input id="pp-cilQ" type="number" step="1" value="15" min="1" max="30"></div>
+      </div>
+      <div class="btnbar" style="margin-top:10px;">
+        <button id="pp-calcCil" type="button">Calcular cilindrado ▸</button>
+      </div>
+    </div>
+    <div id="pp-cilResult"></div>
+  </div>
+
   <p class="hint" style="margin-top:18px;">En el iPad: abrí esta página en Safari y tocá Compartir → "Agregar a inicio".</p>
 </div>
 
@@ -101,6 +121,7 @@
   <div class="toprow" style="margin-top:14px;"><h2 id="pp-seqTitle" style="margin:0;">Secuencia</h2><button class="ghost" id="pp-btnManual" type="button" style="flex:0 0 auto;padding:9px 14px;font-size:14px;">✏️ Editar a mano</button></div>
   <div class="hint" id="pp-manualHint" style="display:none;">Elegí el <b>pliegue</b> y el <b>nodo de apoyo</b> de cada paso. La app recalcula X, Y y avisa si choca.</div>
   <table><thead><tr><th>Paso</th><th>Pliegue</th><th>Ángulo</th><th>Apoyo</th><th>X (mm)</th><th>Y (mm)</th><th>Estado</th></tr></thead><tbody id="pp-seqBody"></tbody></table>
+  <div id="pp-wbendCard" style="display:none;"></div>
   <div class="btnbar" style="margin-top:18px;">
     <button class="secondary" id="pp-back1">◂ Editar datos</button>
     <button id="pp-goRun">Empezar a plegar ▸</button>

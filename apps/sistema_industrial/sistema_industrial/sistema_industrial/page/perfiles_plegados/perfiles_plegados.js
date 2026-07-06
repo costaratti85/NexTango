@@ -55,6 +55,18 @@ function perfiles_plegados_init() {
 	  var d1=cr(c,d,a),d2=cr(c,d,b),d3=cr(a,b,c),d4=cr(a,b,d);
 	  return ((d1>0&&d2<0)||(d1<0&&d2>0))&&((d3>0&&d4<0)||(d3<0&&d4>0));
 	}
+	// Shimrat 1962 even-odd ray casting — p inside die polygon segs?
+	function pointInPoly(p, segs) {
+	  var cross = 0;
+	  for (var i = 0; i < segs.length; i++) {
+	    var ay = segs[i][0][1], by = segs[i][1][1];
+	    if ((ay > p.y) !== (by > p.y)) {
+	      var ax = segs[i][0][0], bx = segs[i][1][0];
+	      if (p.x < ax + (p.y - ay) * (bx - ax) / (by - ay)) cross++;
+	    }
+	  }
+	  return (cross & 1) === 1;
+	}
 
 	/* ===== CEREBRO ===== */
 	function profile(fl,an,dr,done){
@@ -72,7 +84,8 @@ function perfiles_plegados_init() {
 	function clearCheck(pl,alpha,V,s){   // sólo choques: con la matriz (abajo) y con el punzón
 	  var pen=penClamp(alpha,V), tipY=-pen;
 	  var PS=punchSegs(); var punch=[]; for(var u=0;u<PS.length;u++){ var g=PS[u]; if(Math.min(g[0][1],g[1][1])<=95) punch.push([{x:g[0][0],y:g[0][1]+tipY},{x:g[1][0],y:g[1][1]+tipY}]); }
-	  for(var i=0;i<pl.P.length;i++){ var p=pl.P[i]; if(Math.abs(p.x)<TABLE_HALF && p.y<-1.0) return {clear:false,why:'una parte de la pieza apunta hacia abajo (chocaría con la matriz)'}; }
+	  var DR=dieRot(),DS=(DR&&DR.segs)?DR.segs:null;
+	  for(var i=0;i<pl.P.length;i++){ var p=pl.P[i]; if(p.y<-1.0){ var col=DS?pointInPoly(p,DS):(Math.abs(p.x)<TABLE_HALF); if(col) return {clear:false,why:'una parte de la pieza apunta hacia abajo (chocaría con la matriz)'}; } }
 	  for(var k=0;k<pl.segs.length;k++){ var sg=pl.segs[k]; if(sg.tip) continue; for(var q=0;q<punch.length;q++){ if(segInt(sg.a,sg.b,punch[q][0],punch[q][1])) return {clear:false,why:'una parte ya plegada choca con el punzón'}; } }
 	  return {clear:true};
 	}
@@ -178,6 +191,35 @@ function perfiles_plegados_init() {
 	  }
 	  return {best:best,feasibleCount:feasibleCount,tried:tried};
 	}
+	// Técnica W: genera el plan de 4 pasos cuando el perfil U/C no tiene secuencia directa
+	function tryWBend(flanges,angles,dirs,V,ri,s,cal,sb){
+	  if(angles.length<2) return null;
+	  for(var i=1;i<dirs.length;i++) if(dirs[i]!==dirs[0]) return null; // distinto sentido = no es U/C
+	  var maxF=0; for(var i=0;i<flanges.length;i++) if((flanges[i]||0)>maxF) maxF=flanges[i]||0;
+	  if(maxF<60) return null; // alas muy cortas — la técnica W no aporta nada
+	  var webIdx=Math.floor((flanges.length-1)/2), webLen=flanges[webIdx]||80, xg=(cal&&cal.xg)||0;
+	  function Yfor(a){ var c=(state.angCorr&&state.angCorr[a])||0; var aF=a-sb-c; return cal.y90+cal.sign*(penetracion(aF,V)-penetracion(90-sb,V)); }
+	  var pNom=curPunch?curPunch.name:'Recto', dNom=curDie?curDie.name:('V'+V+' 90°');
+	  var flatNom='Punzón plano (Aplaste)';
+	  for(var j=0;j<TOOLS.punzones.length;j++) if(TOOLS.punzones[j].hem){flatNom=TOOLS.punzones[j].name;break;}
+	  var preA=20, steps=[];
+	  steps.push({paso:1,tipo:'pre',
+	    label:'Pliegue provisorio central',
+	    hint:preA+'° en el centro del alma · tope X = '+(webLen/2).toFixed(0)+' mm (mitad del alma)',
+	    X:((webLen/2)+xg).toFixed(1), Y:Yfor(preA).toFixed(2), punch:pNom, die:dNom});
+	  for(var b=0;b<angles.length;b++){
+	    var fl=(b===0)?(flanges[0]||50):(flanges[flanges.length-1]||50);
+	    steps.push({paso:b+2,tipo:'bend',
+	      label:'Pliegue b'+(b+1)+' — ala '+(b===0?'izquierda':'derecha'),
+	      hint:angles[b]+'° · tope X = '+(fl+xg).toFixed(0)+' mm',
+	      X:(fl+xg).toFixed(1), Y:Yfor(angles[b]).toFixed(2), punch:pNom, die:dNom});
+	  }
+	  steps.push({paso:angles.length+2,tipo:'aplaste',
+	    label:'Aplaste del pliegue provisorio',
+	    hint:'Girar la pieza (forma W). Colocar el pliegue central sobre el PUNZÓN PLANO + MATRIZ PLANA y aplastar → perfil U final.',
+	    X:((webLen/2)+xg).toFixed(1), Y:'—', punch:flatNom, die:'Matriz plana'});
+	  return steps;
+	}
 
 	/* ===== DESARROLLO (largo a cortar) ===== */
 	function desarrollo(flanges,angles,ri,s){
@@ -191,7 +233,7 @@ function perfiles_plegados_init() {
 	var state={ segs:[{len:50,ang:90},{len:80,ang:90},{len:50,ang:null}], plan:null, step:0, view:'machine', manual:false, manSeq:null, zoomDie:true, punchDown:false, angCorr:{}, xCorr:{} };
 	function getCal(){ var r=localStorage.getItem('plegado_cal'); if(r){try{var c=JSON.parse(r); if(c.xg==null)c.xg=0; return c;}catch(e){}} return {y90:0,sign:1,xg:0}; }
 	function setCal(c){ localStorage.setItem('plegado_cal',JSON.stringify(c)); }
-	function curUtil(){ var V=parseFloat(document.getElementById('pp-V').value)||20; var riIn=document.getElementById('pp-ri').value; var ri=riIn===''?2.4:parseFloat(riIn); var s=parseFloat(document.getElementById('pp-s').value)||1; return {V:V,ri:ri,s:s}; }
+	function curUtil(){ var V=parseFloat(document.getElementById('pp-V').value)||20; var riIn=document.getElementById('pp-ri').value; var ri=riIn===''?V*0.10:parseFloat(riIn); var s=parseFloat(document.getElementById('pp-s').value)||1; return {V:V,ri:ri,s:s}; }
 
 	/* ===== TABLA DE TRAMOS (entrada tipo planilla) ===== */
 	function focusLen(idx){
@@ -419,7 +461,7 @@ function perfiles_plegados_init() {
 	function buildPlan(){
 	  var s=parseFloat(document.getElementById('pp-s').value), L=parseFloat(document.getElementById('pp-L').value);
 	  var sigma=parseFloat(document.getElementById('pp-Rm').value)||45; var RmN=sigma*9.81;   // kg/mm² (como el SIGMA del Cybelec) -> N/mm²
-	  var V=parseFloat(document.getElementById('pp-V').value); var riIn=document.getElementById('pp-ri').value; var ri=riIn===''?2.4:parseFloat(riIn);
+	  var V=parseFloat(document.getElementById('pp-V').value); var riIn=document.getElementById('pp-ri').value; var ri=riIn===''?V*0.10:parseFloat(riIn);
 	  var sb=parseFloat(document.getElementById('pp-sb').value)||0; var cal=getCal();
 	  var flanges=state.segs.map(function(x){return x.len;}); var angles=[],dirs=[];
 	  for(var i=0;i<state.segs.length-1;i++){ var a=(state.segs[i].ang==null?90:state.segs[i].ang); angles.push(Math.abs(a)); dirs.push(a<0?-1:1); }
@@ -435,7 +477,7 @@ function perfiles_plegados_init() {
 	    var xFine=(st.bend!=null&&state.xCorr&&state.xCorr[st.bend])||0;
 	    return {orderNo:st.order, bendIndex:st.bend, alpha:st.alpha, Xraw:st.X, X:(st.bend!=null?st.X+(cal.xg||0)+xFine:st.X), Y:(st.bend!=null?Yfor(st.alpha):0), mx:st.mx, my:st.my, ok:st.ok, warns:warns, gaugeNode:st.gauge};
 	  }
-	  var steps, cerebro;
+	  var steps, cerebro, wPlan=null;
 	  if(state.manual && state.manSeq){
 	    steps=simulateManual(flanges,angles,dirs,state.manSeq,V,s).steps.map(enrich);
 	    var col=0; for(var i=0;i<steps.length;i++) if(!steps[i].ok) col++;
@@ -444,8 +486,9 @@ function perfiles_plegados_init() {
 	    var res=buscarOrden(flanges,angles,dirs,V,s);
 	    steps=res.best.steps.map(enrich);
 	    cerebro={manual:false, tried:res.tried, feasibleCount:res.feasibleCount, collisions:res.best.collisions, manips:res.best.manips, flips:res.best.flips, giras:res.best.giras, opViol:res.best.opViol};
+	    wPlan=(!state.manual&&res.feasibleCount===0)?tryWBend(flanges,angles,dirs,V,ri,s,cal,sb):null;
 	  }
-	  return {s:s,L:L,V:V,ri:ri,sb:sb,minA:minA,manual:state.manual,nbends:angles.length,nnodes:flanges.length+1,punch:(curPunch?curPunch.name:''),die:(curDie?curDie.name:''),flanges:flanges,angles:angles,dirs:dirs,devel:d.dev,totalFlat:d.alas,steps:steps,ton:tonelaje(L,s,RmN,V),cal:cal,cerebro:cerebro};
+	  return {s:s,L:L,V:V,ri:ri,sb:sb,minA:minA,manual:state.manual,nbends:angles.length,nnodes:flanges.length+1,punch:(curPunch?curPunch.name:''),die:(curDie?curDie.name:''),flanges:flanges,angles:angles,dirs:dirs,devel:d.dev,totalFlat:d.alas,steps:steps,ton:tonelaje(L,s,RmN,V),cal:cal,cerebro:cerebro,wPlan:wPlan};
 	}
 
 	/* ===== RESUMEN ===== */
@@ -483,8 +526,93 @@ function perfiles_plegados_init() {
 	  if(!man && cb.opViol>0) wh+='<div class="warn">⚠︎ '+cb.opViol+' paso(s) dejan poco de dónde sostener la pieza del lado del operario. Probá el modo manual o revisá las medidas.</div>';
 	  if(!wh) wh='<div class="muted"><span class="ok-pill">✓</span> Secuencia sin choques y sostenible.</div>';
 	  wd.innerHTML=wh;
+	  var wc=document.getElementById('pp-wbendCard');
+	  if(p.wPlan){
+	    var wh2='<div style="background:#fff8ec;border:2px solid #e89c1a;border-radius:10px;padding:14px 14px 10px;margin-top:14px;">'
+	      +'<div style="font-weight:800;font-size:15px;color:#a56200;margin-bottom:6px;">⚠ Técnica W — plegado en etapas</div>'
+	      +'<div class="muted" style="margin-bottom:10px;font-size:13px;">La pieza no tiene secuencia directa. Se puede fabricar con la <b>técnica W</b>: pliegue provisorio en el centro del alma, luego las alas normales, y finalmente se aplasta el provisorio sobre el punzón plano → queda el perfil U final.</div>'
+	      +'<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f5e9d0;">'
+	      +'<th style="padding:5px 7px;text-align:left;">Paso</th><th style="padding:5px 7px;text-align:left;">Operación</th>'
+	      +'<th style="padding:5px 7px;text-align:right;">X (mm)</th><th style="padding:5px 7px;text-align:right;">Y</th>'
+	      +'<th style="padding:5px 7px;text-align:left;">Punzón</th><th style="padding:5px 7px;text-align:left;">Matriz</th>'
+	      +'</tr></thead><tbody>';
+	    for(var ww=0;ww<p.wPlan.length;ww++){
+	      var ws=p.wPlan[ww];
+	      wh2+='<tr style="border-top:1px solid #e8d9b8;">'
+	        +'<td style="padding:5px 7px;"><b>'+ws.paso+'</b></td>'
+	        +'<td style="padding:5px 7px;">'+ws.label+'<br><span style="color:#888;font-size:11px;">'+ws.hint+'</span></td>'
+	        +'<td style="padding:5px 7px;text-align:right;">'+ws.X+'</td>'
+	        +'<td style="padding:5px 7px;text-align:right;">'+ws.Y+'</td>'
+	        +'<td style="padding:5px 7px;font-size:11px;">'+ws.punch+'</td>'
+	        +'<td style="padding:5px 7px;font-size:11px;">'+ws.die+'</td>'
+	        +'</tr>';
+	    }
+	    wh2+='</tbody></table></div>';
+	    wc.innerHTML=wh2; wc.style.display='block';
+	  } else { wc.innerHTML=''; wc.style.display='none'; }
 	  show('pp-result');
 	}
+
+	/* ===== CILINDRADO (BUMP BENDING) ===== */
+	function buildCilindrado(){
+	  var R=parseFloat(document.getElementById('pp-cilR').value);
+	  var O=parseFloat(document.getElementById('pp-cilO').value);
+	  var Qtgt=parseFloat(document.getElementById('pp-cilQ').value)||15;
+	  var V=parseFloat(document.getElementById('pp-V').value)||20;
+	  var sb=parseFloat(document.getElementById('pp-sb').value)||0;
+	  var cal=getCal();
+	  if(!R||!O||R<5||O<1||O>360) return null;
+	  var N=Math.ceil(O/Qtgt); if(N<1) N=1;
+	  var Q=O/N; var alpha=180-Q;
+	  var AL=(O/180)*Math.PI*R; var P=AL/N; var Vopt=P*2;
+	  var aF=alpha-sb; var Y=cal.y90+cal.sign*(penetracion(aF,V)-penetracion(90-sb,V));
+	  var bestDie=null,bestV=null,bestDiff=1e9;
+	  for(var m=0;m<TOOLS.matrices.length;m++){ var mat=TOOLS.matrices[m]; if(mat.rotations){ for(var r=0;r<mat.rotations.length;r++){ var mv=mat.rotations[r].V||0; var diff=Math.abs(mv-Vopt); if(mv>0&&diff<bestDiff){bestDiff=diff;bestDie=mat;bestV=mv;} } } }
+	  var steps=[]; var xg=(cal.xg||0);
+	  for(var i=0;i<N;i++) steps.push({paso:i+1,X:((i+0.5)*P+xg).toFixed(1),Y:Y.toFixed(2)});
+	  return {R:R,O:O,N:N,Q:Q,alpha:alpha,AL:AL,P:P,Vopt:Vopt,Y:Y,bestDie:bestDie,bestV:bestV,steps:steps};
+	}
+	function showCilindrado(){
+	  var c=buildCilindrado();
+	  var el=document.getElementById('pp-cilResult');
+	  if(!c){el.innerHTML='<div class="warn bad" style="margin-top:8px;">Revisar los datos ingresados.</div>';return;}
+	  var dieNote=c.bestDie?c.bestDie.name+' (V='+c.bestV+'mm — disponible)':'V≈'+c.Vopt.toFixed(0)+'mm (no disponible — elegir la más cercana)';
+	  var warn=c.P<8?'<div class="warn" style="margin-top:6px;">⚠ Avance muy pequeño (P='+c.P.toFixed(1)+'mm). Reducí Q o usá un dado más chico.</div>':'';
+	  if(c.bestDie && c.bestV < c.Vopt*0.6){
+	    var Palt=c.bestV/2, Nalt=Math.ceil(c.AL/Palt), Qalt=(c.O/Nalt);
+	    warn+='<div class="warn" style="margin-top:6px;">⚠ El dado disponible (V='+c.bestV+'mm) es más chico que el ideal (V≈'+c.Vopt.toFixed(0)+'mm). Con ese dado, avance máximo P='+Palt.toFixed(1)+'mm → necesitarías <b>N='+Nalt+' golpes</b> de Q='+Qalt.toFixed(1)+'°.</div>';
+	  }
+	  var h='<div class="card" style="background:#f0f8ff;border-color:#60a5fa;margin-top:10px;">'
+	    +'<div style="font-weight:800;font-size:15px;color:#1d4ed8;margin-bottom:8px;">⌒ Plan de cilindrado</div>'
+	    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:13px;margin-bottom:10px;">'
+	    +'<div><span class="muted">Radio:</span> <b>'+c.R+' mm</b></div>'
+	    +'<div><span class="muted">Ángulo total:</span> <b>'+c.O+'°</b></div>'
+	    +'<div><span class="muted">Golpes N:</span> <b>'+c.N+'</b></div>'
+	    +'<div><span class="muted">Q por golpe:</span> <b>'+c.Q.toFixed(2)+'°</b></div>'
+	    +'<div><span class="muted">α por pliegue:</span> <b>'+c.alpha.toFixed(2)+'°</b></div>'
+	    +'<div><span class="muted">Arco AL:</span> <b>'+c.AL.toFixed(1)+' mm</b></div>'
+	    +'<div><span class="muted">Avance P:</span> <b>'+c.P.toFixed(2)+' mm</b></div>'
+	    +'<div><span class="muted">Cota Y:</span> <b>'+c.Y.toFixed(2)+' mm</b></div>'
+	    +'<div style="grid-column:1/-1"><span class="muted">Dado óptimo (V≈'+c.Vopt.toFixed(0)+'mm):</span> <b>'+dieNote+'</b></div>'
+	    +'</div>'
+	    +'<p class="muted" style="font-size:12px;margin:0 0 10px;">Cota Y igual en todos los golpes. Avanzar tope X en <b>'+c.P.toFixed(2)+' mm</b> entre cada golpe (o mover la pieza manualmente).</p>'
+	    +'<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#dbeafe;">'
+	    +'<th style="padding:5px 7px;text-align:center;">Paso</th>'
+	    +'<th style="padding:5px 7px;text-align:right;">Tope X (mm)</th>'
+	    +'<th style="padding:5px 7px;text-align:right;">Cota Y (mm)</th>'
+	    +'</tr></thead><tbody>';
+	  for(var i=0;i<c.steps.length;i++){
+	    var st=c.steps[i];
+	    h+='<tr style="border-top:1px solid #bfdbfe;">'
+	      +'<td style="padding:4px 7px;text-align:center;"><b>'+st.paso+'</b></td>'
+	      +'<td style="padding:4px 7px;text-align:right;">'+st.X+'</td>'
+	      +'<td style="padding:4px 7px;text-align:right;">'+st.Y+'</td>'
+	      +'</tr>';
+	  }
+	  h+='</tbody></table></div>'+warn;
+	  el.innerHTML=h;
+	}
+
 	function onManSel(e){ var row=+e.target.getAttribute('data-row'), f=e.target.getAttribute('data-f'); state.manSeq[row][f]=+e.target.value; state.plan=buildPlan(); showResult(); }
 	function toggleManual(){
 	  if(!state.manual){
@@ -594,6 +722,12 @@ function perfiles_plegados_init() {
 	  while(state.segs.length>2 && (state.segs[state.segs.length-1].len==null||isNaN(state.segs[state.segs.length-1].len))){ state.segs.pop(); state.segs[state.segs.length-1].ang=null; }
 	  document.getElementById('pp-setupMsg').innerHTML=''; state.manual=false; state.manSeq=null; state.plan=buildPlan(); state.step=0; showResult();
 	});
+	document.getElementById('pp-btnCil').addEventListener('click',function(){
+	  var panel=document.getElementById('pp-cilPanel'), vis=panel.style.display!=='none';
+	  panel.style.display=vis?'none':'block';
+	  this.textContent=vis?'⌒ Cilindrado (bump bending)':'⌒ Cilindrado ✕ cerrar';
+	});
+	document.getElementById('pp-calcCil').addEventListener('click',showCilindrado);
 	document.getElementById('pp-btnManual').addEventListener('click',toggleManual);
 	document.getElementById('pp-back1').addEventListener('click',function(){ show('pp-setup'); });
 	document.getElementById('pp-goRun').addEventListener('click',function(){ state.step=0; state.zoomDie=true; state.punchDown=false; document.getElementById('pp-btnZoom').classList.add('on'); document.getElementById('pp-btnPunchDown').classList.remove('on'); show('pp-run'); showStep(); });
