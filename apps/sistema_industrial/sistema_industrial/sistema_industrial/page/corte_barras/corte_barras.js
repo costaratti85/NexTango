@@ -61,11 +61,14 @@ class CorteBarras {
 		});
 		$('#cb-btn-calc').on('click', () => this._calcular());
 		$('#cb-btn-copy').on('click', () => this._copiar());
+		this._bind_keyboard_nav();
 	}
 
 	// ── Tabla de piezas ───────────────────────────────────────────────────────
 
-	_add_row() {
+	// focus_col: 'qty' (default para filas creadas por teclado) o 'len' (para
+	// el botón "+ Agregar fila", que ya arranca con cantidad=1 precargada).
+	_add_row(focus_col) {
 		const tr = $(`
 			<tr>
 				<td><input type="number" class="cb-qty" value="1" min="1" step="1"></td>
@@ -73,7 +76,76 @@ class CorteBarras {
 				<td><button class="cb-del-row cb-ghost-sm">✕</button></td>
 			</tr>`);
 		$('#cb-pieces-body').append(tr);
-		tr.find('.cb-len').focus();
+		tr.find(focus_col === 'qty' ? '.cb-qty' : '.cb-len').focus();
+		return tr;
+	}
+
+	// Navegación tipo planilla: flechas para moverse entre celdas, Enter para
+	// avanzar (Cant. -> Largo de la misma fila -> Cant. de la fila siguiente),
+	// con creación automática de fila al llegar al final (Enter o flecha abajo
+	// en la última fila) — la carga de muchas piezas es más rápida sin soltar
+	// el teclado para clickear "+ Agregar fila" cada vez.
+	_bind_keyboard_nav() {
+		$('#cb-pieces-body').on('keydown', '.cb-qty, .cb-len', (e) => {
+			const $input = $(e.currentTarget);
+			const $td = $input.closest('td');
+			const $tr = $td.closest('tr');
+			const is_qty = $input.hasClass('cb-qty');
+			const at_start = $input[0].selectionStart === 0;
+			const at_end = $input[0].selectionStart === $input.val().length;
+
+			const focus_in_row = ($row, col) => {
+				const $target = $row.find(col === 'qty' ? '.cb-qty' : '.cb-len');
+				$target.focus();
+				$target[0].select();
+			};
+
+			switch (e.key) {
+				case 'ArrowUp': {
+					e.preventDefault(); // el navegador incrementa/decrementa un <input type=number>
+					const $prev = $tr.prev('tr');
+					if ($prev.length) focus_in_row($prev, is_qty ? 'qty' : 'len');
+					break;
+				}
+				case 'ArrowDown': {
+					e.preventDefault();
+					const $next = $tr.next('tr');
+					if ($next.length) {
+						focus_in_row($next, is_qty ? 'qty' : 'len');
+					}
+					// última fila: a diferencia de Enter, flecha abajo NO crea fila
+					// nueva sola — solo navega filas existentes.
+					break;
+				}
+				case 'ArrowLeft':
+					if (!is_qty && at_start) {
+						e.preventDefault();
+						focus_in_row($tr, 'qty');
+					}
+					break;
+				case 'ArrowRight':
+					if (is_qty && at_end) {
+						e.preventDefault();
+						focus_in_row($tr, 'len');
+					}
+					break;
+				case 'Enter': {
+					e.preventDefault();
+					if (is_qty) {
+						focus_in_row($tr, 'len');
+					} else {
+						const $next = $tr.next('tr');
+						if ($next.length) {
+							focus_in_row($next, 'qty');
+						} else {
+							const new_tr = this._add_row('qty');
+							new_tr.find('.cb-qty')[0].select();
+						}
+					}
+					break;
+				}
+			}
+		});
 	}
 
 	_get_cuts() {
