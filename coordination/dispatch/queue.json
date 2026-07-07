@@ -322,6 +322,25 @@
     },
     {
       "agent": "Gemu",
+      "task": "GEMU_FORMATO_PRESUPUESTO_EXCEL",
+      "descripcion": "Constantino explicó que el texto de salida debe pegarse directo en la planilla PRESUPUESTOS 1.XLS. Formato exacto del original 1DnestOut.py: sin línea RESUMEN al inicio (redundante con KPI cards), botón 'Copiar para presupuesto', card 'Para presupuesto Excel'. Commit erpnext f62067a.",
+      "msg": "coordination/channel/Gemu/MSG_015_gemu_formato_presupuesto_excel.md",
+      "status": "completado",
+      "sprint": "002-corte-barras",
+      "prioridad": "media",
+      "nota": "Gemu commit f62067a: _generar_texto_salida sin bloque RESUMEN, card/botón renombrados. Para Orbit: 4 commits acumulados (329027d, fd64971, 5657196, f62067a) — git pull + bench build + supervisorctl restart."
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_ACUMULADO_GEMU_ANGULAR",
+      "descripcion": "Deploy acumulado de 4 commits erpnext de Gemu: 329027d (fix bool angular + búsqueda prefijo), fd64971 (autocompletar tipo/medida), 5657196 (sync nest_1d.py — CRÍTICO, sin esto TypeError en todos los cálculos), f62067a (formato presupuesto Excel). Pasos: git pull + bench build --app sistema_industrial + supervisorctl restart all. Sin bench migrate. Ver MSG_015 canal Gemu.",
+      "msg": "coordination/channel/Gemu/MSG_015_gemu_formato_presupuesto_excel.md",
+      "status": "pendiente",
+      "sprint": "002-corte-barras",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Gemu",
       "task": "GEMU_CORTES_ANGULO",
       "descripcion": "Feature nueva (separada de GEMU_FORMATO_SALIDA_ORIGINAL, que ya se completó): soporte de cortes en ángulo en corte-barras, portando el modelo del programa original (pieza como tupla largo/izq/der/cara/disp, funciones angulares de nest_1d.py). Gemu propuso el enfoque en MSG_007 pero AÚN NO LO IMPLEMENTÓ — falta luz verde/revisión antes de codear. Punto abierto marcado por el propio Gemu: la conversión de ángulo interno→máquina (90-x) solo está confirmada para 90°→0° y 45°→45°; si aparecen otros ángulos en producción hay que frenar y confirmar con Constantino antes de asumir la fórmula general. Coordinar con Vega (tabla de piezas gana columnas Izq°/Der°/Cara/Disp en modo angular — Vega tiene pendiente VEGA_NAVEGACION_TECLADO_CORTE_BARRAS sobre la misma tabla, avisarle antes de que la diseñe para que contemple las columnas nuevas). Ver MSG_007 de su canal, sección 2.",
       "msg": "coordination/channel/Gemu/MSG_007_gemu_enfoque_angular.md",
