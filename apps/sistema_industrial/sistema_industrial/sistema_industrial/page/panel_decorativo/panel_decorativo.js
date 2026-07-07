@@ -22,83 +22,46 @@ class PanelDecorativo {
 		this.dist_mode = 'centradas';
 
 		this.make_customer_control();
-		this.render_pattern_gallery();
+		this.render_pattern_select();
 		this.bind_events();
 		this.load_initial_data();
 	}
 
 	// ------------------------------------------------------------------
-	// Galería de patrones — nativos (SVG inline) + DXF (thumbnails PNG)
+	// Selector de patrones — dropdown por nombre (nativos + DXF/vectorizados)
 	// ------------------------------------------------------------------
+	// Reemplaza la galería visual de miniaturas (Constantino, 2026-07-07):
+	// el backend de thumbnails se eliminó por completo (Punto, MSG_085 en
+	// canal Nova) — ya no hay PNG/render que mostrar por patrón, así que la
+	// selección pasa a ser por nombre en un <select> nativo.
 
 	static get NATIVE_PATTERNS() {
-		const circ = (cx, cy) => `<circle cx="${cx}" cy="${cy}" r="6" fill="none" stroke="#176b87" stroke-width="1.5"/>`;
-		const sq = (x, y) => `<rect x="${x}" y="${y}" width="11" height="11" fill="none" stroke="#176b87" stroke-width="1.5"/>`;
-		let tres = '', cuadC = '', cuadS = '';
-		for (let r = 0; r < 4; r++)
-			for (let c = 0; c < 6; c++) {
-				const offs = r % 2 ? 10 : 0;
-				tres += circ(14 + c * 20 + offs, 13 + r * 21);
-				cuadC += circ(14 + c * 20, 13 + r * 21);
-				cuadS += sq(8 + c * 20, 7 + r * 21);
-			}
-		const wrap = (inner) => `<svg class="pd-pat-thumb-svg" viewBox="0 0 130 90" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
 		return [
-			{ val: 'tresbolillo', label: __('Tresbolillo'), svg: wrap(tres) },
-			{ val: 'cuadriculado_circle', label: __('Cuadriculado redondo'), svg: wrap(cuadC) },
-			{ val: 'cuadriculado_square', label: __('Cuadriculado cuadrado'), svg: wrap(cuadS) },
+			{ val: 'tresbolillo', label: __('Tresbolillo') },
+			{ val: 'cuadriculado_circle', label: __('Cuadriculado redondo') },
+			{ val: 'cuadriculado_square', label: __('Cuadriculado cuadrado') },
 		];
 	}
 
-	// SVG genérico de fallback para patrones DXF sin thumbnail_url.
-	static get FALLBACK_THUMB_SVG() {
-		return '<svg class="pd-pat-thumb-svg" viewBox="0 0 130 90" xmlns="http://www.w3.org/2000/svg">'
-			+ '<rect x="10" y="10" width="110" height="70" fill="none" stroke="#176b87" stroke-width="2"/></svg>';
-	}
-
-	render_pattern_gallery() {
-		const gal = $('#pd-patron-gallery').empty();
+	render_pattern_select() {
+		const $sel = $('#pd-patron-select').empty();
 
 		PanelDecorativo.NATIVE_PATTERNS.forEach((p) => {
-			const card = $('<div class="pd-pat-card">').attr('data-val', p.val);
-			card.append(p.svg);
-			card.append($('<div class="pd-pat-name">').text(p.label));
-			card.on('click', () => this.select_patron(p.val));
-			gal.append(card);
+			$sel.append($('<option>').val(p.val).text(p.label));
 		});
 
 		this.patterns.forEach((p, i) => {
 			const val = 'dxf:' + i;
 			const available = !!p.file_available;
-			const card = $('<div class="pd-pat-card">')
-				.attr('data-val', val)
-				.toggleClass('disabled', !available);
-			if (p.thumbnail_url) {
-				card.append(
-					$('<img class="pd-pat-thumb" loading="lazy">')
-						.attr('src', p.thumbnail_url)
-						.attr('alt', p.label || p.name)
-				);
-			} else {
-				card.append($(PanelDecorativo.FALLBACK_THUMB_SVG));
-			}
-			card.append($('<div class="pd-pat-name">').text(p.label || p.name));
-			if (!available) card.append($('<span class="pd-pat-badge">').text(__('No disponible')));
-			if (available) card.on('click', () => this.select_patron(val));
-			gal.append(card);
+			const label = (p.label || p.name) + (available ? '' : ' — ' + __('no disponible'));
+			$sel.append($('<option>').val(val).text(label).prop('disabled', !available));
 		});
 
-		this.update_gallery_selection();
-	}
-
-	update_gallery_selection() {
-		$('#pd-patron-gallery .pd-pat-card').removeClass('selected');
-		$('#pd-patron-gallery .pd-pat-card[data-val="' + this.selected_patron + '"]').addClass('selected');
+		$sel.val(this.selected_patron);
 	}
 
 	select_patron(val) {
 		this.selected_patron = val;
-		this.update_gallery_selection();
 		$('#pd-params-tresbolillo').toggleClass('hidden', val !== 'tresbolillo');
 		$('#pd-params-cuadriculado').toggleClass(
 			'hidden',
@@ -196,7 +159,7 @@ class PanelDecorativo {
 				const rows = (d && d.message && d.message.rows) || [];
 				if (!rows.length) return;
 				this.patterns = rows;
-				this.render_pattern_gallery();
+				this.render_pattern_select();
 			})
 			.catch(() => {}); // sin endpoint — la galería queda con los modos nativos
 	}
@@ -233,6 +196,7 @@ class PanelDecorativo {
 	// ------------------------------------------------------------------
 
 	bind_events() {
+		$('#pd-patron-select').on('change', () => this.select_patron($('#pd-patron-select').val()));
 		$('#pd-material').on('change', () => this.on_material_change());
 		$('#pd-dist-centradas').on('click', () => this.set_dist_mode('centradas'));
 		$('#pd-dist-cortar').on('click', () => this.set_dist_mode('cortar'));

@@ -18,9 +18,9 @@
 .si-page .ap-card:hover { box-shadow:0 4px 16px rgba(23,107,135,.12); }
 .si-page .ap-card.inactivo { opacity:.5; }
 .si-page .ap-card.inactivo .ap-card-name { text-decoration:line-through; }
-.si-page .ap-thumb { width:100%; height:100px; object-fit:contain; background:#f8f9fa; border-radius:5px; display:block; }
-.si-page .ap-thumb-svg { width:100%; height:100px; background:#f8f9fa; border-radius:5px; }
-.si-page .ap-card-name { font-size:13px; font-weight:600; color:var(--si-ink); margin-top:6px; }
+/* Sin imagen (backend de thumbnails eliminado) — padding-right para no
+ * pisarse con el botón ✕ (absolute, esquina sup. derecha) en nombres largos. */
+.si-page .ap-card-name { font-size:13px; font-weight:600; color:var(--si-ink); padding-right:16px; }
 .si-page .ap-badges { display:flex; flex-wrap:wrap; gap:4px; justify-content:center; margin-top:5px; }
 .si-page .ap-badge { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
                      padding:2px 7px; border-radius:3px; }

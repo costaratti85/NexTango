@@ -197,15 +197,9 @@ class AdminPatrones {
 		}
 		rows.forEach((p) => {
 			const activo = admin_mode ? p.activo !== 0 : true;
+			// Sin thumbnails (backend eliminado, Punto MSG_085) — la tarjeta
+			// queda solo con nombre + badges + acciones, sin imagen/placeholder.
 			const card = $('<div class="ap-card">').toggleClass('inactivo', !activo);
-
-			if (p.thumbnail_url) {
-				card.append($('<img class="ap-thumb" loading="lazy">').attr('src', p.thumbnail_url));
-			} else {
-				card.append(
-					$('<svg class="ap-thumb-svg" viewBox="0 0 130 100"><rect x="10" y="10" width="110" height="80" fill="none" stroke="#c5dde8" stroke-width="2"/></svg>')
-				);
-			}
 
 			card.append($('<div class="ap-card-name">').text(p.label || p.name));
 
