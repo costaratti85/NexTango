@@ -132,6 +132,9 @@ def item_query(doctype, txt, searchfield, start, page_length, filters=None, **kw
     # item_name: substring — el nombre libre puede buscarse en cualquier posición.
     prefix_txt = f"{txt}%" if txt else "%"
     substr_txt = f"%{txt}%" if txt else "%"
+    # Frappe puede pasar page_length chico (5) en make_control standalone —
+    # forzamos mínimo 20 para que aparezcan todos los que matchean el prefijo.
+    effective_page_length = max(cint(page_length) or 20, 20)
     return frappe.db.sql(
         """
         select name, item_name
@@ -146,7 +149,7 @@ def item_query(doctype, txt, searchfield, start, page_length, filters=None, **kw
             "prefix_txt": prefix_txt,
             "substr_txt": substr_txt,
             "start": cint(start),
-            "page_length": cint(page_length),
+            "page_length": effective_page_length,
         },
     )
 
