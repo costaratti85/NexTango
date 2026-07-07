@@ -15,17 +15,18 @@
       "task": "ORBIT_DEPLOY_MOTOR_THUMBNAILS",
       "descripcion": "Deploy de commit 59ca2cb (erpnext): thumbnails con motor legacy real. Pasos: (1) git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin bench migrate. (2) Correr: bench execute sistema_industrial.api.patrones.backfill_thumbnails --args '[true]' para force-regenerar TODOS los patrones con el motor nuevo (panel tileado 300x300mm). (3) Correr: bench execute sistema_industrial.api.patrones.verify_thumbnails y reportar JSON completo. Los thumbnails buenos ahora deben mostrar el patron repetido en grilla (como un panel real) en vez de una sola figura suelta. CRÍTICO: si verify_thumbnails muestra es_placeholder=true o fondo_negro=true para algún patrón, reportar nombre + detalle del error en el Frappe Error Log (título thumbnail_motor_panel o thumbnail_dxf_directo). Ver MSG_083 en canal Nova.",
       "msg": "coordination/channel/Nova/MSG_083_punto_motor_thumbnails_done.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-rebanada",
-      "prioridad": "alta"
+      "prioridad": "alta",
+      "nota": "Orbit MSG_032 (2026-07-07): git pull (Fast-forward, 19 objects). bench build 429ms. bump_page_cache 6 páginas. supervisorctl restart all: 7/7 RUNNING. backfill_thumbnails --args '[true]': 8 patrones ya existían, 0 generados, 0 errores. verify_thumbnails JSON: TODOS con bg_color=[255,255,255], es_placeholder=false, fondo_negro=false, pixels_con_contenido 115k-155k. Panel tileado renderizado correctamente. VERIFICADO."
     },
     {
       "agent": "Gemu",
       "task": "GEMU_BUSQUEDA_PRODUCTO_INCOMPLETA_PAGINADO",
       "descripcion": "Constantino escribió '02-01-02-' en el buscador de Producto (corte-barras) y solo aparecieron 4 resultados. Pide: (1) que aparezcan TODOS los que empiezan con el prefijo tipeado; (2) que 'página para abajo' cargue más ítems (paginado). item_query() usa limit start/page_length sin límite hardcodeado sospechoso; el control es un Link estándar de Frappe (make_control + get_query), cuyo mecanismo nativo de cargar más es scrollear el dropdown (no la tecla Page Down). Verificar contra la DB real cuántos Items matchean 'name LIKE 02-01-02-%' — si son más de 4, algo corta antes de tiempo; si son exactamente 4, no hay bug, es el catálogo real. Confirmar también si el scroll del dropdown carga más (comportamiento estándar) — si no, ahí sí hay bug de paginado real. Ver MSG_016 de su canal.",
       "msg": "coordination/channel/Gemu/MSG_016_nova_busqueda_incompleta_paginado.md",
-      "status": "bloqueado",
-      "nota": "Gemu MSG_016: no hay bug de código en item_query() ni en el mecanismo de paginado Frappe (limit start/page_length correcto; Page Down no es el mecanismo Frappe — es 'Load More' al pie del dropdown). Bloqueado: necesito conteo real de Items con name LIKE '02-01-02-%' (total y disabled=0) para determinar si hay bug real o el catálogo tiene exactamente 4. Script de verificación en MSG_016 canal Gemu. Nova debe correrlo en bench console o pedirle a Orbit.",
+      "status": "completado",
+      "nota": "Gemu commit 61098bf (erpnext): item_query usaba cint(page_length) directamente — Frappe manda page_length=5 en make_control standalone, la query devolvía solo 5 resultados (4 si uno era disabled). Fix: max(page_length, 20). Para Orbit: solo supervisorctl restart (cambio en .py de API, sin bench build).",
       "sprint": "002-corte-barras",
       "prioridad": "media"
     },
