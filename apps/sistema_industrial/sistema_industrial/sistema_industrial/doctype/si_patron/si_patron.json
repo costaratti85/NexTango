@@ -87,11 +87,6 @@
       "description": "JSON con step_x, step_y, forma y otros parámetros del patrón"
     },
     {
-      "fieldname": "thumbnail",
-      "fieldtype": "Attach Image",
-      "label": "Thumbnail"
-    },
-    {
       "fieldname": "sec_versiones",
       "fieldtype": "Section Break",
       "label": "Historial de versiones",
