@@ -16,3 +16,21 @@
                           background-color:#f8f9fa; border-radius:0 0 6px 6px; }
 .si-page .pd-dist-thumb-centradas { background-image:url("/assets/sistema_industrial/images/comparacion_centradas.png"); }
 .si-page .pd-dist-thumb-cortar { background-image:url("/assets/sistema_industrial/images/comparacion_cortar.png"); }
+
+/* Galería de patrones — miniaturas de get_all() (Motor nativo primero, DXF/Cargados después). */
+.si-page .pd-patron-gallery { margin-bottom:16px; }
+.si-page .pd-gallery-section-title { font-size:12px; font-weight:700; text-transform:uppercase;
+                                     letter-spacing:.4px; color:var(--si-muted); margin:10px 0 6px; }
+.si-page .pd-gallery-row { display:flex; flex-wrap:wrap; gap:10px; }
+.si-page .pd-gallery-item { width:104px; cursor:pointer; text-align:center; border:2px solid var(--si-line);
+                            border-radius:8px; padding:6px; background:#fff; transition:border-color .15s; }
+.si-page .pd-gallery-item:hover { border-color:var(--si-brand); }
+.si-page .pd-gallery-item.selected { border-color:var(--si-brand); background:#e8f4f8;
+                                     box-shadow:0 0 0 3px rgba(23,107,135,.15); }
+.si-page .pd-gallery-item.disabled { opacity:.45; cursor:not-allowed; }
+.si-page .pd-gallery-thumb { width:100%; aspect-ratio:1/1; object-fit:contain; border-radius:5px;
+                            background:#f8f9fa; display:block; }
+.si-page .pd-gallery-placeholder { display:flex; align-items:center; justify-content:center;
+                                   font-size:11px; color:var(--si-muted); padding:4px; text-align:center; }
+.si-page .pd-gallery-name { font-size:11px; font-weight:600; color:var(--si-ink); margin-top:5px;
+                            word-break:break-word; }

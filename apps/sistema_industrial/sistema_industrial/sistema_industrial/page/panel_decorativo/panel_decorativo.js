@@ -17,59 +17,92 @@ class PanelDecorativo {
 		this.materials = [];     // rows de api.materiales.get_all
 		this.matIndex = {};      // {material: [{espesor_mm, precio_por_kg, precio_plegar_por_kg, ...}]}
 		this.precios = { precio_segundo_laser: 0, precio_por_plegado: 0 };
-		this.patterns = [];              // rows de api.patrones.get_all
-		this.selected_patron = 'tresbolillo';
+		this.patterns = [];              // rows de api.patrones.get_all (incl. thumbnail_url)
+		this.selected_patron = null;     // 'b:<i>' (fila de this.patterns) o 'cuadriculado_circle/square'
 		this.dist_mode = 'centradas';
 
 		this.make_customer_control();
-		this.render_pattern_select();
+		this.render_pattern_gallery();
 		this.bind_events();
 		this.load_initial_data();
 	}
 
 	// ------------------------------------------------------------------
-	// Selector de patrones — dropdown por nombre (nativos + DXF/vectorizados)
+	// Selector de patrones — galería visual de thumbnails
 	// ------------------------------------------------------------------
-	// Reemplaza la galería visual de miniaturas (Constantino, 2026-07-07):
-	// el backend de thumbnails se eliminó por completo (Punto, MSG_085 en
-	// canal Nova) — ya no hay PNG/render que mostrar por patrón, así que la
-	// selección pasa a ser por nombre en un <select> nativo.
+	// Historial: galería (miniaturas) → dropdown de texto (Constantino, 2026-07-07 AM,
+	// porque el backend de thumbnails no existía — MSG_085/MSG_086) → galería de nuevo
+	// (Constantino, 2026-07-07 PM, tarea VEGA_GALERIA_PANELES) ahora que Punto reimplementó
+	// los thumbnails con el tileado real del panel (commit 8a8adc5).
+	//
+	// Cuadriculado redondo/cuadrado NO viene de get_all(): Constantino lo sacó del catálogo
+	// SI Patron el 2026-07-03 (quedaban como placeholders vacíos sin thumbnail), pero el
+	// motor lo sigue soportando como modo directo — se ofrece acá aparte, sin thumbnail.
 
 	static get NATIVE_PATTERNS() {
 		return [
-			{ val: 'tresbolillo', label: __('Tresbolillo') },
 			{ val: 'cuadriculado_circle', label: __('Cuadriculado redondo') },
 			{ val: 'cuadriculado_square', label: __('Cuadriculado cuadrado') },
 		];
 	}
 
-	render_pattern_select() {
-		const $sel = $('#pd-patron-select').empty();
+	render_pattern_gallery() {
+		const $gallery = $('#pd-patron-gallery').empty();
 
+		const make_item = (val, label, thumbnail_url, available) => {
+			const $item = $('<div class="pd-gallery-item">')
+				.toggleClass('selected', val === this.selected_patron)
+				.toggleClass('disabled', !available);
+			if (thumbnail_url) {
+				$item.append($('<img class="pd-gallery-thumb">').attr('src', thumbnail_url).attr('alt', label));
+			} else {
+				$item.append($('<div class="pd-gallery-thumb pd-gallery-placeholder">').text(label));
+			}
+			$item.append(
+				$('<div class="pd-gallery-name">').text(label + (available ? '' : ' — ' + __('no disponible')))
+			);
+			if (available) $item.on('click', () => this.select_patron(val));
+			return $item;
+		};
+
+		const backend_native = this.patterns.filter((p) => p.tipo === 'Paramétrico');
+		const cargados = this.patterns.filter((p) => p.tipo === 'Archivo' || p.tipo === 'Vectorizado');
+
+		$gallery.append($('<div class="pd-gallery-section-title">').text(__('Motor nativo')));
+		const $nativeRow = $('<div class="pd-gallery-row">');
+		backend_native.forEach((p) => {
+			const i = this.patterns.indexOf(p);
+			$nativeRow.append(make_item('b:' + i, p.label || p.name, p.thumbnail_url, p.file_available !== false));
+		});
 		PanelDecorativo.NATIVE_PATTERNS.forEach((p) => {
-			$sel.append($('<option>').val(p.val).text(p.label));
+			$nativeRow.append(make_item(p.val, p.label, null, true));
 		});
+		$gallery.append($nativeRow);
 
-		this.patterns.forEach((p, i) => {
-			const val = 'dxf:' + i;
-			const available = !!p.file_available;
-			const label = (p.label || p.name) + (available ? '' : ' — ' + __('no disponible'));
-			$sel.append($('<option>').val(val).text(label).prop('disabled', !available));
-		});
-
-		$sel.val(this.selected_patron);
+		if (cargados.length) {
+			$gallery.append($('<div class="pd-gallery-section-title">').text(__('DXF / Cargados')));
+			const $cargadosRow = $('<div class="pd-gallery-row">');
+			cargados.forEach((p) => {
+				const i = this.patterns.indexOf(p);
+				$cargadosRow.append(make_item('b:' + i, p.label || p.name, p.thumbnail_url, !!p.file_available));
+			});
+			$gallery.append($cargadosRow);
+		}
 	}
 
 	select_patron(val) {
 		this.selected_patron = val;
-		$('#pd-params-tresbolillo').toggleClass('hidden', val !== 'tresbolillo');
+		const row = val.startsWith('b:') ? this.patterns[parseInt(val.slice(2))] : null;
+		const is_tresbolillo = !!row && (row.parametros || {}).forma === 'tresbolillo';
+		$('#pd-params-tresbolillo').toggleClass('hidden', !is_tresbolillo);
 		$('#pd-params-cuadriculado').toggleClass(
 			'hidden',
 			val !== 'cuadriculado_circle' && val !== 'cuadriculado_square'
 		);
 		// El paso X/Y de un patrón DXF/vectorizado es una propiedad DEL PATRÓN
 		// (se fija al cargarlo/calibrarlo) — no se reingresa acá. add_batch lo
-		// toma directo de dxf_row.step_x/step_y.
+		// toma directo de row.step_x/step_y.
+		this.render_pattern_gallery();
 	}
 
 	// ------------------------------------------------------------------
@@ -156,12 +189,19 @@ class PanelDecorativo {
 		})
 			.then((r) => (r.ok ? r.json() : null))
 			.then((d) => {
-				const rows = (d && d.message && d.message.rows) || [];
-				if (!rows.length) return;
-				this.patterns = rows;
-				this.render_pattern_select();
+				this.patterns = (d && d.message && d.message.rows) || [];
+				if (!this.selected_patron) {
+					const tresb_idx = this.patterns.findIndex(
+						(p) => p.tipo === 'Paramétrico' && (p.parametros || {}).forma === 'tresbolillo'
+					);
+					this.selected_patron = tresb_idx >= 0 ? 'b:' + tresb_idx : 'cuadriculado_circle';
+				}
+				this.select_patron(this.selected_patron);
 			})
-			.catch(() => {}); // sin endpoint — la galería queda con los modos nativos
+			.catch(() => {
+				// sin endpoint — la galería queda con los modos nativos frontend (cuadriculado)
+				if (!this.selected_patron) this.select_patron('cuadriculado_circle');
+			});
 	}
 
 	build_material_index() {
@@ -196,7 +236,6 @@ class PanelDecorativo {
 	// ------------------------------------------------------------------
 
 	bind_events() {
-		$('#pd-patron-select').on('change', () => this.select_patron($('#pd-patron-select').val()));
 		$('#pd-material').on('change', () => this.on_material_change());
 		$('#pd-dist-centradas').on('click', () => this.set_dist_mode('centradas'));
 		$('#pd-dist-cortar').on('click', () => this.set_dist_mode('cortar'));
@@ -245,6 +284,7 @@ class PanelDecorativo {
 		err.addClass('hidden');
 		try {
 			const patron = this.selected_patron;
+			if (!patron) throw new Error(__('Seleccioná un patrón.'));
 			const mat = $('#pd-material').val();
 			const esp = parseFloat($('#pd-espesor').val());
 			const cant = parseInt($('#pd-cantidad').val());
@@ -259,20 +299,25 @@ class PanelDecorativo {
 			if (isNaN(alto) || alto <= 0) throw new Error(__('Alto inválido.'));
 			if (isNaN(margen) || margen < 0) throw new Error(__('Margen inválido.'));
 
-			const is_dxf = patron.startsWith('dxf:');
-			const dxf_row = is_dxf ? this.patterns[parseInt(patron.slice(4))] : null;
-			if (is_dxf && !dxf_row) throw new Error(__('Patrón DXF inválido — recargá la página.'));
-			if (is_dxf && !dxf_row.file_available)
+			const is_backend = patron.startsWith('b:');
+			const row = is_backend ? this.patterns[parseInt(patron.slice(2))] : null;
+			if (is_backend && !row) throw new Error(__('Patrón inválido — recargá la página.'));
+			if (is_backend && !row.file_available)
 				throw new Error(__('El patrón no está disponible en el servidor todavía.'));
+
+			const is_dxf = is_backend && (row.tipo === 'Archivo' || row.tipo === 'Vectorizado');
+			const forma = is_backend ? (row.parametros || {}).forma : null;
 
 			const native_def = PanelDecorativo.NATIVE_PATTERNS.find((p) => p.val === patron);
 			const batch = {
 				panel_mode: is_dxf
 					? 'dxf_pattern_grid'
+					: is_backend
+					? forma || 'tresbolillo'
 					: patron.startsWith('cuadriculado')
 					? 'cuadriculado'
 					: patron,
-				preset_name: is_dxf ? dxf_row.name : (native_def ? native_def.label : patron),
+				preset_name: is_backend ? row.label || row.name : native_def ? native_def.label : patron,
 				pattern_type: 'nativo',
 				cut_partial_figures: this.dist_mode === 'cortar',
 				margin_mm: margen,
@@ -287,16 +332,16 @@ class PanelDecorativo {
 			};
 
 			if (is_dxf) {
-				if (!dxf_row.file_path)
+				if (!row.file_path)
 					throw new Error(__('El patrón DXF no tiene ruta de archivo.'));
-				batch.pattern_dxf_path = dxf_row.file_path;
+				batch.pattern_dxf_path = row.file_path;
 				// Paso X/Y heredado del patrón (fijado al cargarlo/calibrarlo) — no es un
 				// input del panel.
-				batch.step_x_mm = parseFloat(dxf_row.step_x);
-				batch.step_y_mm = parseFloat(dxf_row.step_y);
+				batch.step_x_mm = parseFloat(row.step_x);
+				batch.step_y_mm = parseFloat(row.step_y);
 				if (!(batch.step_x_mm > 0) || !(batch.step_y_mm > 0))
-					throw new Error(__('El patrón "{0}" no tiene un paso X/Y válido cargado.', [dxf_row.name]));
-			} else if (patron === 'tresbolillo') {
+					throw new Error(__('El patrón "{0}" no tiene un paso X/Y válido cargado.', [row.name]));
+			} else if (forma === 'tresbolillo') {
 				batch.hole_diameter_mm = parseFloat($('#pd-diam').val());
 				batch.hole_distance_mm = parseFloat($('#pd-dist').val());
 				if (!(batch.hole_diameter_mm > 0)) throw new Error(__('Diámetro inválido.'));
