@@ -137,6 +137,15 @@ def _render_dxf_thumbnail(file_path: str, out_path, size_px: int = 300):
                     if len(raw) >= 2:
                         ax.plot([p.x for p in raw], [p.y for p in raw],
                                 color=color, linewidth=0.5)
+                elif et == "LWPOLYLINE":
+                    pts = list(_e.get_points(format="xy"))
+                    if len(pts) >= 2:
+                        xs = [p[0] for p in pts]
+                        ys = [p[1] for p in pts]
+                        if _e.closed:
+                            xs.append(xs[0])
+                            ys.append(ys[0])
+                        ax.plot(xs, ys, color=color, linewidth=0.5)
             except Exception:
                 pass
 
@@ -157,120 +166,67 @@ def _render_dxf_thumbnail(file_path: str, out_path, size_px: int = 300):
 
 
 def _render_panel_thumbnail(file_path: str, step_x: float, step_y: float, out_path, size_px: int = 300):
-    """Renderiza thumbnail 300×300mm tileado usando el motor legacy real.
+    """Genera un DXF tileado 300×300mm con LegacyPanelAdapter y lo renderiza a PNG.
 
-    margin=15mm, cut_partial_figures=True — mismo criterio que un panel de producción.
-    Retorna out_path en éxito, None si el motor no produce items (e.g. solo splines)
-    o falla (caller debe caer a _render_dxf_thumbnail).
+    Usa el mismo motor que genera paneles reales (LegacyPanelAdapter.run()) en lugar
+    de duplicar la invocación del motor con import_module() directamente — esa
+    aproximación falla en workers Frappe por caching de sys.modules["main"].
+
+    Flujo:
+      1. LegacyPanelAdapter.run() → DXF tileado temporal (LINE/ARC tiles + LWPOLYLINE border)
+      2. _render_dxf_thumbnail() → renderiza ese DXF a PNG con fondo blanco
+
+    Retorna out_path en éxito, None si el motor no produce geometría (e.g. DXF con
+    solo SPLINEs no soportados) o si ocurre cualquier excepción.
     """
+    import os as _os
+    import tempfile
+
+    tmp_dxf = None
     try:
-        import matplotlib
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as _plt
-    except ImportError:
-        return None
+        from sistema_industrial.presets.legacy_panel_adapter import (
+            LegacyPanelAdapter,
+            LegacyPanelRunRequest,
+        )
 
-    try:
-        import math as _math
-        import sys as _sys
-        import os as _os
-        from importlib import import_module as _import_module
-        from io import StringIO as _StringIO
-        from contextlib import redirect_stdout as _redirect_stdout
-        from sistema_industrial.presets.legacy_panel_adapter import find_legacy_panel_dir
+        fd, tmp_path = tempfile.mkstemp(suffix=".dxf")
+        _os.close(fd)
+        tmp_dxf = Path(tmp_path)
 
-        legacy_dir = find_legacy_panel_dir()
-        legacy_path = str(legacy_dir)
-        prev_cwd = Path.cwd()
-        inserted = legacy_path not in _sys.path
-        if inserted:
-            _sys.path.insert(0, legacy_path)
-        _os.chdir(legacy_dir)
+        request = LegacyPanelRunRequest(
+            preset_code="THUMB",
+            preset_name="Thumbnail",
+            material="A304",
+            thickness_mm=1.5,
+            width_mm=300.0,
+            height_mm=300.0,
+            quantity=1,
+            output_dxf_path=tmp_dxf,
+            pattern_type="dxf",
+            cut_partial_figures=True,
+            margin_mm=20.0,
+            pattern_dxf_path=Path(file_path),
+            step_x_mm=step_x,
+            step_y_mm=step_y,
+        )
+        result = LegacyPanelAdapter().run(request)
 
-        try:
-            settings_module = _import_module("config.settings")
-            layout_module = _import_module("layout.cad_result_layout")
-            legacy_main = _import_module("main")
+        if not result.calculated_resources:
+            return None
+        if result.calculated_resources[0].get("geometry_item_count", 0) == 0:
+            return None
 
-            settings = settings_module.Settings()
-            settings.pattern_type = "dxf"
-            settings.input_file = str(file_path)
-            settings.step_x = step_x
-            settings.step_y = step_y
-            settings.sheet_sizes = [(300.0, 300.0, 1)]
-            settings.margin = 15.0
-            settings.cut_partial_figures = True
-
-            stdout_buf = _StringIO()
-            with _redirect_stdout(stdout_buf):
-                result_items = legacy_main.create_cad_result_items_from_batch(settings)
-                arranged_items = layout_module.arrange_cad_result_items(result_items)
-
-            if not result_items:
-                return None
-        finally:
-            _os.chdir(prev_cwd)
-            if inserted:
-                try:
-                    _sys.path.remove(legacy_path)
-                except ValueError:
-                    pass
-
-        fig, ax = _plt.subplots(figsize=(size_px / 100, size_px / 100), dpi=100)
-        ax.set_aspect("equal")
-        ax.axis("off")
-        ax.set_facecolor("white")
-        fig.patch.set_facecolor("white")
-        color = "#1a1a2e"
-
-        def _draw(geom):
-            if hasattr(geom, "points"):
-                pts = list(geom.points)
-                if len(pts) >= 2:
-                    ax.plot([p[0] for p in pts], [p[1] for p in pts],
-                            color=color, linewidth=0.5)
-            elif hasattr(geom, "entities"):
-                for ent in geom.entities:
-                    _draw(ent)
-            elif hasattr(geom, "cx") and hasattr(geom, "radius"):
-                span = geom.end_angle - geom.start_angle
-                if span < 0:
-                    span += 360
-                if abs(span) >= 359.9:
-                    n, total = 64, 2 * _math.pi
-                else:
-                    rad_span = _math.radians(span) % (2 * _math.pi)
-                    n = max(8, int(abs(rad_span) / (2 * _math.pi) * 64))
-                    total = _math.radians(span)
-                a0 = _math.radians(geom.start_angle)
-                angles = [a0 + total * i / n for i in range(n + 1)]
-                ax.plot(
-                    [geom.cx + _math.cos(a) * geom.radius for a in angles],
-                    [geom.cy + _math.sin(a) * geom.radius for a in angles],
-                    color=color, linewidth=0.5,
-                )
-            elif hasattr(geom, "x1") and hasattr(geom, "x2"):
-                ax.plot([geom.x1, geom.x2], [geom.y1, geom.y2],
-                        color=color, linewidth=0.5)
-
-        for item in arranged_items:
-            _draw(item)
-
-        ax.autoscale()
-        _plt.tight_layout(pad=0)
-        fig.savefig(str(out_path), dpi=100, bbox_inches="tight",
-                    facecolor="white", edgecolor="none")
-        _plt.close(fig)
-        return out_path
+        return _render_dxf_thumbnail(str(tmp_dxf), out_path, size_px)
 
     except Exception as exc:
         frappe.log_error(title="thumbnail_motor_panel", message=str(exc))
-        try:
-            import matplotlib.pyplot as _plt2
-            _plt2.close("all")
-        except Exception:
-            pass
         return None
+    finally:
+        if tmp_dxf is not None:
+            try:
+                tmp_dxf.unlink(missing_ok=True)
+            except Exception:
+                pass
 
 
 def _generate_and_save_thumbnail(nombre: str, dxf_path, step_x=None, step_y=None) -> "str | None":
