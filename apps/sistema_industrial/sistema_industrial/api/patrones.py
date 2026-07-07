@@ -62,6 +62,147 @@ def _count_splines(dxf_path) -> int:
         return 0
 
 
+_THUMBNAIL_BASE = "/assets/sistema_industrial/pattern_thumbnails"
+
+
+def _thumb_dir() -> Path:
+    return Path(__file__).resolve().parents[1] / "public" / "pattern_thumbnails"
+
+
+def _thumb_url(nombre: str):
+    safe = _safe_name(nombre)
+    p = _thumb_dir() / f"{safe}.png"
+    return f"{_THUMBNAIL_BASE}/{safe}.png" if p.exists() else None
+
+
+def _render_dxf_to_png(dxf_path, out_path, size_px=400) -> bool:
+    """Renderiza un DXF a PNG con fondo blanco. Retorna True si hay contenido."""
+    import math
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import ezdxf
+
+    doc = ezdxf.readfile(str(dxf_path))
+    msp = doc.modelspace()
+
+    fig, ax = plt.subplots(figsize=(size_px / 100, size_px / 100), dpi=100)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_aspect("equal")
+    ax.axis("off")
+
+    has_content = False
+    for e in msp:
+        etype = e.dxftype()
+        try:
+            if etype == "LINE":
+                ax.plot(
+                    [e.dxf.start.x, e.dxf.end.x],
+                    [e.dxf.start.y, e.dxf.end.y],
+                    color="black", linewidth=0.5,
+                )
+                has_content = True
+            elif etype in ("ARC", "CIRCLE"):
+                cx, cy = e.dxf.center.x, e.dxf.center.y
+                r = e.dxf.radius
+                if etype == "ARC":
+                    a0 = math.radians(e.dxf.start_angle)
+                    a1 = math.radians(e.dxf.end_angle)
+                    if a1 <= a0:
+                        a1 += 2 * math.pi
+                else:
+                    a0, a1 = 0.0, 2 * math.pi
+                n = max(32, int(abs(a1 - a0) / math.pi * 64))
+                angles = np.linspace(a0, a1, n)
+                ax.plot(cx + r * np.cos(angles), cy + r * np.sin(angles),
+                        color="black", linewidth=0.5)
+                has_content = True
+            elif etype == "LWPOLYLINE":
+                pts = list(e.get_points())
+                xs = [p[0] for p in pts]
+                ys = [p[1] for p in pts]
+                if e.closed:
+                    xs.append(xs[0])
+                    ys.append(ys[0])
+                ax.plot(xs, ys, color="black", linewidth=0.5)
+                has_content = True
+            elif etype == "SPLINE":
+                flat = list(e.flattening(0.1))
+                if flat:
+                    ax.plot([p[0] for p in flat], [p[1] for p in flat],
+                            color="black", linewidth=0.5)
+                    has_content = True
+        except Exception:
+            pass
+
+    if not has_content:
+        plt.close(fig)
+        return False
+
+    ax.autoscale()
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(str(out_path), dpi=100, bbox_inches="tight",
+                facecolor="white", pad_inches=0.05)
+    plt.close(fig)
+    return True
+
+
+def _save_thumbnail(nombre: str, dxf_path, step_x, step_y):
+    """Genera el thumbnail PNG. Intenta panel tileado; fallback a figura suelta."""
+    import tempfile
+    dxf_path = Path(str(dxf_path))
+    if not dxf_path.exists():
+        return None
+
+    safe = _safe_name(nombre)
+    out_path = _thumb_dir() / f"{safe}.png"
+
+    tiled_ok = False
+    if step_x and step_y:
+        try:
+            from sistema_industrial.presets.legacy_panel_adapter import (
+                LegacyPanelAdapter, LegacyPanelRunRequest,
+            )
+            with tempfile.TemporaryDirectory() as tmp:
+                tmp_dxf = Path(tmp) / f"{safe}_panel.dxf"
+                req = LegacyPanelRunRequest(
+                    preset_code=f"thumb_{safe}",
+                    preset_name=f"thumb_{safe}",
+                    material="generic",
+                    thickness_mm=1.0,
+                    width_mm=300.0,
+                    height_mm=300.0,
+                    quantity=1,
+                    output_dxf_path=tmp_dxf,
+                    pattern_type="dxf",
+                    pattern_dxf_path=dxf_path,
+                    step_x_mm=float(step_x),
+                    step_y_mm=float(step_y),
+                    margin_mm=20.0,
+                    cut_partial_figures=True,
+                )
+                result = LegacyPanelAdapter().run(req)
+                total_geom = sum(
+                    r.get("geometry_item_count", 0)
+                    for r in result.calculated_resources
+                )
+                if total_geom > 0:
+                    tiled_ok = _render_dxf_to_png(tmp_dxf, out_path)
+        except Exception as exc:
+            frappe.log_error(f"thumbnail tileado {nombre}: {exc}", "thumbnail_motor_panel")
+
+    if not tiled_ok:
+        try:
+            _render_dxf_to_png(dxf_path, out_path)
+        except Exception as exc:
+            frappe.log_error(f"thumbnail fallback {nombre}: {exc}", "thumbnail_dxf_directo")
+            return None
+
+    return f"{_THUMBNAIL_BASE}/{safe}.png" if out_path.exists() else None
+
+
 def _find_pattern_library():
     try:
         from sistema_industrial.presets.legacy_panel_adapter import find_legacy_panel_dir
@@ -112,6 +253,7 @@ def _patron_doc_to_row(doc):
         "parametros": parametros,
         "has_splines": spline_count > 0,
         "spline_count": spline_count,
+        "thumbnail_url": _thumb_url(name),
     }
 
 
@@ -197,6 +339,7 @@ def _get_all_from_legacy():
                 "step_x": entry.get("step_x"),
                 "step_y": entry.get("step_y"),
             },
+            "thumbnail_url": _thumb_url(name),
         })
     return _sort_patron_rows(rows)
 
@@ -480,4 +623,82 @@ def get_patron(name, version=None):
         "archivo_dxf_url": archivo_dxf,
         "file_available": file_available,
         "descripcion": doc.descripcion or "",
+        "thumbnail_url": _thumb_url(name),
     }
+
+
+@frappe.whitelist(allow_guest=False)
+def generate_thumbnail(name):
+    """Genera (o regenera) el thumbnail de un patrón. r.message: {ok, url}"""
+    if not frappe.db.exists("SI Patron", name):
+        frappe.throw(f"Patrón no encontrado: {name}", frappe.DoesNotExistError)
+    doc = frappe.get_doc("SI Patron", name)
+    dxf_path = doc.archivo_dxf or ""
+    if not dxf_path:
+        return {"ok": False, "url": None, "reason": "sin archivo DXF"}
+    try:
+        params = json.loads(doc.parametros or "{}")
+    except Exception:
+        params = {}
+    url = _save_thumbnail(name, dxf_path, params.get("step_x"), params.get("step_y"))
+    return {"ok": bool(url), "url": url}
+
+
+@frappe.whitelist(allow_guest=False)
+def get_thumbnail(name):
+    """Devuelve la URL del thumbnail; lo genera si no existe. r.message: {url}"""
+    existing = _thumb_url(name)
+    if existing:
+        return {"url": existing}
+    result = generate_thumbnail(name)
+    return {"url": result.get("url")}
+
+
+@frappe.whitelist(allow_guest=False)
+def backfill_thumbnails(force=False, names=None):
+    """Genera thumbnails para todos (o una lista de) patrones Archivo/Vectorizado activos.
+
+    Args:
+        force: True = regenera incluso los que ya existen en disco.
+        names: lista JSON de nombres, o None para todos.
+
+    r.message: {generated: [...], skipped: [...], failed: [...]}
+    """
+    if names:
+        if isinstance(names, str):
+            names = json.loads(names)
+    else:
+        docs = frappe.get_all(
+            "SI Patron",
+            filters=[["tipo", "in", ["Archivo", "Vectorizado"]], ["activo", "=", 1]],
+            fields=["name"],
+        )
+        names = [d["name"] for d in docs]
+
+    generated, skipped, failed = [], [], []
+    for n in names:
+        if not force and _thumb_url(n):
+            skipped.append(n)
+            continue
+        try:
+            if not frappe.db.exists("SI Patron", n):
+                failed.append({"name": n, "error": "no existe"})
+                continue
+            doc = frappe.get_doc("SI Patron", n)
+            dxf_path = doc.archivo_dxf or ""
+            if not dxf_path:
+                skipped.append(n)
+                continue
+            try:
+                params = json.loads(doc.parametros or "{}")
+            except Exception:
+                params = {}
+            url = _save_thumbnail(n, dxf_path, params.get("step_x"), params.get("step_y"))
+            if url:
+                generated.append(n)
+            else:
+                failed.append({"name": n, "error": "render falló"})
+        except Exception as exc:
+            failed.append({"name": n, "error": str(exc)})
+
+    return {"generated": generated, "skipped": skipped, "failed": failed}
