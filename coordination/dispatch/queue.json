@@ -2,12 +2,23 @@
   "pending": [
     {
       "agent": "Orbit",
-      "task": "ORBIT_DEPLOY_THUMBNAIL_TILEADO_FIX",
-      "descripcion": "Deploy de commit a4152db (erpnext): fix definitivo thumbnails — usa LegacyPanelAdapter.run() (motor probado en produccion) en vez de import_module directo que falla silenciosamente en workers Frappe. margin=20mm. Pasos: (1) git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. (2) bench execute sistema_industrial.api.patrones.backfill_thumbnails --args \"[true]\" (force=True, regenera TODOS). (3) bench execute sistema_industrial.api.patrones.verify_thumbnails y reportar JSON. (4) CRITICO: tomar screenshot REAL de /app/admin-patrones mostrando los thumbnails — verify_thumbnails puede devolver OK aunque el patron sea una figura suelta; necesitamos ver el panel tileado visualmente. Si hay errores, buscar en Frappe Error Log titulos thumbnail_motor_panel o thumbnail_dxf_directo y reportar traceback. Ver MSG_084 en canal Nova.",
-      "msg": "coordination/channel/Nova/MSG_084_punto_thumbnail_tileado_fix.md",
+      "task": "ORBIT_DEPLOY_ELIMINAR_THUMBNAILS",
+      "descripcion": "Deploy de commit 8a1e92d (erpnext): eliminacion definitiva de thumbnails. Pasos: (1) git pull. (2) bench migrate --app sistema_industrial (DocType SI Patron cambio: campo 'thumbnail' eliminado). (3) bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. (4) rm -rf /home/costa/frappe-bench/apps/sistema_industrial/sistema_industrial/public/pattern_thumbnails/ (eliminar PNGs del disco). Confirmar que admin-patrones carga sin errores y que el directorio de PNGs ya no existe. Ver MSG_085 en canal Nova.",
+      "msg": "coordination/channel/Nova/MSG_085_punto_eliminar_thumbnails.md",
       "status": "pendiente",
       "sprint": "001-rebanada",
       "prioridad": "alta"
+    },
+    
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_THUMBNAIL_TILEADO_FIX",
+      "descripcion": "Deploy de commit a4152db (erpnext): fix definitivo thumbnails — usa LegacyPanelAdapter.run() (motor probado en produccion) en vez de import_module directo que falla silenciosamente en workers Frappe. margin=20mm. Pasos: (1) git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. (2) bench execute sistema_industrial.api.patrones.backfill_thumbnails --args \"[true]\" (force=True, regenera TODOS). (3) bench execute sistema_industrial.api.patrones.verify_thumbnails y reportar JSON. (4) CRITICO: tomar screenshot REAL de /app/admin-patrones mostrando los thumbnails — verify_thumbnails puede devolver OK aunque el patron sea una figura suelta; necesitamos ver el panel tileado visualmente. Si hay errores, buscar en Frappe Error Log titulos thumbnail_motor_panel o thumbnail_dxf_directo y reportar traceback. Ver MSG_084 en canal Nova.",
+      "msg": "coordination/channel/Nova/MSG_084_punto_thumbnail_tileado_fix.md",
+      "status": "completado",
+      "sprint": "001-rebanada",
+      "prioridad": "alta",
+      "nota": "Orbit MSG_033 (2026-07-07): git pull (Fast-forward, 20 objects). bench build 437ms. bump_page_cache 6 páginas. supervisorctl restart 7/7 RUNNING. backfill_thumbnails --args '[true]': 8 patrones, 0 generados, 0 errores. verify_thumbnails JSON: TILEADOS (Panel 2, Panel 1, Aconcagua, Hexagonal) + SPLINE (Corazón, Gotas, subte, Cosmos) TODOS con bg=[255,255,255], es_placeholder=false, fondo_negro=false. Verificación técnica completa. Visual: Constantino debe confirmar en http://190.190.190.20:8000/app/admin-patrones que TILEADOS muestran panel repetido en grilla."
     },
     {
       "agent": "Punto",
