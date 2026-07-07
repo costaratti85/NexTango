@@ -1,6 +1,35 @@
 {
   "pending": [
     {
+      "agent": "Punto",
+      "task": "PUNTO_THUMBNAILS_MOTOR_REAL_Y_ORDEN",
+      "descripcion": "Los thumbnails de admin-patrones (erpnext) usan el motor equivocado: _generate_and_save_thumbnail() renderiza el DXF crudo aislado (una sola figura, no tileada) — nunca debió ser así. Referencia correcta ya existe en main/apps/sistema_industrial/sistema_industrial/presets/panel_sales_local_app.py: generate_pattern_thumbnail() + _render_panel_thumbnail() (línea ~972, genera panel 300x300mm tileado con el motor legacy real create_cad_result_items_from_batch, cut_partial_figures=True, margin=15.0 EN CÓDIGO pero Constantino recuerda 20 — confirmar con él antes de portar) + _render_dxf_thumbnail() fallback (línea ~890). Portar (no reinventar) estas 3 funciones al lado erpnext, reemplazando/envolviendo _generate_and_save_thumbnail(). Los fixes de arco/origen/bbox que Punto ya aplicó al motor legacy de erpnext deberían aplicar automáticamente ya que es el mismo motor de tiling. Además: ordenar listas (get_all/list_admin en api/patrones.py) con Paramétrico siempre antes que Archivo/Vectorizado — pedido de Constantino ('motores nativos siempre primero'), coordinar con Vega si el orden se resuelve en frontend. NOTA: investigado y descartado el temor de que se haya borrado el Cuadriculado nativo por error — 'Cuadriculado redondo'/'cuadrado' están hardcodeados en panel_decorativo.js (NATIVE_PATTERNS), independientes de cualquier SI Patron, intactos. Ver MSG_048 de su canal.",
+      "msg": "coordination/channel/Punto/MSG_048_nova_thumbnails_motor_real_y_orden.md",
+      "status": "completado",
+      "nota": "Punto commit 59ca2cb (erpnext): (1) _render_panel_thumbnail() — motor legacy real (create_cad_result_items_from_batch + arrange_cad_result_items), 300x300mm tileado, margin=15mm, cut_partial_figures=True, fondo blanco (#1a1a2e); (2) _render_dxf_thumbnail() — fallback render DXF directo LINE/ARC/CIRCLE/SPLINE sin tiling (para DXFs con solo splines); (3) _generate_and_save_thumbnail() — ahora 3 pasos: motor legacy -> DXF directo -> placeholder PIL; acepta step_x/step_y. backfill_thumbnails lee parametros y pasa step_x/step_y. upload_pattern pasa step_x/step_y. Ordenamiento: _TIPO_ORDER + _sort_patron_rows(), Parametrico(0) antes que Archivo/Vectorizado(1), secundario por nombre — aplicado en get_all(), _get_all_from_legacy(), list_admin(). FALTA: Orbit deploy + backfill_thumbnails(force=1) para regenerar todos con el motor real.",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_MOTOR_THUMBNAILS",
+      "descripcion": "Deploy de commit 59ca2cb (erpnext): thumbnails con motor legacy real. Pasos: (1) git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin bench migrate. (2) Correr: bench execute sistema_industrial.api.patrones.backfill_thumbnails --args '[true]' para force-regenerar TODOS los patrones con el motor nuevo (panel tileado 300x300mm). (3) Correr: bench execute sistema_industrial.api.patrones.verify_thumbnails y reportar JSON completo. Los thumbnails buenos ahora deben mostrar el patron repetido en grilla (como un panel real) en vez de una sola figura suelta. CRÍTICO: si verify_thumbnails muestra es_placeholder=true o fondo_negro=true para algún patrón, reportar nombre + detalle del error en el Frappe Error Log (título thumbnail_motor_panel o thumbnail_dxf_directo). Ver MSG_083 en canal Nova.",
+      "msg": "coordination/channel/Nova/MSG_083_punto_motor_thumbnails_done.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
+    {
+      "agent": "Gemu",
+      "task": "GEMU_BUSQUEDA_PRODUCTO_INCOMPLETA_PAGINADO",
+      "descripcion": "Constantino escribió '02-01-02-' en el buscador de Producto (corte-barras) y solo aparecieron 4 resultados. Pide: (1) que aparezcan TODOS los que empiezan con el prefijo tipeado; (2) que 'página para abajo' cargue más ítems (paginado). item_query() usa limit start/page_length sin límite hardcodeado sospechoso; el control es un Link estándar de Frappe (make_control + get_query), cuyo mecanismo nativo de cargar más es scrollear el dropdown (no la tecla Page Down). Verificar contra la DB real cuántos Items matchean 'name LIKE 02-01-02-%' — si son más de 4, algo corta antes de tiempo; si son exactamente 4, no hay bug, es el catálogo real. Confirmar también si el scroll del dropdown carga más (comportamiento estándar) — si no, ahí sí hay bug de paginado real. Ver MSG_016 de su canal.",
+      "msg": "coordination/channel/Gemu/MSG_016_nova_busqueda_incompleta_paginado.md",
+      "status": "bloqueado",
+      "nota": "Gemu MSG_016: no hay bug de código en item_query() ni en el mecanismo de paginado Frappe (limit start/page_length correcto; Page Down no es el mecanismo Frappe — es 'Load More' al pie del dropdown). Bloqueado: necesito conteo real de Items con name LIKE '02-01-02-%' (total y disabled=0) para determinar si hay bug real o el catálogo tiene exactamente 4. Script de verificación en MSG_016 canal Gemu. Nova debe correrlo en bench console o pedirle a Orbit.",
+      "sprint": "002-corte-barras",
+      "prioridad": "media"
+    },
+    {
       "agent": "Orbit",
       "task": "ORBIT_DEPLOY_THUMBNAILS",
       "descripcion": "Deploy de commits 3bac589 + f54dad2 (erpnext): thumbnails fondo blanco + corner-clip en composer. Pasos: (1) git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Sin bench migrate. (2) Correr: bench execute sistema_industrial.api.patrones.backfill_thumbnails --args '[true, [\"Corazon\",\"Gotas\",\"subte\",\"Cosmos\"]]' para force-regenerar los 4 patrones con placeholder PIL viejo. (3) Correr: bench execute sistema_industrial.api.patrones.verify_thumbnails --args '[[\"Corazon\",\"Gotas\",\"subte\",\"Cosmos\"]]' y reportar el JSON completo con bg_color, center_color, pixels_con_contenido, es_placeholder, fondo_negro para cada patrón. CRÍTICO: la tarea de thumbnails NO está resuelta hasta que verify_thumbnails muestre es_placeholder=false y fondo_negro=false para los 4. Corner-clip: activo en todos los patrones nuevos que se compongan desde el vectorizador.",
@@ -335,9 +364,10 @@
       "task": "ORBIT_DEPLOY_ACUMULADO_GEMU_ANGULAR",
       "descripcion": "Deploy acumulado de 4 commits erpnext de Gemu: 329027d (fix bool angular + búsqueda prefijo), fd64971 (autocompletar tipo/medida), 5657196 (sync nest_1d.py — CRÍTICO, sin esto TypeError en todos los cálculos), f62067a (formato presupuesto Excel). Pasos: git pull + bench build --app sistema_industrial + supervisorctl restart all. Sin bench migrate. Ver MSG_015 canal Gemu.",
       "msg": "coordination/channel/Gemu/MSG_015_gemu_formato_presupuesto_excel.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "002-corte-barras",
-      "prioridad": "alta"
+      "prioridad": "alta",
+      "nota": "Orbit MSG_031 (2026-07-07): git pull (Fast-forward, 21 objects, 12 delta). bench build 433ms. bump_page_cache 6 páginas. supervisorctl restart all: 7/7 RUNNING. Todos 4 commits deployados (329027d, fd64971, 5657196 CRÍTICO, f62067a). TypeError angular resuelto. Production operativa."
     },
     {
       "agent": "Gemu",
