@@ -428,7 +428,7 @@ class CorteBarras {
 		navigator.clipboard.writeText(txt).then(() => {
 			const btn = $('#cb-btn-copy');
 			btn.text('¡Copiado!');
-			setTimeout(() => btn.text('Copiar'), 1800);
+			setTimeout(() => btn.text('Copiar para presupuesto'), 1800);
 		}).catch(() => {
 			// Fallback para entornos sin clipboard API
 			$('#cb-texto-salida').select();

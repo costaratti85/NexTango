@@ -74,33 +74,19 @@ def _patron_ang_a_str(patron):
 
 
 def _generar_texto_salida(result, bar_len, tipo_material, medida, angular=False):
-    """Genera el texto tab-separated compatible con el formato del programa original.
+    """Genera el texto tab-separated para pegar en la planilla Excel de presupuesto.
 
-    Barras enteras → bloque cantidad/patrón.
-    Tramos sueltos → una línea por pieza (formato original: línea suelta).
-    Resumen arriba: 1 línea con total barras + material + largo.
+    Formato idéntico al programa original 1DnestOut.py (generar_plan_excel):
+      {qty}\\t{tipo}\\t{medida}\\tx {bar_len}
+      \\t{qty} a {patron}\\t\\t
+      1\\t{tipo}\\t{medida}\\tx {pieza}   ← tramos sueltos
     """
     if result.error:
         return result.error
 
-    lines = []
-
-    # ── Resumen ────────────────────────────────────────────────────────────────
-    total_barras = result.full_bars
-    resumen_parts = []
-    if total_barras:
-        resumen_parts.append(f"{total_barras} barra{'s' if total_barras != 1 else ''}")
-    if result.tramo_pieces:
-        n_tramos = len(result.tramo_pieces)
-        resumen_parts.append(f"{n_tramos} pieza{'s' if n_tramos != 1 else ''} sueltas")
-    resumen = " + ".join(resumen_parts) if resumen_parts else "Sin resultado"
     tipo_str = tipo_material or "—"
     medida_str = medida or "—"
-    lines.append(
-        f"RESUMEN\t{tipo_str}\t{medida_str}\t"
-        f"x {_fmt_num(bar_len)} mm\t{resumen}"
-    )
-    lines.append("")
+    lines = []
 
     # ── Barras enteras ─────────────────────────────────────────────────────────
     for p in result.bar_patterns:
