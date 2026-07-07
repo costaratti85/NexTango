@@ -72,53 +72,233 @@ def _thumbnail_url(filename):
     return f"{_THUMBNAIL_BASE}/{filename}" if p.exists() else None
 
 
-def _generate_and_save_thumbnail(nombre: str, dxf_path) -> "str | None":
-    """Renderiza DXF a PNG y lo guarda en public/pattern_thumbnails/{safe_name}.png.
+def _render_dxf_thumbnail(file_path: str, out_path, size_px: int = 300):
+    """Render DXF directo a PNG — fallback cuando el motor legacy no puede tilear.
 
-    Intenta ezdxf + matplotlib primero; si falla, genera un placeholder PIL con el
-    nombre del patrón. Retorna la URL pública o None si ambos métodos fallan.
+    Dibuja LINE/ARC/CIRCLE/SPLINE del modelspace escalados al canvas.
+    Retorna out_path en éxito, None en fallo.
+    """
+    import math as _math
+    try:
+        import ezdxf as _ezdxf
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as _plt
+    except ImportError:
+        return None
+    try:
+        try:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as _f:
+                _doc = _ezdxf.read(_f)
+        except Exception:
+            with open(file_path, "r", encoding="latin-1") as _f:
+                _doc = _ezdxf.read(_f)
+        _msp = _doc.modelspace()
+
+        fig, ax = _plt.subplots(figsize=(size_px / 100, size_px / 100), dpi=100)
+        ax.set_aspect("equal")
+        ax.axis("off")
+        ax.set_facecolor("white")
+        fig.patch.set_facecolor("white")
+        color = "#1a1a2e"
+
+        def _arc_pts(cx, cy, r, a0_deg, a1_deg):
+            a0 = a0_deg % 360
+            a1 = a1_deg % 360
+            if a1 <= a0:
+                a1 += 360
+            span = a1 - a0
+            n = max(6, int(span / 5))
+            return [
+                (cx + r * _math.cos(_math.radians(a0 + span * i / n)),
+                 cy + r * _math.sin(_math.radians(a0 + span * i / n)))
+                for i in range(n + 1)
+            ]
+
+        for _e in _msp:
+            et = _e.dxftype()
+            try:
+                if et == "LINE":
+                    s, end = _e.dxf.start, _e.dxf.end
+                    ax.plot([s.x, end.x], [s.y, end.y], color=color, linewidth=0.5)
+                elif et == "ARC":
+                    c = _e.dxf.center
+                    pts = _arc_pts(c.x, c.y, _e.dxf.radius,
+                                   _e.dxf.start_angle, _e.dxf.end_angle)
+                    ax.plot([p[0] for p in pts], [p[1] for p in pts],
+                            color=color, linewidth=0.5)
+                elif et == "CIRCLE":
+                    c = _e.dxf.center
+                    pts = _arc_pts(c.x, c.y, _e.dxf.radius, 0, 360)
+                    ax.plot([p[0] for p in pts], [p[1] for p in pts],
+                            color=color, linewidth=0.5)
+                elif et == "SPLINE":
+                    raw = list(_e.flattening(0.5))
+                    if len(raw) >= 2:
+                        ax.plot([p.x for p in raw], [p.y for p in raw],
+                                color=color, linewidth=0.5)
+            except Exception:
+                pass
+
+        ax.autoscale()
+        _plt.tight_layout(pad=0)
+        fig.savefig(str(out_path), dpi=100, bbox_inches="tight",
+                    facecolor="white", edgecolor="none")
+        _plt.close(fig)
+        return out_path
+    except Exception as exc:
+        frappe.log_error(title="thumbnail_dxf_directo", message=str(exc))
+        try:
+            import matplotlib.pyplot as _plt2
+            _plt2.close("all")
+        except Exception:
+            pass
+        return None
+
+
+def _render_panel_thumbnail(file_path: str, step_x: float, step_y: float, out_path, size_px: int = 300):
+    """Renderiza thumbnail 300×300mm tileado usando el motor legacy real.
+
+    margin=15mm, cut_partial_figures=True — mismo criterio que un panel de producción.
+    Retorna out_path en éxito, None si el motor no produce items (e.g. solo splines)
+    o falla (caller debe caer a _render_dxf_thumbnail).
+    """
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as _plt
+    except ImportError:
+        return None
+
+    try:
+        import math as _math
+        import sys as _sys
+        import os as _os
+        from importlib import import_module as _import_module
+        from io import StringIO as _StringIO
+        from contextlib import redirect_stdout as _redirect_stdout
+        from sistema_industrial.presets.legacy_panel_adapter import find_legacy_panel_dir
+
+        legacy_dir = find_legacy_panel_dir()
+        legacy_path = str(legacy_dir)
+        prev_cwd = Path.cwd()
+        inserted = legacy_path not in _sys.path
+        if inserted:
+            _sys.path.insert(0, legacy_path)
+        _os.chdir(legacy_dir)
+
+        try:
+            settings_module = _import_module("config.settings")
+            layout_module = _import_module("layout.cad_result_layout")
+            legacy_main = _import_module("main")
+
+            settings = settings_module.Settings()
+            settings.pattern_type = "dxf"
+            settings.input_file = str(file_path)
+            settings.step_x = step_x
+            settings.step_y = step_y
+            settings.sheet_sizes = [(300.0, 300.0, 1)]
+            settings.margin = 15.0
+            settings.cut_partial_figures = True
+
+            stdout_buf = _StringIO()
+            with _redirect_stdout(stdout_buf):
+                result_items = legacy_main.create_cad_result_items_from_batch(settings)
+                arranged_items = layout_module.arrange_cad_result_items(result_items)
+
+            if not result_items:
+                return None
+        finally:
+            _os.chdir(prev_cwd)
+            if inserted:
+                try:
+                    _sys.path.remove(legacy_path)
+                except ValueError:
+                    pass
+
+        fig, ax = _plt.subplots(figsize=(size_px / 100, size_px / 100), dpi=100)
+        ax.set_aspect("equal")
+        ax.axis("off")
+        ax.set_facecolor("white")
+        fig.patch.set_facecolor("white")
+        color = "#1a1a2e"
+
+        def _draw(geom):
+            if hasattr(geom, "points"):
+                pts = list(geom.points)
+                if len(pts) >= 2:
+                    ax.plot([p[0] for p in pts], [p[1] for p in pts],
+                            color=color, linewidth=0.5)
+            elif hasattr(geom, "entities"):
+                for ent in geom.entities:
+                    _draw(ent)
+            elif hasattr(geom, "cx") and hasattr(geom, "radius"):
+                span = geom.end_angle - geom.start_angle
+                if span < 0:
+                    span += 360
+                if abs(span) >= 359.9:
+                    n, total = 64, 2 * _math.pi
+                else:
+                    rad_span = _math.radians(span) % (2 * _math.pi)
+                    n = max(8, int(abs(rad_span) / (2 * _math.pi) * 64))
+                    total = _math.radians(span)
+                a0 = _math.radians(geom.start_angle)
+                angles = [a0 + total * i / n for i in range(n + 1)]
+                ax.plot(
+                    [geom.cx + _math.cos(a) * geom.radius for a in angles],
+                    [geom.cy + _math.sin(a) * geom.radius for a in angles],
+                    color=color, linewidth=0.5,
+                )
+            elif hasattr(geom, "x1") and hasattr(geom, "x2"):
+                ax.plot([geom.x1, geom.x2], [geom.y1, geom.y2],
+                        color=color, linewidth=0.5)
+
+        for item in arranged_items:
+            _draw(item)
+
+        ax.autoscale()
+        _plt.tight_layout(pad=0)
+        fig.savefig(str(out_path), dpi=100, bbox_inches="tight",
+                    facecolor="white", edgecolor="none")
+        _plt.close(fig)
+        return out_path
+
+    except Exception as exc:
+        frappe.log_error(title="thumbnail_motor_panel", message=str(exc))
+        try:
+            import matplotlib.pyplot as _plt2
+            _plt2.close("all")
+        except Exception:
+            pass
+        return None
+
+
+def _generate_and_save_thumbnail(nombre: str, dxf_path, step_x=None, step_y=None) -> "str | None":
+    """Genera thumbnail tileado con el motor legacy; fallback DXF directo; fallback PIL.
+
+    1. _render_panel_thumbnail — panel 300×300mm tileado, fondo blanco, color #1a1a2e.
+    2. _render_dxf_thumbnail   — render DXF directo sin tiling (solo splines/splines mixtos).
+    3. Placeholder PIL         — gris con nombre del patrón, para que la UI muestre algo.
+
+    Retorna la URL pública del PNG o None si los tres métodos fallan.
     """
     thumb_dir = Path(__file__).resolve().parents[1] / "public" / "pattern_thumbnails"
     thumb_dir.mkdir(parents=True, exist_ok=True)
     safe = _safe_name(nombre)
     out_path = thumb_dir / f"{safe}.png"
 
-    # --- Intento 1: render completo con ezdxf + matplotlib ---
-    try:
-        import ezdxf
-        from ezdxf.addons.drawing import RenderContext, Frontend
-        from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
-        import matplotlib
-        matplotlib.use("Agg")  # headless — sin display X
-        import matplotlib.pyplot as plt
+    sx = float(step_x) if step_x not in (None, "") else 84.0
+    sy = float(step_y) if step_y not in (None, "") else 84.0
 
-        dxf_doc = ezdxf.readfile(str(dxf_path))
-        msp = dxf_doc.modelspace()
-
-        fig = plt.figure(figsize=(3, 3), dpi=72)
-        ax = fig.add_axes([0, 0, 1, 1])
-        ax.set_aspect("equal")
-        # Explicit white background on the axes — ezdxf/MatplotlibBackend
-        # defaults to a dark CAD-style viewport; fig.savefig(facecolor="white")
-        # only covers the area OUTSIDE the axes, which is zero here since
-        # add_axes([0,0,1,1]) fills the entire figure.
-        ax.set_facecolor("white")
-        ctx = RenderContext(dxf_doc)
-        out = MatplotlibBackend(ax)
-        Frontend(ctx, out).draw_layout(msp, finalize=True)
-
-        fig.savefig(str(out_path), dpi=72, bbox_inches="tight",
-                    facecolor="white", edgecolor="none")
-        plt.close(fig)
+    # --- Intento 1: panel tileado con motor legacy ---
+    if _render_panel_thumbnail(str(dxf_path), sx, sy, out_path):
         return f"{_THUMBNAIL_BASE}/{safe}.png"
-    except Exception:
-        import traceback
-        frappe.log_error(
-            title=f"thumbnail_render:{nombre}",
-            message=traceback.format_exc(),
-        )
 
-    # --- Intento 2: placeholder PIL con nombre del patrón ---
+    # --- Intento 2: render DXF directo (fallback sin tiling) ---
+    if _render_dxf_thumbnail(str(dxf_path), out_path):
+        return f"{_THUMBNAIL_BASE}/{safe}.png"
+
+    # --- Intento 3: placeholder PIL con nombre del patrón ---
     try:
         from PIL import Image, ImageDraw, ImageFont
         SIZE = 216
@@ -175,7 +355,7 @@ def backfill_thumbnails(force=False, names=None):
     patrones = frappe.db.get_all(
         "SI Patron",
         filters=filters,
-        fields=["name", "archivo_dxf"],
+        fields=["name", "archivo_dxf", "parametros"],
     )
 
     generados, ya_existian, errores = [], [], []
@@ -199,7 +379,15 @@ def backfill_thumbnails(force=False, names=None):
             errores.append({"name": nombre, "error": f"DXF no encontrado: {dxf_path}"})
             continue
 
-        url = _generate_and_save_thumbnail(nombre, dxf_path)
+        try:
+            params = json.loads(p.get("parametros") or "{}")
+        except Exception:
+            params = {}
+        url = _generate_and_save_thumbnail(
+            nombre, dxf_path,
+            step_x=params.get("step_x"),
+            step_y=params.get("step_y"),
+        )
         if url:
             generados.append(nombre)
         else:
@@ -335,6 +523,15 @@ def _patron_doc_to_row(doc):
     }
 
 
+_TIPO_ORDER = {"Paramétrico": 0, "Archivo": 1, "Vectorizado": 1}
+
+
+def _sort_patron_rows(rows):
+    """Ordena: Paramétrico primero, luego Archivo/Vectorizado; nombre ascendente dentro de cada grupo."""
+    rows.sort(key=lambda r: (_TIPO_ORDER.get(r.get("tipo", "Archivo"), 1), r["name"]))
+    return rows
+
+
 def _get_all_from_frappe(customer=None):
     """Retorna lista de filas desde SI Patron, o None si el doctype está vacío."""
     try:
@@ -363,8 +560,7 @@ def _get_all_from_frappe(customer=None):
             )
 
         rows = [_patron_doc_to_row(d) for d in public_rows + exclusive_rows]
-        rows.sort(key=lambda r: r["name"])
-        return rows
+        return _sort_patron_rows(rows)
     except Exception as exc:
         frappe.log_error(f"patrones.get_all: error leyendo SI Patron: {exc}")
         return None
@@ -412,7 +608,7 @@ def _get_all_from_legacy():
                 "step_y": entry.get("step_y"),
             },
         })
-    return rows
+    return _sort_patron_rows(rows)
 
 
 @frappe.whitelist(allow_guest=False)
@@ -530,7 +726,11 @@ def upload_pattern(nombre, step_x, step_y, visibilidad, file_url, customer=None,
 
     frappe.db.commit()
 
-    _generate_and_save_thumbnail(nombre, dest_path)
+    _generate_and_save_thumbnail(
+        nombre, dest_path,
+        step_x=float(step_x) if step_x not in (None, "") else None,
+        step_y=float(step_y) if step_y not in (None, "") else None,
+    )
 
     return {
         "ok": True,
@@ -629,7 +829,7 @@ def list_admin():
         row["cliente"] = d.get("cliente") or ""
         row["activo"] = int(d.get("activo") or 0)
         rows.append(row)
-    return {"rows": rows}
+    return {"rows": _sort_patron_rows(rows)}
 
 
 @frappe.whitelist(allow_guest=False)
