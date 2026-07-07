@@ -1,5 +1,14 @@
-{
+﻿{
   "pending": [
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_THUMBNAIL_TILEADO_FIX",
+      "descripcion": "Deploy de commit a4152db (erpnext): fix definitivo thumbnails — usa LegacyPanelAdapter.run() (motor probado en produccion) en vez de import_module directo que falla silenciosamente en workers Frappe. margin=20mm. Pasos: (1) git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. (2) bench execute sistema_industrial.api.patrones.backfill_thumbnails --args \"[true]\" (force=True, regenera TODOS). (3) bench execute sistema_industrial.api.patrones.verify_thumbnails y reportar JSON. (4) CRITICO: tomar screenshot REAL de /app/admin-patrones mostrando los thumbnails — verify_thumbnails puede devolver OK aunque el patron sea una figura suelta; necesitamos ver el panel tileado visualmente. Si hay errores, buscar en Frappe Error Log titulos thumbnail_motor_panel o thumbnail_dxf_directo y reportar traceback. Ver MSG_084 en canal Nova.",
+      "msg": "coordination/channel/Nova/MSG_084_punto_thumbnail_tileado_fix.md",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "alta"
+    },
     {
       "agent": "Punto",
       "task": "PUNTO_THUMBNAILS_MOTOR_REAL_Y_ORDEN",
@@ -645,9 +654,10 @@
       "task": "FORGE_TANGO_CONECTIVIDAD_CAIDA",
       "descripcion": "URGENTE, operativo (no de código): server-t:17000 (tango_base_url en site_config.json) no resuelve por DNS desde el servidor ERPNext ahora mismo. Confirmado a nivel de sistema operativo por Vega y Forge de forma independiente (ping/nslookup dan SERVFAIL, sin interfaz VPN activa, sin entrada en /etc/hosts). Esto rompe tanto el boton de sync manual como el scheduled.py nocturno -- clientes nuevos/actualizados en Tango YA NO estan llegando a ERPNext desde que esto empezo a fallar. Revisar: VPN/red al servidor Tango, si el servidor fisico esta encendido, o si cambio el hostname/IP. Detectado durante VEGA_CONECTAR_POLLING_SYNC (ver MSG_073 de Vega a Nova, MSG_029/030 en canal Forge).",
       "msg": "coordination/channel/Nova/MSG_073_VEGA_polling_verificado_cierre.md",
-      "status": "pendiente",
+      "status": "completado",
       "sprint": "001-fase1",
-      "prioridad": "alta"
+      "prioridad": "alta",
+      "nota": "Forge MSG_062 (2026-07-06): 12 entradas agregadas a /etc/hosts en el servidor ERPNext (190.190.190.20). server-t:17000 ahora resuelve y responde. Sync de clientes (manual + scheduler automatico) operativo. Tango + Vega + Atlas desbloqueados."
     }
   ],
   "foco_2026-07-02": {
