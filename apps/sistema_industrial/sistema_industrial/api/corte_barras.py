@@ -73,13 +73,24 @@ def _patron_ang_a_str(patron):
     return " + ".join(partes)
 
 
+_EFIC_MIN_BARRA = 65.0  # patrones debajo de este % → piezas sueltas al final
+
+
 def _generar_texto_salida(result, bar_len, tipo_material, medida, angular=False):
     """Genera el texto tab-separated para pegar en la planilla Excel de presupuesto.
 
-    Formato idéntico al programa original 1DnestOut.py (generar_plan_excel):
-      {qty}\\t{tipo}\\t{medida}\\tx {bar_len}
-      \\t{qty} a {patron}\\t\\t
-      1\\t{tipo}\\t{medida}\\tx {pieza}   ← tramos sueltos
+    Formato (reglas de Constantino):
+      — Un solo header con la SUMA de barras enteras (efic >= 65%).
+      — Una línea de detalle por patrón debajo del header, sin repetir header.
+      — Al final, una línea por cada pieza de patrones < 65% + tramos sueltos,
+        ordenadas de mayor a menor largo.
+
+    Ejemplo:
+      11\\tPla.\\t1/2" x 1/8"\\tx 6000
+      \\t5 a 3010 + 1980 + 2 x 490\\t\\t
+      \\t4 a 5 x 1150\\t\\t
+      \\t2 a 3 x 1980\\t\\t
+      1\\tPla.\\t1/2" x 1/8"\\tx 300
     """
     if result.error:
         return result.error
@@ -88,25 +99,38 @@ def _generar_texto_salida(result, bar_len, tipo_material, medida, angular=False)
     medida_str = medida or "—"
     lines = []
 
-    # ── Barras enteras ─────────────────────────────────────────────────────────
-    for p in result.bar_patterns:
-        if angular:
-            detalle = f"{p.count} a {_patron_ang_a_str(p.pieces)}"
-        else:
-            detalle = f"{p.count} a {_patron_a_str(p.pieces)}"
-        lines.append(
-            f"{p.count}\t{tipo_str}\t{medida_str}\tx {_fmt_num(bar_len)}"
-        )
-        lines.append(f"\t{detalle}\t\t")
+    # ── Separar patrones por umbral de eficiencia ──────────────────────────────
+    buenos = [p for p in result.bar_patterns if p.efficiency_pct >= _EFIC_MIN_BARRA]
+    bajos  = [p for p in result.bar_patterns if p.efficiency_pct <  _EFIC_MIN_BARRA]
 
-    # ── Tramos sueltos ─────────────────────────────────────────────────────────
-    for pieza in result.tramo_pieces:
+    # ── Barras enteras — un header, un detalle por patrón ─────────────────────
+    if buenos:
+        total_barras = sum(p.count for p in buenos)
+        lines.append(f"{total_barras}\t{tipo_str}\t{medida_str}\tx {_fmt_num(bar_len)}")
+        for p in buenos:
+            if angular:
+                detalle = f"{p.count} a {_patron_ang_a_str(p.pieces)}"
+            else:
+                detalle = f"{p.count} a {_patron_a_str(p.pieces)}"
+            lines.append(f"\t{detalle}\t\t")
+
+    # ── Piezas sueltas: patrones < 65% + tramos del modelo de precio ──────────
+    sueltas = []
+    for p in bajos:
+        for _ in range(p.count):
+            sueltas.extend(p.pieces)
+    sueltas.extend(result.tramo_pieces)
+
+    if angular:
+        sueltas.sort(key=lambda x: -x[0])
+    else:
+        sueltas.sort(reverse=True)
+
+    for pieza in sueltas:
         if angular:
-            largo_mm = pieza[0]
             pieza_str = _pieza_ang_a_str(pieza)
         else:
-            largo_mm = pieza
-            pieza_str = _fmt_num(largo_mm)
+            pieza_str = _fmt_num(pieza)
         lines.append(f"1\t{tipo_str}\t{medida_str}\tx {pieza_str}")
 
     return "\n".join(lines)

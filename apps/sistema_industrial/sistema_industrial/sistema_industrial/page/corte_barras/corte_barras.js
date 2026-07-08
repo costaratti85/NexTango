@@ -425,14 +425,31 @@ class CorteBarras {
 	_copiar() {
 		const txt = $('#cb-texto-salida').val();
 		if (!txt) return;
-		navigator.clipboard.writeText(txt).then(() => {
+
+		const _feedback = () => {
 			const btn = $('#cb-btn-copy');
 			btn.text('¡Copiado!');
 			setTimeout(() => btn.text('Copiar para presupuesto'), 1800);
-		}).catch(() => {
-			// Fallback para entornos sin clipboard API
-			$('#cb-texto-salida').select();
-			document.execCommand('copy');
-		});
+		};
+
+		// navigator.clipboard requiere HTTPS — en HTTP (servidor local/intranet)
+		// falla silenciosamente. Fallback: textarea temporal fuera del viewport.
+		if (navigator.clipboard && window.isSecureContext) {
+			navigator.clipboard.writeText(txt).then(_feedback).catch(() => this._copiar_fallback(txt, _feedback));
+		} else {
+			this._copiar_fallback(txt, _feedback);
+		}
+	}
+
+	_copiar_fallback(txt, callback) {
+		const el = document.createElement('textarea');
+		el.value = txt;
+		el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+		document.body.appendChild(el);
+		el.focus();
+		el.select();
+		try { document.execCommand('copy'); } catch (_) {}
+		document.body.removeChild(el);
+		if (callback) callback();
 	}
 }
