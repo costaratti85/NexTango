@@ -79,7 +79,7 @@ function perfiles_plegados_init() {
 	  var th=-fdir[bi]; var bp=rot(pts[bi+1],th); var rest=s;
 	  var P=pts.map(function(p){ var q=rot(p,th); q={x:q.x-bp.x,y:q.y-bp.y+rest}; if(mx)q.x=-q.x; if(my)q.y=2*rest-q.y; return q; });
 	  var segs=[]; for(var i=0;i<fl.length;i++) segs.push({a:P[i],b:P[i+1],tip:(i===bi||i===bi+1),idx:i});
-	  return {P:P,segs:segs,rest:rest};
+	  return {P:P,segs:segs,rest:rest,bi:bi};
 	}
 	var DIE_SEGS=(function(){ var s=[]; for(var i=0;i<DIE.length-1;i++) s.push([DIE[i],DIE[i+1]]); s.push([DIE[DIE.length-1],DIE[0]]); return s; })();
 	function clearCheck(pl,alpha,V,s){   // sólo choques: con la matriz/bancada (abajo) y con el punzón
@@ -96,7 +96,48 @@ function perfiles_plegados_init() {
 	      if(segInt(sg.a,sg.b,{x:dd[0][0],y:dd[0][1]},{x:dd[1][0],y:dd[1][1]})) return {clear:false,why:'una parte de la pieza atraviesa la matriz o la bancada'}; } }
 	  // 3) choque con el punzón
 	  for(var k2=0;k2<pl.segs.length;k2++){ var sg2=pl.segs[k2]; if(sg2.tip) continue; for(var q2=0;q2<punch.length;q2++){ if(segInt(sg2.a,sg2.b,punch[q2][0],punch[q2][1])) return {clear:false,why:'una parte ya plegada choca con el punzón'}; } }
+	  // 4) FIN DE CARRERA: la pieza PLEGADA (brazos levantados, vértice en la V) tampoco puede
+	  //    tocar el punzón ni la matriz. El dibujo lo mostraba en rojo pero el cerebro no lo
+	  //    miraba: elegía secuencias que chocan al fondo del golpe (reporte de Constantino).
+	  if(pl.bi!=null){
+	    // Tolerancia de taller: una penetración nominal chica (radio de canto, retorno,
+	    // flexión de la chapa) se tolera; un barrido profundo no.
+	    var TOL_PEN=2.5;   // mm
+	    var punchA=[], pxMin=1e9, pxMax=-1e9, pyMax=-1e9;
+	    for(var uc=0;uc<PS.length;uc++){ var gc=PS[uc]; if(Math.min(gc[0][1],gc[1][1])<=95){
+	      var sA=[[gc[0][0],gc[0][1]-pen],[gc[1][0],gc[1][1]-pen]]; punchA.push(sA);
+	      pxMin=Math.min(pxMin,sA[0][0],sA[1][0]); pxMax=Math.max(pxMax,sA[0][0],sA[1][0]); pyMax=Math.max(pyMax,sA[0][1],sA[1][1]); } }
+	    var bi=pl.bi, half=(180-alpha)/2;
+	    var sideL=(pl.P[bi].x<=pl.P[bi+1].x)?-1:1;
+	    var FP=pl.P.map(function(pt,idx){
+	      var a=(idx<=bi)?sideL*half:(idx>=bi+2?-sideL*half:0);
+	      var dx=pt.x, dy=pt.y-pl.rest, c=Math.cos(a*DEG), sn=Math.sin(a*DEG);
+	      return {x:dx*c-dy*sn, y:(dx*sn+dy*c)+pl.rest-pen};
+	    });
+	    for(var kf=0;kf<pl.segs.length;kf++){ var sf=pl.segs[kf]; if(sf.tip) continue;
+	      var fa=FP[sf.idx], fb=FP[sf.idx+1];
+	      // poda: tramo totalmente afuera de la caja del punzón → no puede tocarlo
+	      if(!(Math.max(fa.x,fb.x)<pxMin || Math.min(fa.x,fb.x)>pxMax || Math.min(fa.y,fb.y)>pyMax)){
+	        var hitP=false; for(var qf=0;qf<punchA.length;qf++){ var pq=punchA[qf]; if(segInt(fa,fb,{x:pq[0][0],y:pq[0][1]},{x:pq[1][0],y:pq[1][1]})){ hitP=true; break; } }
+	        if(hitP && penDepth(fa,fb,punchA)>TOL_PEN) return {clear:false,why:'al fondo del golpe una parte ya plegada barre contra el punzón'};
+	      }
+	      if(Math.min(fa.y,fb.y)<-1.0){
+	        var hitD=false; for(var qd=0;qd<DS.length;qd++){ var d2=DS[qd]; if(segInt(fa,fb,{x:d2[0][0],y:d2[0][1]},{x:d2[1][0],y:d2[1][1]})){ hitD=true; break; } }
+	        if(hitD && penDepth(fa,fb,DS)>TOL_PEN) return {clear:false,why:'al fondo del golpe la pieza barre contra la matriz'};
+	      }
+	    }
+	  }
 	  return {clear:true};
+	}
+	function distSeg(p,sg){ var ax=sg[0][0],ay=sg[0][1],bx=sg[1][0],by=sg[1][1]; var dx=bx-ax,dy=by-ay; var L2=dx*dx+dy*dy||1e-9; var t=((p.x-ax)*dx+(p.y-ay)*dy)/L2; t=Math.max(0,Math.min(1,t)); return Math.hypot(p.x-(ax+dx*t), p.y-(ay+dy*t)); }
+	function penDepth(a,b,segs){   // penetración máxima del tramo a-b dentro del contorno (muestreo)
+	  var maxd=0, N=14;
+	  for(var i=0;i<=N;i++){ var t=i/N, p={x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t};
+	    if(!pointInPoly(p,segs)) continue;
+	    var dmin=1e9; for(var q=0;q<segs.length;q++){ var d=distSeg(p,segs[q]); if(d<dmin)dmin=d; }
+	    if(dmin>maxd) maxd=dmin;
+	  }
+	  return maxd;
 	}
 	function nodeFlat(pl,gi){   // ¿el nodo gi tiene un segmento horizontal apoyado a nivel de mesa? (apoyo estable, no inclinado)
 	  var lvl=pl.rest+1.5;
@@ -147,22 +188,31 @@ function perfiles_plegados_init() {
 	  }
 	  return {steps:steps};
 	}
-	function simulateOrder(fl,an,dr,order,V,s,preDone){
+	var SIM_CACHE={};   // geometría por (pliegues hechos, pliegue actual) — no depende del orden previo
+	function simulateOrder(fl,an,dr,order,V,s,preDone,maxCol){
+	  if(maxCol==null) maxCol=Infinity;
 	  var done=preDone?preDone.slice():[]; if(!preDone){ for(var i=0;i<an.length;i++) done.push(false); }
+	  var mask=0; for(var mi=0;mi<an.length;mi++) if(done[mi]) mask|=(1<<mi);
 	  var totalDev=0; for(var t=0;t<fl.length;t++) totalDev+=(fl[t]||0);
 	  var minOp=Math.max(25, 0.20*totalDev);   // L. MÍN. CONTRA OPERARIO: lo que necesita para sostener
 	  var steps=[], prevMx=null, prevMy=null, prevGauge=null, flips=0, giras=0, collisions=0, totalX=0, opViol=0, unstable=0, refChg=0;
 	  for(var k=0;k<order.length;k++){
-	    var bi=order[k], myF=(dr[bi]<0), feas=[], fallback=null;
-	    // 2 orientaciones válidas: my == signo del pliegue. La máquina siempre pliega hacia arriba:
-	    // dar vuelta la pieza (my) invierte de qué lado sale el pliegue; girarla (mx, otro extremo
-	    // al tope) NO lo cambia. La regla vieja (mx XOR my) permitía girada+dada vuelta para
-	    // pliegues positivos y el pliegue salía del lado contrario al dibujado.
-	    var opts=[[false,myF],[true,myF]];
-	    for(var o=0;o<opts.length;o++){
-	      var pl=place(fl,an,dr,done,bi,opts[o][0],opts[o][1],s); var f=feasible(pl,an[bi],V,s);
-	      if(f.ok) feas.push({mx:opts[o][0],my:opts[o][1],X:f.X,gauge:f.gauge,op:f.op,stable:f.stable});
-	      else if(!fallback) fallback={mx:opts[o][0],my:opts[o][1],X:f.X||0,gauge:f.gauge,op:f.op||0,stable:f.stable,ok:false,why:f.why};
+	    var bi=order[k], myF=(dr[bi]<0), feas, fallback;
+	    var ck=mask+':'+bi, cc=SIM_CACHE[ck];
+	    if(cc){ feas=cc.feas.slice(); fallback=cc.fallback; }
+	    else {
+	      feas=[]; fallback=null;
+	      // 2 orientaciones válidas: my == signo del pliegue. La máquina siempre pliega hacia arriba:
+	      // dar vuelta la pieza (my) invierte de qué lado sale el pliegue; girarla (mx, otro extremo
+	      // al tope) NO lo cambia. La regla vieja (mx XOR my) permitía girada+dada vuelta para
+	      // pliegues positivos y el pliegue salía del lado contrario al dibujado.
+	      var opts=[[false,myF],[true,myF]];
+	      for(var o=0;o<opts.length;o++){
+	        var pl=place(fl,an,dr,done,bi,opts[o][0],opts[o][1],s); var f=feasible(pl,an[bi],V,s);
+	        if(f.ok) feas.push({mx:opts[o][0],my:opts[o][1],X:f.X,gauge:f.gauge,op:f.op,stable:f.stable});
+	        else if(!fallback) fallback={mx:opts[o][0],my:opts[o][1],X:f.X||0,gauge:f.gauge,op:f.op||0,stable:f.stable,ok:false,why:f.why};
+	      }
+	      SIM_CACHE[ck]={feas:feas.slice(),fallback:fallback};
 	    }
 	    var ch, pmx=prevMx, pg=prevGauge;
 	    if(feas.length){
@@ -175,7 +225,10 @@ function perfiles_plegados_init() {
 	      });
 	      ch=feas[0]; ch.ok=true;
 	    } else ch=fallback||{mx:false,my:myF,X:0,gauge:null,op:0,stable:false,ok:false,why:'sin colocación'};
-	    if(!ch.ok) collisions++;
+	    if(!ch.ok){ collisions++;
+	      // poda: ya choca más que el mejor orden conocido — este no puede ganar
+	      if(collisions>maxCol) return {aborted:true,collisions:collisions};
+	    }
 	    if(ch.op<minOp) opViol++;
 	    if(ch.ok && !ch.stable) unstable++;                                    // apoya sobre segmento inclinado (a evitar)
 	    if(prevGauge!=null && ch.gauge!=null && ch.gauge!==prevGauge) refChg++; // recolocó el tope contra otro nodo
@@ -183,7 +236,7 @@ function perfiles_plegados_init() {
 	    if(prevMx!==null && ch.mx!==prevMx) giras++;
 	    prevMx=ch.mx; prevMy=ch.my; if(ch.gauge!=null) prevGauge=ch.gauge; totalX+=ch.X;
 	    steps.push({order:k+1,bend:bi,alpha:an[bi],X:ch.X,mx:ch.mx,my:ch.my,ok:ch.ok,why:ch.why,gauge:ch.gauge,op:ch.op,stable:ch.stable});
-	    done[bi]=true;
+	    done[bi]=true; mask|=(1<<bi);
 	  }
 	  return {ok:collisions===0,collisions:collisions,opViol:opViol,unstable:unstable,refChg:refChg,flips:flips,giras:giras,manips:flips+giras,steps:steps,totalX:totalX,minOp:minOp};
 	}
@@ -193,10 +246,12 @@ function perfiles_plegados_init() {
 	  return out;
 	}
 	function buscarOrden(fl,an,dr,V,s,preDone){
+	  SIM_CACHE={};   // dims/útiles pueden haber cambiado
 	  var idx=[]; for(var i=0;i<an.length;i++){ if(!preDone||!preDone[i]) idx.push(i); }
 	  var best=null, feasibleCount=0, tried=0, all=permsOf(idx);
 	  for(var p=0;p<all.length && tried<=40320;p++){ tried++;
-	    var r=simulateOrder(fl,an,dr,all[p],V,s,preDone);
+	    var r=simulateOrder(fl,an,dr,all[p],V,s,preDone,best?best.collisions:Infinity);
+	    if(r.aborted) continue;   // podado: chocaba más que el mejor conocido
 	    if(r.collisions===0&&r.opViol===0&&r.unstable===0) feasibleCount++;
 	    // prioridad Cybelec: sin choque > operario sostiene > apoyo plano > mínimo voltear > mínimo girar > menos recolocar tope > tope cercano
 	    r.score=r.collisions*1e9 + r.opViol*1e7 + r.unstable*5e6 + r.flips*1e5 + r.giras*2e3 + r.refChg*1e3 + r.totalX*0.5;
