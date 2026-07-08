@@ -649,27 +649,36 @@ def _generate_cuadriculado_square_dxf(
     output_path,
     zone_size_mm: float = 250.0,
 ) -> dict:
-    """Generate a standalone single-file DXF for a cuadriculado square pattern.
+    """Generate a single DXF for a cuadriculado square pattern.
 
-    When total_zones > 16, only file 0 is generated at output_path.
-    Use _generate_cuadriculado_square_dxf_files for multi-file support.
+    When total_zones <= 16: one block at the origin.
+    When total_zones > 16: N blocks side by side (offset_x = i*(W+100mm)),
+    each covering up to 16 zones. All in one file — cut each block and join.
+
     Returns dict: {pierce_count, cut_length_mm, zone_cols, zone_rows,
                    total_zones, n_files}.
     """
     import ezdxf as _ezdxf
+
+    _, _, _, _, total_zones = calcular_zonas(sheet_width_mm, sheet_height_mm, zone_size_mm)
+    n_files = math.ceil(total_zones / 16) if total_zones > 0 else 1
+
     doc = _ezdxf.new("R2010")
     msp = doc.modelspace()
-    result = _write_cuadriculado_square_to_doc(
-        doc, msp,
-        hole_size_mm=hole_size_mm,
-        step_x_mm=step_x_mm,
-        step_y_mm=step_y_mm,
-        sheet_width_mm=sheet_width_mm,
-        sheet_height_mm=sheet_height_mm,
-        margin_mm=margin_mm,
-        zone_size_mm=zone_size_mm,
-        file_index=0,
-    )
+    result: dict = {}
+    for fi in range(n_files):
+        result = _write_cuadriculado_square_to_doc(
+            doc, msp,
+            hole_size_mm=hole_size_mm,
+            step_x_mm=step_x_mm,
+            step_y_mm=step_y_mm,
+            sheet_width_mm=sheet_width_mm,
+            sheet_height_mm=sheet_height_mm,
+            margin_mm=margin_mm,
+            zone_size_mm=zone_size_mm,
+            file_index=fi,
+            offset_x=fi * (sheet_width_mm + 100.0),
+        )
     doc.saveas(str(output_path))
     return result
 
@@ -767,10 +776,18 @@ class LegacyPanelAdapter:
         }
 
         zone_info = f"{geo['zone_cols']} col × {geo['zone_rows']} fila"
+        n_files = geo.get("n_files", 1)
+        if n_files > 1:
+            w_msg = (
+                f"Panel dividido en {n_files} bloques de flycut dentro del mismo archivo — "
+                f"cortar cada bloque y unir físicamente ({zone_info} zonas de ≤250mm)"
+            )
+        else:
+            w_msg = f"Flycut: {geo['pierce_count']} cuadrados en {zone_info} zonas de ≤250mm"
         return LegacyPanelRunResult(
             dxf_path=request.output_dxf_path,
             calculated_resources=[resource],
-            warnings=[f"Flycut: {geo['pierce_count']} cuadrados en {zone_info} zonas de ≤250mm"] if geo["pierce_count"] > 0 else [],
+            warnings=[w_msg] if geo["pierce_count"] > 0 else [],
             legacy_result_raw={
                 "generator": "cuadriculado_square_direct",
                 "zone_cols": geo["zone_cols"],
