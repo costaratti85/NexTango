@@ -126,7 +126,7 @@ function perfiles_plegados_init() {
 	  for(var o=0;o<opts.length;o++){
 	    var pl=place(fl,an,dr,done,bi,opts[o][0],opts[o][1],s);
 	    if(gn>=pl.P.length) continue;
-	    var node=pl.P[gn], atLevel=(node.y>=-1.5 && node.y<=pl.rest+1.5), cl=clearCheck(pl,an[bi],V,s);
+	    var node=pl.P[gn], atLevel=(node.y>=-1.5 && node.y<=pl.rest+FINGER_H), cl=clearCheck(pl,an[bi],V,s);
 	    var X=node.x, ok=cl.clear&&atLevel&&X>=X_MIN&&X<=X_MAX;
 	    var why = !cl.clear ? cl.why : (!atLevel? 'el nodo '+nodeLetter(gn)+' no queda apoyado en el tope para este pliegue' : (X<X_MIN?'apoyo muy cerca de la línea de pliegue':(X>X_MAX?'fuera del recorrido del tope':'')));
 	    var score=(ok?0:10000)+(atLevel?0:5000)+(cl.clear?0:3000)+Math.max(0,X_MIN-X)+Math.max(0,X-X_MAX)-X*0.001;
@@ -549,20 +549,24 @@ function perfiles_plegados_init() {
 	    steps=simulateManual(flanges,angles,dirs,state.manSeq,V,s).steps.map(enrich);
 	    var col=0; for(var i=0;i<steps.length;i++) if(!steps[i].ok) col++;
 	    cerebro={manual:true, collisions:col};
+	  } else if(state.keepOrder && state.keepOrder.length===angles.length){
+	    // "Volver a la secuencia": mantener el SETUP completo de cada paso — orden de
+	    // pliegues Y nodo de tope (la orientación sale sola del nodo elegido) — y solo
+	    // recalcular X/Y con las medidas nuevas. Si un paso ya no se puede, queda ⚠.
+	    var rm=simulateManual(flanges,angles,dirs,state.keepOrder,V,s);
+	    steps=rm.steps.map(enrich);
+	    var kcol=0,kflips=0,kgiras=0,kpm=null,kpy=null;
+	    for(var ki=0;ki<rm.steps.length;ki++){ var ks=rm.steps[ki];
+	      if(!ks.ok) kcol++;
+	      if(kpm!==null&&ks.mx!==kpm) kgiras++;
+	      if(kpy!==null&&ks.my!==kpy) kflips++;
+	      kpm=ks.mx; kpy=ks.my; }
+	    cerebro={manual:false, keepOrder:true, tried:1, feasibleCount:kcol===0?1:0, collisions:kcol, manips:kflips+kgiras, flips:kflips, giras:kgiras, opViol:0};
 	  } else {
-	    var res;
-	    if(state.keepOrder && state.keepOrder.length===angles.length){
-	      // "Volver a la secuencia": mantener el orden de pliegues ya elegido y solo
-	      // recalcular X/Y/topes/orientaciones con las medidas nuevas
-	      var rk=simulateOrder(flanges,angles,dirs,state.keepOrder,V,s);
-	      rk.order=state.keepOrder;
-	      res={best:rk, feasibleCount:(rk.collisions===0&&rk.opViol===0&&rk.unstable===0)?1:0, tried:1};
-	    } else {
-	      state.keepOrder=null;
-	      res=buscarOrden(flanges,angles,dirs,V,s);
-	    }
+	    state.keepOrder=null;
+	    var res=buscarOrden(flanges,angles,dirs,V,s);
 	    steps=res.best.steps.map(enrich);
-	    cerebro={manual:false, keepOrder:!!state.keepOrder, tried:res.tried, feasibleCount:res.feasibleCount, collisions:res.best.collisions, manips:res.best.manips, flips:res.best.flips, giras:res.best.giras, opViol:res.best.opViol};
+	    cerebro={manual:false, keepOrder:false, tried:res.tried, feasibleCount:res.feasibleCount, collisions:res.best.collisions, manips:res.best.manips, flips:res.best.flips, giras:res.best.giras, opViol:res.best.opViol};
 	    // Técnica W solo si TODOS los órdenes chocan (best tiene el mínimo de choques):
 	    // apoyo inestable o poco sostén del operario NO justifican la técnica W.
 	    if(!state.manual&&res.best.collisions>0){
@@ -851,7 +855,9 @@ function perfiles_plegados_init() {
 	  if(!state.plan){ state.manual=false; state.manSeq=null; state.useW=false; state.keepOrder=null; }
 	  else if(state.manual){ if(!state.manSeq||state.manSeq.length!==nb){ state.manual=false; state.manSeq=null; } }
 	  else {
-	    var ord=[]; for(var k=0;k<state.plan.steps.length;k++){ var b=state.plan.steps[k].bendIndex; if(b!=null) ord.push(b); }
+	    // congelar el SETUP de cada paso: pliegue + nodo de tope (formato de simulateManual)
+	    var ord=[]; for(var k=0;k<state.plan.steps.length;k++){ var st=state.plan.steps[k];
+	      if(st.bendIndex!=null && st.gaugeNode!=null) ord.push({bend:st.bendIndex, node:st.gaugeNode}); }
 	    state.keepOrder=(ord.length===nb)?ord:null;
 	  }
 	  document.getElementById('pp-setupMsg').innerHTML='';
