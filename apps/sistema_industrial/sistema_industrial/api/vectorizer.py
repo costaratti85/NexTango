@@ -24,6 +24,10 @@ def _runs_root() -> Path:
     return Path(frappe.get_site_path("private", "vectorize_runs"))
 
 
+def _images_root() -> Path:
+    return Path(frappe.get_site_path("private", "vectorize_images"))
+
+
 def _new_run_id() -> str:
     return f"vr_{int(time.time())}_{frappe.generate_hash(length=4)}"
 
@@ -56,8 +60,25 @@ def vectorize_image(file_url, presets=None):
         presets = PRESETS
 
     run_id = _new_run_id()
-    run_dir = _runs_root() / run_id
+    runs_root = _runs_root()
+    run_dir = runs_root / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
+
+    # Limpiar runs anteriores (un solo run activo a la vez)
+    for old_run in runs_root.iterdir():
+        if old_run.is_dir() and old_run.name != run_id:
+            shutil.rmtree(old_run, ignore_errors=True)
+
+    # Purgar imágenes fuente con más de 90 días
+    images_root = _images_root()
+    if images_root.exists():
+        cutoff = time.time() - 90 * 86400
+        for img_file in images_root.iterdir():
+            if img_file.is_file() and img_file.stat().st_mtime < cutoff:
+                img_file.unlink(missing_ok=True)
+
+    # Persistir ruta de imagen original para que compose_pattern pueda copiarla
+    (run_dir / "source_image.txt").write_text(str(image_path), encoding="utf-8")
 
     return vectorize(image_path, run_dir, presets)
 
@@ -102,6 +123,13 @@ def compose_pattern(run_id, escala_display, step_x_mm, step_y_mm,
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
+    # Recuperar imagen original del sidecar (ausente en runs anteriores al campo)
+    source_image_txt = run_dir / "source_image.txt"
+    source_image_path = (
+        Path(source_image_txt.read_text(encoding="utf-8").strip())
+        if source_image_txt.exists() else None
+    )
+
     safe_stem = re.sub(r"[^\w\-]", "_", nombre)
     tmp_dxf = run_dir / f"{safe_stem}_composed.dxf"
     compose_dxf(manifest, selected_items, escala_display, tmp_dxf)
@@ -118,6 +146,15 @@ def compose_pattern(run_id, escala_display, step_x_mm, step_y_mm,
 
     dest_path = dest_dir / dxf_filename
     shutil.copy2(str(tmp_dxf), str(dest_path))
+
+    # Copiar imagen fuente a directorio persistente (retención 90 días)
+    imagen_fuente = None
+    if source_image_path and source_image_path.exists():
+        images_root = _images_root()
+        images_root.mkdir(parents=True, exist_ok=True)
+        dest_img = images_root / f"{safe_stem}{source_image_path.suffix}"
+        shutil.copy2(str(source_image_path), str(dest_img))
+        imagen_fuente = str(dest_img)
 
     # Registrar el preset "principal" en parámetros (el más frecuente entre los items)
     preset_counts: dict = {}
@@ -144,6 +181,8 @@ def compose_pattern(run_id, escala_display, step_x_mm, step_y_mm,
         doc.activo = 1
         doc.parametros = parametros
         doc.spline_count = sc
+        if imagen_fuente:
+            doc.imagen_fuente = imagen_fuente
     else:
         doc = frappe.new_doc("SI Patron")
         doc.name = nombre
@@ -155,6 +194,7 @@ def compose_pattern(run_id, escala_display, step_x_mm, step_y_mm,
         doc.parametros = parametros
         doc.spline_count = sc
         doc.activo = 1
+        doc.imagen_fuente = imagen_fuente or ""
 
     doc.save(ignore_permissions=True)
     frappe.db.commit()

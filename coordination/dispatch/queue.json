@@ -1024,6 +1024,14 @@
       ],
       "status": "completado",
       "nota": "Cybelec MSG_062 (2d24ac2): page perfiles-plegados en Frappe (patrón plegados_complejos), motor DIN 6935 intacto (secuenciador, simulación, correcciones empíricas), datos vía SI Material Corte/SI Precios Globales, api/perfiles.py con guardar_pedido/list/get (JSON PL-YYYYMMDD-NNNN), 5 tests. Decisión abierta: pedidos como JSON, no DocType (falta criterio de negocio para el modelo) — backlog. Vega MSG_062 (375ac7e, deployado): workspace shortcut, cliente→Link a Customer, armonización de paleta a colores del sistema (motor no tocado). Vega queda esperando el brief de 1DNest."
+    },
+    {
+      "agent": "Orbit",
+      "task": "ORBIT_DEPLOY_IMAGEN_FUENTE",
+      "descripcion": "Deploy del campo imagen_fuente en SI Patron (Atlas commit en erpnext). Requiere: git pull + bench migrate (campo nuevo en DocType si_patron.json) + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Verificar: SI Patron de tipo Vectorizado muestra el campo 'Imagen fuente' en el Desk. El campo se popula automáticamente la próxima vez que se corra compose_pattern().",
+      "status": "pendiente",
+      "sprint": "001-rebanada",
+      "prioridad": "media"
     }
   ]
 }

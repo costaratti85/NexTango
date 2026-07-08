@@ -81,6 +81,14 @@
       "depends_on": "eval:doc.tipo=='Archivo'||doc.tipo=='Vectorizado'"
     },
     {
+      "fieldname": "imagen_fuente",
+      "fieldtype": "Data",
+      "label": "Imagen fuente",
+      "read_only": 1,
+      "description": "Ruta a la imagen original usada para vectorizar. Disponible 90 días.",
+      "depends_on": "eval:doc.tipo=='Vectorizado'"
+    },
+    {
       "fieldname": "parametros",
       "fieldtype": "Long Text",
       "label": "Parámetros (JSON)",
