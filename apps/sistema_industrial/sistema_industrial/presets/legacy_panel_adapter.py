@@ -501,9 +501,10 @@ def _write_cuadriculado_square_to_doc(
             )
 
     pierce_count = cols * rows
+    contorno_mm = 2.0 * (sheet_width_mm + sheet_height_mm)
     return {
         "pierce_count": pierce_count,
-        "cut_length_mm": pierce_count * 4.0 * hole_size_mm,
+        "cut_length_mm": pierce_count * 4.0 * hole_size_mm + contorno_mm,
         "zone_cols": n_cols,
         "zone_rows": n_rows,
         "total_zones": total_zones,
