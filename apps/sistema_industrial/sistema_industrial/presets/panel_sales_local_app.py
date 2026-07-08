@@ -1694,6 +1694,7 @@ def _run_all_batches(
                 pierce_count=p_cnt,
                 sheet_area_m2=sheet_area_m2,
                 material_entry=_item_mat_entry,
+                travel_length_mm=geo.get("travel_length_mm", 0.0),
             )
         else:
             consumed = None

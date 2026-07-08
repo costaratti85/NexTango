@@ -102,22 +102,56 @@ def calculate_sheet_area_m2(width_mm: float, height_mm: float) -> float:
     return (width_mm * height_mm) / 1_000_000.0
 
 
+def _factorize_grid(pierce_count: int, usable_w: float, usable_h: float) -> tuple:
+    """Factoriza pierce_count en (cols, rows) cuyo ratio se aproxima a usable_w/usable_h."""
+    if pierce_count <= 0:
+        return 0, 0
+    aspect = usable_w / usable_h if usable_h > 0 else 1.0
+    target_cols = math.sqrt(pierce_count * aspect)
+    lo = max(1, int(target_cols) - 5)
+    hi = min(pierce_count + 1, int(target_cols) + 6)
+    best, best_err = (1, pierce_count), float("inf")
+    for c in range(lo, hi):
+        if pierce_count % c == 0:
+            r = pierce_count // c
+            err = abs(c / r - aspect) if r > 0 else float("inf")
+            if err < best_err:
+                best_err = err
+                best = (c, r)
+    return best
+
+
+def compute_travel_length_mm(
+    pierce_count: int,
+    step_x_mm: float,
+    step_y_mm: float,
+    usable_w: float,
+    usable_h: float,
+) -> float:
+    """Distancia de desplazamiento rapido para cuadriculado (secuencia abajo-arriba, col por col)."""
+    cols, rows = _factorize_grid(pierce_count, usable_w, usable_h)
+    if cols <= 0 or rows <= 0:
+        return 0.0
+    intra = cols * (rows - 1) * step_y_mm
+    inter = (cols - 1) * math.sqrt(step_x_mm ** 2 + ((rows - 1) * step_y_mm) ** 2) if cols > 1 else 0.0
+    return intra + inter
+
+
 def calculate_consumed_resources(
     cut_length_m: float,
     pierce_count: int,
     sheet_area_m2: float,
     material_entry: dict,
+    travel_length_mm: float = 0.0,
 ) -> dict:
-    """Convierte outputs del motor a recursos físicos usando la tabla de materiales.
+    """Convierte outputs del motor a recursos fisicos usando la tabla de materiales.
 
-    Fórmula de tiempo de máquina (dos modos, según calibración):
+    Si laser_a_s_per_mm > 0 usa la formula calibrada (modelo fisico):
+        T = alpha*cut_mm + beta*travel_mm + gamma*pierce_count + delta
+    donde alpha (laser_a_s_per_mm), beta (laser_b_s_per_hole), gamma (laser_c_s_per_m2),
+    delta (laser_d_base_s) son coeficientes de regresion ajustados con calibrar_laser.py.
 
-    Modo regresión (cuando laser_a_s_per_mm > 0):
-        T = a·cut_length_mm + b·pierce_count + c·sheet_area_m2 + d
-    donde a/b/c/d son constantes calibradas empíricamente con datos de CypCut.
-
-    Modo legacy (default, laser_a_s_per_mm == 0):
-        T = cut_length_mm / velocidad_corte_mm_s + pierce_count · tiempo_perforacion_s
+    De lo contrario usa la formula legacy (velocidad nominal + tiempo_perforacion).
     """
     densidad = float(material_entry.get("densidad_kg_m2", 0))
     consumible = float(material_entry.get("consumible_por_perforacion", 0))
@@ -129,18 +163,16 @@ def calculate_consumed_resources(
 
     laser_a = float(material_entry.get("laser_a_s_per_mm", 0))
     if laser_a > 0:
-        # Fórmula calibrada por regresión lineal con datos reales de CypCut.
         laser_b = float(material_entry.get("laser_b_s_per_hole", 0))
         laser_c = float(material_entry.get("laser_c_s_per_m2", 0))
         laser_d = float(material_entry.get("laser_d_base_s", 0))
         machine_seconds = (
             laser_a * cut_length_mm
-            + laser_b * pierce_count
-            + laser_c * sheet_area_m2
+            + laser_b * travel_length_mm
+            + laser_c * pierce_count
             + laser_d
         )
     else:
-        # Fórmula legacy (backward compatible).
         velocidad = float(material_entry.get("velocidad_corte_mm_s", 0))
         tiempo_perf = float(material_entry.get("tiempo_perforacion_s", 0))
         cutting_seconds = (cut_length_mm / velocidad) if velocidad > 0 else 0.0
@@ -529,9 +561,13 @@ def _write_cuadriculado_square_to_doc(
 
     pierce_count = cols * rows
     contorno_mm = 2.0 * (sheet_width_mm + sheet_height_mm)
+    usable_w = sheet_width_mm - 2.0 * margin_mm
+    usable_h = sheet_height_mm - 2.0 * margin_mm
+    travel_mm = compute_travel_length_mm(pierce_count, step_x_mm, step_y_mm, usable_w, usable_h)
     return {
         "pierce_count": pierce_count,
         "cut_length_mm": pierce_count * 4.0 * hole_size_mm + contorno_mm,
+        "travel_length_mm": travel_mm,
         "zone_cols": n_cols,
         "zone_rows": n_rows,
         "total_zones": total_zones,
@@ -666,6 +702,17 @@ class LegacyPanelAdapter:
             raise FileNotFoundError(f"Legacy DXF was not generated: {request.output_dxf_path}")
 
         resources = [_resource_payload(item) for item in result_items]
+        if (request.pattern_type == "cuadriculado"
+                and request.step_x_mm is not None and request.step_y_mm is not None):
+            for res in resources:
+                uw = res["occupied_width_mm"] - 2.0 * request.margin_mm
+                uh = res["occupied_height_mm"] - 2.0 * request.margin_mm
+                res["travel_length_mm"] = compute_travel_length_mm(
+                    res["pierce_count"], request.step_x_mm, request.step_y_mm, uw, uh
+                )
+        else:
+            for res in resources:
+                res["travel_length_mm"] = 0.0
         warnings = []
         if any(resource["cut_length_mm"] == 0 for resource in resources):
             warnings.append("cut_length_mm is 0 for one or more items; panel may have no geometry.")
@@ -714,6 +761,7 @@ class LegacyPanelAdapter:
             "cut_length_mm": geo["cut_length_mm"],
             "cut_length_m": geo["cut_length_mm"] / 1000.0,
             "pierce_count": geo["pierce_count"],
+            "travel_length_mm": geo.get("travel_length_mm", 0.0),
             "sheet_area_m2": sheet_area_m2,
             "bend_count": 0,
         }

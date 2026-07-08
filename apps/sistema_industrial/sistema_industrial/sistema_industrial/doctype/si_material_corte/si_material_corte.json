@@ -72,23 +72,23 @@
       "fieldtype": "Section Break",
       "label": "Tiempo láser (fórmula calibrada)",
       "collapsible": 1,
-      "description": "Constantes de regresión lineal: T = a·cut_mm + b·agujeros + c·área_m2 + d. Dejar en 0 para usar la fórmula legacy (velocidad + pierce)."
+      "description": "Modelo físico: T = alpha*cut_mm + beta*travel_mm + gamma*pierce + delta. Calibrar con tools/calibrar_laser.py. Dejar en 0 para usar fórmula legacy."
     },
     {
       "fieldname": "laser_a_s_per_mm",
       "fieldtype": "Float",
-      "label": "a — coef. longitud (s/mm)",
+      "label": "alpha — corte (s/mm)",
       "default": "0",
       "precision": "6",
-      "description": "Segundos por mm de recorrido de corte. Activa la fórmula calibrada si > 0."
+      "description": "s/mm de recorrido cortando. 1/alpha = velocidad efectiva de corte. Activa la fórmula calibrada si > 0."
     },
     {
       "fieldname": "laser_b_s_per_hole",
       "fieldtype": "Float",
-      "label": "b — coef. agujeros (s/agujero)",
+      "label": "beta — desplazamiento (s/mm)",
       "default": "0",
-      "precision": "4",
-      "description": "Overhead por figura cerrada (esquinas, aceleración)."
+      "precision": "6",
+      "description": "s/mm de recorrido desplazándose entre agujeros. 1/beta = velocidad efectiva de desplazamiento."
     },
     {
       "fieldname": "col_break_laser",
@@ -97,18 +97,18 @@
     {
       "fieldname": "laser_c_s_per_m2",
       "fieldtype": "Float",
-      "label": "c — coef. área (s/m²)",
+      "label": "gamma — perforación (s/agujero)",
       "default": "0",
-      "precision": "2",
-      "description": "Overhead por m² de panel (viaje rápido entre zonas lejanas)."
+      "precision": "4",
+      "description": "Tiempo real por perforación en segundos (incluye apertura de gas, ciclo de perforado)."
     },
     {
       "fieldname": "laser_d_base_s",
       "fieldtype": "Float",
-      "label": "d — overhead base (s)",
+      "label": "delta — overhead fijo (s)",
       "default": "0",
       "precision": "2",
-      "description": "Overhead fijo por panel (inicialización de zonas, delays)."
+      "description": "Segundos fijos por trabajo (posicionamiento inicial, inicio y fin de corte)."
     },
     {
       "fieldname": "sec_precios",
