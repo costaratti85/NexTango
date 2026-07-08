@@ -550,9 +550,19 @@ function perfiles_plegados_init() {
 	    var col=0; for(var i=0;i<steps.length;i++) if(!steps[i].ok) col++;
 	    cerebro={manual:true, collisions:col};
 	  } else {
-	    var res=buscarOrden(flanges,angles,dirs,V,s);
+	    var res;
+	    if(state.keepOrder && state.keepOrder.length===angles.length){
+	      // "Volver a la secuencia": mantener el orden de pliegues ya elegido y solo
+	      // recalcular X/Y/topes/orientaciones con las medidas nuevas
+	      var rk=simulateOrder(flanges,angles,dirs,state.keepOrder,V,s);
+	      rk.order=state.keepOrder;
+	      res={best:rk, feasibleCount:(rk.collisions===0&&rk.opViol===0&&rk.unstable===0)?1:0, tried:1};
+	    } else {
+	      state.keepOrder=null;
+	      res=buscarOrden(flanges,angles,dirs,V,s);
+	    }
 	    steps=res.best.steps.map(enrich);
-	    cerebro={manual:false, tried:res.tried, feasibleCount:res.feasibleCount, collisions:res.best.collisions, manips:res.best.manips, flips:res.best.flips, giras:res.best.giras, opViol:res.best.opViol};
+	    cerebro={manual:false, keepOrder:!!state.keepOrder, tried:res.tried, feasibleCount:res.feasibleCount, collisions:res.best.collisions, manips:res.best.manips, flips:res.best.flips, giras:res.best.giras, opViol:res.best.opViol};
 	    // Técnica W solo si TODOS los órdenes chocan (best tiene el mínimo de choques):
 	    // apoyo inestable o poco sostén del operario NO justifican la técnica W.
 	    if(!state.manual&&res.best.collisions>0){
@@ -578,7 +588,7 @@ function perfiles_plegados_init() {
 	  document.getElementById('pp-resumen').innerHTML=res;
 	  drawFinished('pp-resultPart',p.flanges,p.angles,p.dirs);
 	  var useW=!!(state.useW&&p.wPlan);
-	  document.getElementById('pp-seqTitle').textContent = useW?(p.wTipo==='escalon'?'Secuencia (técnica de escalón)':'Secuencia (técnica W)'):(man?'Secuencia (manual)':'Secuencia (automática)');
+	  document.getElementById('pp-seqTitle').textContent = useW?(p.wTipo==='escalon'?'Secuencia (técnica de escalón)':'Secuencia (técnica W)'):(man?'Secuencia (manual)':(cb.keepOrder?'Secuencia (orden mantenido)':'Secuencia (automática)'));
 	  document.getElementById('pp-btnManual').textContent = man?'↩︎ Volver a automático':'✏️ Editar a mano';
 	  document.getElementById('pp-btnManual').style.display = useW?'none':'';
 	  document.getElementById('pp-seqBody').closest('table').style.display = useW?'none':'';
@@ -827,7 +837,25 @@ function perfiles_plegados_init() {
 	  if(n<2){ document.getElementById('pp-setupMsg').innerHTML='<div class="warn">Cargá al menos 2 medidas.</div>'; return; }
 	  // descartar alas vacías finales
 	  while(state.segs.length>2 && (state.segs[state.segs.length-1].len==null||isNaN(state.segs[state.segs.length-1].len))){ state.segs.pop(); state.segs[state.segs.length-1].ang=null; }
-	  document.getElementById('pp-setupMsg').innerHTML=''; state.manual=false; state.manSeq=null; state.useW=false; state.plan=buildPlan(); state.step=0; showResult();
+	  document.getElementById('pp-setupMsg').innerHTML=''; state.manual=false; state.manSeq=null; state.useW=false; state.keepOrder=null; state.plan=buildPlan(); state.step=0; showResult();
+	});
+	/* "Volver a la secuencia": recalcular con las medidas nuevas SIN perder el orden elegido
+	   (mantiene modo manual y técnica aceptada). Si cambió la cantidad de pliegues, cae al
+	   cálculo completo. */
+	document.getElementById('pp-btnBackSeq').addEventListener('click',function(){
+	  var n=0; for(var i=0;i<state.segs.length;i++){ if(state.segs[i].len!=null&&!isNaN(state.segs[i].len)) n++; }
+	  for(var j=0;j<state.segs.length-1;j++){ if(state.segs[j].ang==null||isNaN(state.segs[j].ang)) state.segs[j].ang=90; }
+	  if(n<2){ document.getElementById('pp-setupMsg').innerHTML='<div class="warn">Cargá al menos 2 medidas.</div>'; return; }
+	  while(state.segs.length>2 && (state.segs[state.segs.length-1].len==null||isNaN(state.segs[state.segs.length-1].len))){ state.segs.pop(); state.segs[state.segs.length-1].ang=null; }
+	  var nb=state.segs.length-1;
+	  if(!state.plan){ state.manual=false; state.manSeq=null; state.useW=false; state.keepOrder=null; }
+	  else if(state.manual){ if(!state.manSeq||state.manSeq.length!==nb){ state.manual=false; state.manSeq=null; } }
+	  else {
+	    var ord=[]; for(var k=0;k<state.plan.steps.length;k++){ var b=state.plan.steps[k].bendIndex; if(b!=null) ord.push(b); }
+	    state.keepOrder=(ord.length===nb)?ord:null;
+	  }
+	  document.getElementById('pp-setupMsg').innerHTML='';
+	  state.plan=buildPlan(); state.step=0; showResult();
 	});
 	document.getElementById('pp-btnCil').addEventListener('click',function(){
 	  var panel=document.getElementById('pp-cilPanel'), vis=panel.style.display!=='none';
@@ -836,7 +864,7 @@ function perfiles_plegados_init() {
 	});
 	document.getElementById('pp-calcCil').addEventListener('click',showCilindrado);
 	document.getElementById('pp-btnManual').addEventListener('click',toggleManual);
-	document.getElementById('pp-back1').addEventListener('click',function(){ show('pp-setup'); });
+	document.getElementById('pp-back1').addEventListener('click',function(){ document.getElementById('pp-btnBackSeq').style.display=state.plan?'':'none'; show('pp-setup'); });
 	document.getElementById('pp-goRun').addEventListener('click',function(){ state.step=0; state.zoomDie=true; state.punchDown=false; document.getElementById('pp-btnZoom').classList.add('on'); document.getElementById('pp-btnPunchDown').classList.remove('on'); show('pp-run'); showStep(); });
 	document.getElementById('pp-exitRun').addEventListener('click',function(){ show('pp-result'); });
 	document.getElementById('pp-next').addEventListener('click',function(){ var len=(state.useW&&state.plan.wPlan)?state.plan.wPlan.length:state.plan.steps.length; if(state.step<len-1){ state.step++; showStep(); } else { show('pp-result'); } });
@@ -985,7 +1013,8 @@ function perfiles_plegados_init() {
 	  if(p.dieId!=null){ var di=toolIndexById(TOOLS.matrices,p.dieId); if(di>=0){ setDie(di); if(p.rot&&curDie&&curDie.rotations){ curRot=p.rot%curDie.rotations.length; var r=dieRot(); if(r) document.getElementById('pp-V').value=r.V; updateToolBtns(); } } }
 	  ['s','V','ri','sb','Rm','L'].forEach(function(k){ if(p[k]!=null&&p[k]!=='') document.getElementById('pp-'+k).value=p[k]; });
 	  state.angCorr=p.angCorr||{}; state.xCorr=p.xCorr||{};   // la pieza guardada trae sus correcciones empíricas ya afinadas
-	  state.plan=null; state.manual=false; state.manSeq=null; state.useW=false; state.step=0;
+	  state.plan=null; state.manual=false; state.manSeq=null; state.useW=false; state.keepOrder=null; state.step=0;
+	  document.getElementById('pp-btnBackSeq').style.display='none';
 	  renderSegs(); previewSetup();
 	  document.getElementById('pp-partsModal').style.display='none'; show('pp-setup');
 	}
