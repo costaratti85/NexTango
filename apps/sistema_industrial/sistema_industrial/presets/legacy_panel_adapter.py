@@ -108,21 +108,48 @@ def calculate_consumed_resources(
     sheet_area_m2: float,
     material_entry: dict,
 ) -> dict:
-    """Convierte outputs del motor a recursos físicos usando la tabla de materiales."""
+    """Convierte outputs del motor a recursos físicos usando la tabla de materiales.
+
+    Fórmula de tiempo de máquina (dos modos, según calibración):
+
+    Modo regresión (cuando laser_a_s_per_mm > 0):
+        T = a·cut_length_mm + b·pierce_count + c·sheet_area_m2 + d
+    donde a/b/c/d son constantes calibradas empíricamente con datos de CypCut.
+
+    Modo legacy (default, laser_a_s_per_mm == 0):
+        T = cut_length_mm / velocidad_corte_mm_s + pierce_count · tiempo_perforacion_s
+    """
     densidad = float(material_entry.get("densidad_kg_m2", 0))
-    velocidad = float(material_entry.get("velocidad_corte_mm_s", 0))
-    tiempo_perf = float(material_entry.get("tiempo_perforacion_s", 0))
     consumible = float(material_entry.get("consumible_por_perforacion", 0))
 
     material_kg = sheet_area_m2 * densidad
-    cutting_seconds = (cut_length_m * 1000.0 / velocidad) if velocidad > 0 else 0.0
-    pierce_seconds = pierce_count * tiempo_perf
-    machine_seconds = cutting_seconds + pierce_seconds
     consumibles_used = pierce_count * consumible
+
+    cut_length_mm = cut_length_m * 1000.0
+
+    laser_a = float(material_entry.get("laser_a_s_per_mm", 0))
+    if laser_a > 0:
+        # Fórmula calibrada por regresión lineal con datos reales de CypCut.
+        laser_b = float(material_entry.get("laser_b_s_per_hole", 0))
+        laser_c = float(material_entry.get("laser_c_s_per_m2", 0))
+        laser_d = float(material_entry.get("laser_d_base_s", 0))
+        machine_seconds = (
+            laser_a * cut_length_mm
+            + laser_b * pierce_count
+            + laser_c * sheet_area_m2
+            + laser_d
+        )
+    else:
+        # Fórmula legacy (backward compatible).
+        velocidad = float(material_entry.get("velocidad_corte_mm_s", 0))
+        tiempo_perf = float(material_entry.get("tiempo_perforacion_s", 0))
+        cutting_seconds = (cut_length_mm / velocidad) if velocidad > 0 else 0.0
+        pierce_seconds = pierce_count * tiempo_perf
+        machine_seconds = cutting_seconds + pierce_seconds
 
     return {
         "material_kg": round(material_kg, 3),
-        "machine_seconds": round(machine_seconds, 1),
+        "machine_seconds": round(max(machine_seconds, 0.0), 1),
         "pierce_count": pierce_count,
         "consumibles_used": round(consumibles_used, 4),
     }
