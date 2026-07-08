@@ -189,17 +189,28 @@ class AdminPatrones {
 		});
 	}
 
+	// Galería con thumbnails, agrupada en dos secciones (Motor nativo / DXF y
+	// Cargados) — igual criterio que panel_decorativo.js. Los thumbnails vienen
+	// de get_all()/list_admin() (Punto, thumbnails de panel tileado v3, commit
+	// 8a8adc5); si no hay PNG generado todavía, placeholder de contorno.
 	render_grid(rows, admin_mode) {
 		const grid = $('#ap-grid').empty();
 		if (!rows.length) {
 			grid.append($('<div class="ap-empty">').text(__('No hay patrones cargados todavía.')));
 			return;
 		}
-		rows.forEach((p) => {
+
+		const build_card = (p) => {
 			const activo = admin_mode ? p.activo !== 0 : true;
-			// Sin thumbnails (backend eliminado, Punto MSG_085) — la tarjeta
-			// queda solo con nombre + badges + acciones, sin imagen/placeholder.
 			const card = $('<div class="ap-card">').toggleClass('inactivo', !activo);
+
+			if (p.thumbnail_url) {
+				card.append($('<img class="ap-thumb" loading="lazy">').attr('src', p.thumbnail_url).attr('alt', p.label || p.name));
+			} else {
+				card.append(
+					$('<svg class="ap-thumb-svg" viewBox="0 0 130 100"><rect x="10" y="10" width="110" height="80" fill="none" stroke="#c5dde8" stroke-width="2"/></svg>')
+				);
+			}
 
 			card.append($('<div class="ap-card-name">').text(p.label || p.name));
 
@@ -238,8 +249,24 @@ class AdminPatrones {
 				);
 			}
 
-			grid.append(card);
-		});
+			return card;
+		};
+
+		const append_section = (title, list) => {
+			if (!list.length) return;
+			grid.append($('<div class="ap-section-title">').text(title));
+			const row = $('<div class="ap-section-row">');
+			list.forEach((p) => row.append(build_card(p)));
+			grid.append(row);
+		};
+
+		const nativos = rows.filter((p) => p.tipo === 'Paramétrico');
+		const cargados = rows.filter((p) => p.tipo === 'Archivo' || p.tipo === 'Vectorizado');
+		const otros = rows.filter((p) => p.tipo !== 'Paramétrico' && p.tipo !== 'Archivo' && p.tipo !== 'Vectorizado');
+
+		append_section(__('Motor nativo'), nativos);
+		append_section(__('DXF / Cargados'), cargados);
+		append_section(__('Otros'), otros);
 	}
 
 	// ------------------------------------------------------------------
