@@ -24,7 +24,8 @@ import sys
 _APP = os.path.join(os.path.dirname(__file__), "..", "apps", "sistema_industrial")
 sys.path.insert(0, os.path.abspath(_APP))
 
-os.environ.setdefault("APP_INSTANCE_ID", "***REMOVED***")
+# APP_INSTANCE_ID (token Tango) debe venir del entorno — nunca hardcodeado.
+# Exportalo antes de correr: export APP_INSTANCE_ID=... (o via .env).
 os.environ.setdefault("TANGO_URL", "http://server-t:17000")
 os.environ.setdefault("TANGO_COMPANY", "25")
 

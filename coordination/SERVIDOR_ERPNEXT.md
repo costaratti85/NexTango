@@ -106,7 +106,7 @@ Si se regeneran los configs con `bench setup nginx` o `bench setup supervisor`, 
 | Campo | Valor |
 |---|---|
 | Servidor | `http://server-t:17000` |
-| APP_INSTANCE_ID (ApiAuthorization) | `***REMOVED***` |
+| APP_INSTANCE_ID (ApiAuthorization) | `<APP_INSTANCE_ID>` |
 | Company | `25` |
 | Process clientes (GVA14) | `2117` |
 | Process artículos (STA11) | `87` |

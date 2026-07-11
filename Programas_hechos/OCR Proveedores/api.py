@@ -1,8 +1,10 @@
+import os
 import requests
 import json
 
-TOKEN = "***REMOVED***"
-COMPANY = "25"
+# El token vive en la variable de entorno APP_INSTANCE_ID (nunca hardcodeado).
+TOKEN = os.environ.get("APP_INSTANCE_ID", "")
+COMPANY = os.environ.get("TANGO_COMPANY", "25")
 
 URL = "http://server-t:17000/Api/Create/360"
 

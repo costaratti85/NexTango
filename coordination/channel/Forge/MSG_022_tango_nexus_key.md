@@ -12,7 +12,7 @@ Forge, necesito que hagas dos cosas en el servidor Ubuntu (`190.190.190.20`):
 ## 1. Agregar variable de entorno en `/etc/environment`
 
 ```bash
-echo 'APP_INSTANCE_ID="***REMOVED***"' | sudo tee -a /etc/environment
+echo 'APP_INSTANCE_ID="<APP_INSTANCE_ID>"' | sudo tee -a /etc/environment
 ```
 
 Verificar con:
@@ -24,7 +24,7 @@ grep APP_INSTANCE_ID /etc/environment
 
 ```bash
 cd /home/costa/frappe-bench
-bench --site erp.local set-config tango_token "***REMOVED***"
+bench --site erp.local set-config tango_token "<APP_INSTANCE_ID>"
 ```
 
 El scheduler lee de `frappe.conf.get("tango_token")` primero, luego cae al entorno.

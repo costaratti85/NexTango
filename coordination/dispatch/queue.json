@@ -901,7 +901,7 @@
         "PLAN_TANGO_SPRINT001"
       ],
       "status": "completado",
-      "nota": "MSG_038-tango: Tango expone GVA10_NRO_DE_LIS/NOMBRE_LIS + PORC_DESC. Mapeo propuesto: todas → Precio Standard (IVA lo maneja ERPNext por tipo cliente). Descuentos PORC_DESC fuera de Sprint 1. Sync recurrente: Opción B (script Windows) para verificar, Opción A (Frappe scheduler) en Sprint 2. APP_INSTANCE_ID=41A67498-... (privado, aprobado en git). 3 preguntas de negocio para Constantino. Run masivo: en curso, counts sin reportar aún."
+      "nota": "MSG_038-tango: Tango expone GVA10_NRO_DE_LIS/NOMBRE_LIS + PORC_DESC. Mapeo propuesto: todas → Precio Standard (IVA lo maneja ERPNext por tipo cliente). Descuentos PORC_DESC fuera de Sprint 1. Sync recurrente: Opción B (script Windows) para verificar, Opción A (Frappe scheduler) en Sprint 2. APP_INSTANCE_ID=<APP_INSTANCE_ID> (privado, aprobado en git). 3 preguntas de negocio para Constantino. Run masivo: en curso, counts sin reportar aún."
     },
     {
       "agent": "Vega",
