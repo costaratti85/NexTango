@@ -1,0 +1,6 @@
+# Runtime del motor standalone (Panel Decorativo / vectorizador / deploys).
+# Entorno de dev local: crear/activar el venv y luego:
+#   python3 -m venv .venv
+#   .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+ezdxf==1.4.4
+paramiko==5.0.0
