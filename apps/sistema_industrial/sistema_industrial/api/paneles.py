@@ -52,6 +52,11 @@ def calcular(batches_json, customer="", job_name="", observations=""):
                 "peso_kg": 2.24,
                 "tiempo_laser_s": 68.6,
                 "cantidad_plegados": 0,
+                "costo_material": 1234.5,     # $ por panel
+                "costo_maquina": 678.9,       # $ por panel (segundos × precio_segundo)
+                "costo_total": 1913.4,        # $ por panel
+                "costo_total_linea": 1913.4,  # costo_total × quantity
+                "prices_missing": false,      # true si faltan precios del día
                 "consumed_resources": {...},
                 "consumed_resources_warning": false
             }, ...
@@ -84,18 +89,29 @@ def calcular(batches_json, customer="", job_name="", observations=""):
     lineas = []
     for r in svc.calculated_resources:
         cr = r.get("consumed_resources") or {}
+        cost = r.get("cost") or {}
+        qty = int(r.get("quantity", 1))
+        costo_total_unit = float(cost.get("costo_total", 0))
         lineas.append({
             "patron": r.get("patron", ""),
             "material": r.get("material", ""),
             "espesor_mm": r.get("espesor_mm", 0),
-            "quantity": r.get("quantity", 1),
+            "quantity": qty,
             "ancho_mm": r.get("occupied_width_mm", 0),
             "alto_mm": r.get("occupied_height_mm", 0),
             "cut_length_mm": r.get("cut_length_mm", 0),
             "pierce_count": r.get("pierce_count", 0),
-            "peso_kg": float(cr.get("material_kg", 0)) * int(r.get("quantity", 1)),
-            "tiempo_laser_s": float(cr.get("machine_seconds", 0)) * int(r.get("quantity", 1)),
-            "cantidad_plegados": int(r.get("bend_count", 0)) * int(r.get("quantity", 1)),
+            "peso_kg": float(cr.get("material_kg", 0)) * qty,
+            "tiempo_laser_s": float(cr.get("machine_seconds", 0)) * qty,
+            "cantidad_plegados": int(r.get("bend_count", 0)) * qty,
+            # Precio: unitario (por panel) + total de línea (× cantidad).
+            # Sin esto la UI recibía los segundos pero no el precio → Panel
+            # Decorativo no cerraba end-to-end.
+            "costo_material": float(cost.get("costo_material", 0)),
+            "costo_maquina": float(cost.get("costo_maquina", 0)),
+            "costo_total": costo_total_unit,
+            "costo_total_linea": round(costo_total_unit * qty, 2),
+            "prices_missing": bool(cost.get("prices_missing", False)),
             "consumed_resources": cr,
             "consumed_resources_warning": r.get("consumed_resources_warning", False),
         })
