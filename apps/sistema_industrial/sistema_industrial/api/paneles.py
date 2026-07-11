@@ -48,6 +48,7 @@ def calcular(batches_json, customer="", job_name="", observations=""):
                 "ancho_mm": 500.0,
                 "alto_mm": 1000.0,
                 "cut_length_mm": 12345.0,
+                "travel_length_mm": 9500.0,   # término crudo para calibración láser
                 "pierce_count": 432,
                 "peso_kg": 2.24,
                 "tiempo_laser_s": 68.6,
@@ -100,6 +101,7 @@ def calcular(batches_json, customer="", job_name="", observations=""):
             "ancho_mm": r.get("occupied_width_mm", 0),
             "alto_mm": r.get("occupied_height_mm", 0),
             "cut_length_mm": r.get("cut_length_mm", 0),
+            "travel_length_mm": r.get("travel_length_mm", 0),
             "pierce_count": r.get("pierce_count", 0),
             "peso_kg": float(cr.get("material_kg", 0)) * qty,
             "tiempo_laser_s": float(cr.get("machine_seconds", 0)) * qty,

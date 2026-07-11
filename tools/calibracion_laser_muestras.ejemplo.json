@@ -1,0 +1,11 @@
+{
+  "_comentario": "PLANTILLA. Constantino: reemplazá t_cypcut_s de cada panel con el TIEMPO ESTIMADO DE CORTE que reporta CypCut al abrir su DXF. Los términos crudos (cut_length_mm, travel_length_mm, pierce_count) los da la pantalla de Panel Decorativo / el endpoint calcular(); NO los inventes. Sumá tantos paneles como puedas, variados en tamaño, densidad de agujeros, material y espesor.",
+  "muestras": [
+    {"nombre": "P01_cuadriculado_500x1000_d18",  "material": "Chapa doble decapada", "espesor_mm": 0.9, "cut_length_mm": 0.0, "travel_length_mm": 0.0, "pierce_count": 0, "t_cypcut_s": 0.0},
+    {"nombre": "P02_cuadriculado_500x1000_d24",  "material": "Chapa doble decapada", "espesor_mm": 0.9, "cut_length_mm": 0.0, "travel_length_mm": 0.0, "pierce_count": 0, "t_cypcut_s": 0.0},
+    {"nombre": "P03_cuadriculado_1000x2000_d18", "material": "Chapa doble decapada", "espesor_mm": 0.9, "cut_length_mm": 0.0, "travel_length_mm": 0.0, "pierce_count": 0, "t_cypcut_s": 0.0},
+    {"nombre": "P04_cuadriculado_250x500_d24",   "material": "Chapa doble decapada", "espesor_mm": 0.9, "cut_length_mm": 0.0, "travel_length_mm": 0.0, "pierce_count": 0, "t_cypcut_s": 0.0},
+    {"nombre": "P05_cuadriculado_500x1000_dbaja","material": "Chapa doble decapada", "espesor_mm": 0.9, "cut_length_mm": 0.0, "travel_length_mm": 0.0, "pierce_count": 0, "t_cypcut_s": 0.0},
+    {"nombre": "P06_cuadriculado_500x1000_dalta","material": "Chapa doble decapada", "espesor_mm": 0.9, "cut_length_mm": 0.0, "travel_length_mm": 0.0, "pierce_count": 0, "t_cypcut_s": 0.0}
+  ]
+}

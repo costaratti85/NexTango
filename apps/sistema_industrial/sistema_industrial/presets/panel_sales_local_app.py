@@ -1664,6 +1664,9 @@ def _run_all_batches(
                 "occupied_height_mm": item.occupied_height,
                 "geometry_item_count": len(item.geometry_items),
                 "cut_length_mm": cut_length_mm,
+                # travel aún no se computa para patrones genéricos (solo grilla
+                # cuadriculada). Se expone en 0.0 para el término crudo de calibración.
+                "travel_length_mm": 0.0,
                 "pierce_count": pierce_count,
                 "bend_count": item.bend_count,
                 "consumed_resources": consumed,
@@ -1714,6 +1717,7 @@ def _run_all_batches(
                 "occupied_height_mm": sh,
                 "geometry_item_count": p_cnt,
                 "cut_length_mm": c_len,
+                "travel_length_mm": geo.get("travel_length_mm", 0.0),
                 "pierce_count": p_cnt,
                 "bend_count": 0,
                 "consumed_resources": consumed,
