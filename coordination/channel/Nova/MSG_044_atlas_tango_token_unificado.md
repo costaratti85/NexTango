@@ -13,7 +13,7 @@
 - `apps/sistema_industrial/README.md` — tabla de env vars
 
 Tests: 18/18 sin cambios (el renombre no rompe nada).  
-Verificación directa: `make_tango_config_from_env()` con `TANGO_TOKEN=41A67498...` → config.token correcto.
+Verificación directa: `make_tango_config_from_env()` con `TANGO_TOKEN=<APP_INSTANCE_ID>` → config.token correcto.
 
 ## Canales notificados
 
