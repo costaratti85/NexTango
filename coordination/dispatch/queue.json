@@ -5,9 +5,10 @@
       "task": "ORBIT_DEPLOY_ELIMINAR_THUMBNAILS",
       "descripcion": "Deploy de commit 8a1e92d (erpnext): eliminacion definitiva de thumbnails. Pasos: (1) git pull. (2) bench migrate --app sistema_industrial (DocType SI Patron cambio: campo 'thumbnail' eliminado). (3) bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. (4) rm -rf /home/costa/frappe-bench/apps/sistema_industrial/sistema_industrial/public/pattern_thumbnails/ (eliminar PNGs del disco). Confirmar que admin-patrones carga sin errores y que el directorio de PNGs ya no existe. Ver MSG_085 en canal Nova.",
       "msg": "coordination/channel/Nova/MSG_085_punto_eliminar_thumbnails.md",
-      "status": "pendiente",
+      "status": "obsoleto",
       "sprint": "001-rebanada",
-      "prioridad": "alta"
+      "prioridad": "alta",
+      "nota": "Orbit (2026-07-10): NO EJECUTADO — obsoleto. La eliminacion de thumbnails (8a1e92d, 07/07) fue revertida por trabajo posterior: 8a8adc5 (thumbnails panel v3), 6c8169c (galeria visual), 39841e6 (restaura galeria admin-patrones). El servidor ya esta en HEAD 7777517 (08/07) con los 8 thumbnails restaurados y sirviendose en disco. Ejecutar este deploy ahora seria un rollback destructivo (rm -rf pattern_thumbnails/ + bench migrate quitando campo ya reconfigurado). Constantino confirma: 'Pedi que borraran para que lo volvieran a instalar. Ya se borro. Ya se reinstalo. Funcionando.' Ciclo cerrado, nada que deployar."
     },
     
     {
