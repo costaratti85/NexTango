@@ -1,0 +1,149 @@
+{
+  "_meta": "Batería 2 (ratios variados). Completá t_cypcut_s con el Total de CypCut de cada DXF.",
+  "muestras": [
+    {
+      "nombre": "B2_01_L60_p70_500x500",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 60,
+      "step_mm": 70,
+      "sheet_mm": "500x500",
+      "cut_length_mm": 10640.0,
+      "travel_length_mm": 3884.66,
+      "pierce_count": 36,
+      "t_cypcut_s": 0.0
+    },
+    {
+      "nombre": "B2_02_L30_p70_500x500",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 30,
+      "step_mm": 70,
+      "sheet_mm": "500x500",
+      "cut_length_mm": 6320.0,
+      "travel_length_mm": 3884.66,
+      "pierce_count": 36,
+      "t_cypcut_s": 0.0
+    },
+    {
+      "nombre": "B2_03_L20_p40_1000x1000",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 20,
+      "step_mm": 40,
+      "sheet_mm": "1000x1000",
+      "cut_length_mm": 50080.0,
+      "travel_length_mm": 43259.99,
+      "pierce_count": 576,
+      "t_cypcut_s": 0.0
+    },
+    {
+      "nombre": "B2_04_L30_p140_1000x1000",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 30,
+      "step_mm": 140,
+      "sheet_mm": "1000x1000",
+      "cut_length_mm": 9880.0,
+      "travel_length_mm": 10989.52,
+      "pierce_count": 49,
+      "t_cypcut_s": 0.0
+    },
+    {
+      "nombre": "B2_05_L12_p70_1000x500",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 12,
+      "step_mm": 70,
+      "sheet_mm": "1000x500",
+      "cut_length_mm": 7032.0,
+      "travel_length_mm": 9540.11,
+      "pierce_count": 84,
+      "t_cypcut_s": 0.0
+    },
+    {
+      "nombre": "B2_06_L8_p70_1000x500",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 8,
+      "step_mm": 70,
+      "sheet_mm": "1000x500",
+      "cut_length_mm": 5688.0,
+      "travel_length_mm": 9540.11,
+      "pierce_count": 84,
+      "t_cypcut_s": 0.0
+    },
+    {
+      "nombre": "B2_07_L12_p70_1000x1000",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 12,
+      "step_mm": 70,
+      "sheet_mm": "1000x1000",
+      "cut_length_mm": 13408.0,
+      "travel_length_mm": 24604.95,
+      "pierce_count": 196,
+      "t_cypcut_s": 0.0
+    },
+    {
+      "nombre": "B2_08_L5_p25_1000x1000",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 5,
+      "step_mm": 25,
+      "sheet_mm": "1000x1000",
+      "cut_length_mm": 34420.0,
+      "travel_length_mm": 73162.5,
+      "pierce_count": 1521,
+      "t_cypcut_s": 0.0
+    },
+    {
+      "nombre": "B2_09_L8_p70_1000x1000",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 8,
+      "step_mm": 70,
+      "sheet_mm": "1000x1000",
+      "cut_length_mm": 10272.0,
+      "travel_length_mm": 24604.95,
+      "pierce_count": 196,
+      "t_cypcut_s": 0.0
+    },
+    {
+      "nombre": "B2_10_L5_p100_1000x1000",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 5,
+      "step_mm": 100,
+      "sheet_mm": "1000x1000",
+      "cut_length_mm": 5620.0,
+      "travel_length_mm": 13649.81,
+      "pierce_count": 81,
+      "t_cypcut_s": 0.0
+    },
+    {
+      "nombre": "B2_11_L5_p45_1000x1000",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 5,
+      "step_mm": 45,
+      "sheet_mm": "1000x1000",
+      "cut_length_mm": 12820.0,
+      "travel_length_mm": 36922.49,
+      "pierce_count": 441,
+      "t_cypcut_s": 0.0
+    },
+    {
+      "nombre": "B2_12_L5_p70_1000x1000",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "hole_size_mm": 5,
+      "step_mm": 70,
+      "sheet_mm": "1000x1000",
+      "cut_length_mm": 7920.0,
+      "travel_length_mm": 24604.95,
+      "pierce_count": 196,
+      "t_cypcut_s": 0.0
+    }
+  ]
+}
