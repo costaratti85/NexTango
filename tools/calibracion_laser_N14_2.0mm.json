@@ -1,0 +1,21 @@
+{
+  "_meta": "Batería de calibración CypCut — chapa N°14 (2.0 mm). Datos reales pasados por Constantino a Nova (canal Constantino↔Nova), relayados en MSG_029. Velocidad corte nominal 75 mm/s, rápido 1650 mm/s. t_cypcut_s = Total time estimado por CypCut (Processing+Move+Delay).",
+  "material": "Chapa N°14",
+  "espesor_mm": 2.0,
+  "muestras": [
+    {"nombre": "P01", "cut_length_mm": 36157.63,  "travel_length_mm": 42842.38,  "pierce_count": 2210, "t_cypcut_s": 3006.726},
+    {"nombre": "P02", "cut_length_mm": 73785.47,  "travel_length_mm": 89341.73,  "pierce_count": 4560, "t_cypcut_s": 6114.731},
+    {"nombre": "P03", "cut_length_mm": 150682.71, "travel_length_mm": 185313.24, "pierce_count": 9410, "t_cypcut_s": 12805.689},
+    {"nombre": "P04", "cut_length_mm": 17343.70,  "travel_length_mm": 19806.35,  "pierce_count": 1035, "t_cypcut_s": 1417.164},
+    {"nombre": "P05", "cut_length_mm": 19538.82,  "travel_length_mm": 21650.07,  "pierce_count": 577,  "t_cypcut_s": 961.011},
+    {"nombre": "P06", "cut_length_mm": 39102.75,  "travel_length_mm": 45144.96,  "pierce_count": 1177, "t_cypcut_s": 1951.419},
+    {"nombre": "P07", "cut_length_mm": 78301.37,  "travel_length_mm": 93152.93,  "pierce_count": 2402, "t_cypcut_s": 3962.668},
+    {"nombre": "P08", "cut_length_mm": 30070.01,  "travel_length_mm": 30850.47,  "pierce_count": 1157, "t_cypcut_s": 1727.690},
+    {"nombre": "P09", "cut_length_mm": 91391.30,  "travel_length_mm": 96475.37,  "pierce_count": 3520, "t_cypcut_s": 5275.686},
+    {"nombre": "P10", "cut_length_mm": 13786.37,  "travel_length_mm": 14163.78,  "pierce_count": 257,  "t_cypcut_s": 520.703},
+    {"nombre": "P11", "cut_length_mm": 27318.16,  "travel_length_mm": 29797.24,  "pierce_count": 529,  "t_cypcut_s": 1060.858},
+    {"nombre": "P12", "cut_length_mm": 10769.41,  "travel_length_mm": 10338.88,  "pierce_count": 145,  "t_cypcut_s": 345.696},
+    {"nombre": "P13", "cut_length_mm": 42110.71,  "travel_length_mm": 47072.39,  "pierce_count": 626,  "t_cypcut_s": 1446.006},
+    {"nombre": "P14", "cut_length_mm": 29539.57,  "travel_length_mm": 29624.81,  "pierce_count": 1105, "t_cypcut_s": 1670.350}
+  ]
+}

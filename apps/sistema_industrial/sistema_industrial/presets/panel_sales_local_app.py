@@ -729,8 +729,9 @@ def _load_daily_prices() -> tuple[dict, bool]:
     if "precio_kg_inoxidable" in prices and "precio_kg_inoxidable_304" not in prices:
         prices["precio_kg_inoxidable_304"] = prices.pop("precio_kg_inoxidable")
 
+    # precio_segundo NO va acá: es fuente única desde SI Precios Globales
+    # (ver _precio_segundo_laser). Estas son las claves de precio por kg / plegado.
     relevant_keys = (
-        "precio_segundo_maquina",
         "precio_kg_doble_decapada",
         "precio_kg_galvanizado",
         "precio_kg_inoxidable_430",
@@ -748,15 +749,43 @@ def _load_daily_prices() -> tuple[dict, bool]:
 # Cost calculation
 # ---------------------------------------------------------------------------
 
+def _precio_segundo_laser(daily_prices: dict) -> float:
+    """Precio por segundo de máquina — FUENTE DE VERDAD ÚNICA.
+
+    El precio por segundo vive en el doctype «SI Precios Globales»
+    (campo `precio_segundo_laser`), que es el mismo que usan los doctypes
+    SI Presupuesto Panel y SI Pedido Plegado. Así el precio sale idéntico por
+    cualquier camino de cálculo.
+
+    Fallback al dict de precios (`precio_segundo_laser`, o el legacy
+    `precio_segundo_maquina`) solo cuando frappe no está disponible — p.ej.
+    tests o la app standalone legacy sin base de datos.
+    """
+    try:
+        import frappe
+        pg = frappe.get_single("SI Precios Globales")
+        val = float(pg.precio_segundo_laser or 0)
+        if val > 0:
+            return val
+    except Exception:
+        pass
+    return float(
+        daily_prices.get("precio_segundo_laser")
+        or daily_prices.get("precio_segundo_maquina")
+        or 0
+    )
+
+
 def calculate_cost(consumed_resources: dict, material_name: str, daily_prices: dict) -> dict:
     """Calculate cost for a batch given consumed_resources and daily prices.
 
     consumed_resources: {"material_kg": X, "machine_seconds": Y, "pierce_count": Z}
     material_name: e.g. "Galvanizado" | "Acero negro" | "Inoxidable 304"
-    daily_prices: dict read from daily_prices.json
+    daily_prices: dict de precios de material (por kg). El precio por segundo NO
+        sale de acá: es único y viene de SI Precios Globales (ver _precio_segundo_laser).
     Returns: {"costo_material": X, "costo_maquina": Y, "costo_total": Z}
     """
-    precio_segundo = float(daily_prices.get("precio_segundo_maquina") or 0)
+    precio_segundo = _precio_segundo_laser(daily_prices)
 
     mat = material_name.lower()
     if "galvanizado" in mat:
