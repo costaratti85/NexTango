@@ -463,6 +463,27 @@ class PanelDecorativo {
 			tr.append($('<td style="text-align:right">').text(ln.peso_kg.toFixed(2)));
 			tr.append($('<td style="text-align:right">').text(ln.tiempo_laser_s.toFixed(0)));
 			tr.append($('<td style="text-align:right">').text(ln.cantidad_plegados));
+			// Costo del motor (base CypCut, por línea = × cantidad). Read-only:
+			// no depende de los factores, así que se llena acá y no en refresh_costos.
+			// Cuando la fórmula quede calibrada server-side, el número aparece solo.
+			const motorTd = $('<td style="text-align:right" class="pd-motor-costo">');
+			if (ln.prices_missing) {
+				motorTd.append(
+					$('<span class="dimmed" style="font-style:italic">')
+						.attr('title', __('Faltan precios del día / coeficientes del motor sin calibrar'))
+						.text(__('pendiente'))
+				);
+			} else {
+				const qty = ln.quantity || 1;
+				motorTd
+					.text(format_currency(ln.costo_total_linea || 0, 'ARS'))
+					.attr(
+						'title',
+						__('Material') + ' ' + format_currency((ln.costo_material || 0) * qty, 'ARS') +
+							'  +  ' + __('Máquina') + ' ' + format_currency((ln.costo_maquina || 0) * qty, 'ARS')
+					);
+			}
+			tr.append(motorTd);
 			['factor_kg', 'factor_laser', 'factor_plegar_kg', 'factor_pliegue'].forEach((f) => {
 				const inp = $(
 					'<input type="number" min="0" step="0.05" style="width:64px;text-align:center">'
@@ -480,6 +501,36 @@ class PanelDecorativo {
 			tbody.append(tr);
 		});
 		this.refresh_costos();
+		this.render_motor_summary();
+	}
+
+	// Resumen del costo base del motor (CypCut), independiente de factores/descuento.
+	// Aditivo sobre el presupuesto de venta existente: cuando la fórmula quede
+	// calibrada server-side, este número deja de estar "pendiente" solo.
+	render_motor_summary() {
+		const $sum = $('#pd-motor-summary').empty();
+		if (!this.lineas.length) return;
+		const anyMissing = this.lineas.some((ln) => ln.prices_missing);
+		if (anyMissing) {
+			$sum.html(
+				'⏳ <b>' + __('Costo motor (base):') + '</b> ' +
+					__('pendiente de calibración — faltan precios del día o coeficientes del motor.')
+			);
+			return;
+		}
+		let mat = 0, maq = 0, tot = 0;
+		this.lineas.forEach((ln) => {
+			const qty = ln.quantity || 1;
+			mat += (ln.costo_material || 0) * qty;
+			maq += (ln.costo_maquina || 0) * qty;
+			tot += ln.costo_total_linea || 0;
+		});
+		$sum.html(
+			'🔧 <b>' + __('Costo motor (base, sin factores ni descuento):') + '</b> ' +
+				__('material') + ' ' + format_currency(mat, 'ARS') + '  +  ' +
+				__('máquina') + ' ' + format_currency(maq, 'ARS') + '  =  ' +
+				'<b>' + format_currency(tot, 'ARS') + '</b>'
+		);
 	}
 
 	refresh_costos() {
