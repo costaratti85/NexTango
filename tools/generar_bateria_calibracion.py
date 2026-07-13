@@ -84,6 +84,54 @@ def generar(dir_out: Path) -> list[dict]:
     return muestras
 
 
+def generar_combinado(dir_out: Path, gap_mm: float = 200.0, max_row_w_mm: float = 4000.0) -> list[dict]:
+    """Genera UN solo DXF con los 12 paneles lado a lado (para seleccionar cada
+    uno en CypCut y medir su tiempo). Devuelve el mapa de posiciones.
+
+    Cada panel lleva una etiqueta de texto con su nombre en la capa 'ETIQUETAS'
+    (no cortar), y se registra su posición (esquina inferior-izquierda) para
+    identificarlo sin ambigüedad.
+    """
+    dir_out.mkdir(parents=True, exist_ok=True)
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    if "ETIQUETAS" not in doc.layers:
+        doc.layers.add("ETIQUETAS")
+
+    mapa = []
+    ox = oy = 0.0
+    row_h = 0.0
+    for i, (L, p, W, H) in enumerate(SPECS, 1):
+        if ox > 0 and ox + W > max_row_w_mm:      # salto de fila
+            ox = 0.0
+            oy += row_h + gap_mm
+            row_h = 0.0
+        r = _write_cuadriculado_square_to_doc(
+            doc, msp, hole_size_mm=L, step_x_mm=p, step_y_mm=p,
+            sheet_width_mm=W, sheet_height_mm=H, margin_mm=MARGIN_MM,
+            offset_x=ox, offset_y=oy,
+        )
+        nombre = f"B2_{i:02d}_L{L}_p{p}_{W}x{H}"
+        msp.add_text(
+            f"B2_{i:02d}", height=40,
+            dxfattribs={"layer": "ETIQUETAS"},
+        ).set_placement((ox + 10, oy + H + 20))
+        mapa.append({
+            "nombre": nombre, "orden": i,
+            "pos_x_mm": round(ox, 1), "pos_y_mm": round(oy, 1),
+            "sheet_mm": f"{W}x{H}",
+            "cut_length_mm": round(r["cut_length_mm"], 2),
+            "travel_length_mm": round(r["travel_length_mm"], 2),
+            "pierce_count": r["pierce_count"],
+            "t_cypcut_s": 0.0,
+        })
+        ox += W + gap_mm
+        row_h = max(row_h, H)
+
+    doc.saveas(dir_out / "bateria2_combinada.dxf")
+    return mapa
+
+
 def diagnostico(muestras: list[dict]) -> None:
     cut = np.array([m["cut_length_mm"] for m in muestras])
     travel = np.array([m["travel_length_mm"] for m in muestras])
@@ -106,8 +154,15 @@ def main() -> None:
     (dir_out / "bateria2_muestras.json").write_text(
         json.dumps({"_meta": "Batería 2 (ratios variados). Completá t_cypcut_s con el Total de CypCut de cada DXF.",
                     "muestras": muestras}, indent=2, ensure_ascii=False), encoding="utf-8")
+    # DXF combinado (todos los paneles en un archivo) + mapa de posiciones
+    mapa = generar_combinado(dir_out)
+    (dir_out / "bateria2_combinada_mapa.json").write_text(
+        json.dumps({"_meta": "Mapa del DXF combinado. En CypCut seleccioná cada panel y anotá su Total time. "
+                             "Identificá cada uno por su etiqueta B2_XX, su posición (pos_x/pos_y) o su Piercing Count.",
+                    "paneles": mapa}, indent=2, ensure_ascii=False), encoding="utf-8")
     diagnostico(muestras)
-    print(f"\n✓ {len(muestras)} DXF + bateria2_muestras.json en {dir_out}/")
+    print("\nDXF COMBINADO: bateria2_combinada.dxf (12 paneles con etiqueta B2_XX)")
+    print(f"\n✓ {len(muestras)} DXF individuales + combinado + JSONs en {dir_out}/")
 
 
 if __name__ == "__main__":
