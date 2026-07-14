@@ -4,11 +4,11 @@
    "agent": "Orbit",
    "task": "ORBIT_DEPLOY_PRECIO_PANEL_DECORATIVO",
    "descripcion": "DEPLOY YA (no depende del material): UI de precio de Vega (1d4ba96) + unificacion precio-por-segundo (1433f9e) + endpoint precio (0e662a8). git pull + bench build + bump_page_cache + restart, SIN migrate. Esperado: hasta cargar los coeficientes, la columna dice 'pendiente de calibracion' -> es CORRECTO, no bug. Verificar /app/panel-decorativo carga y SI Precios Globales.precio_segundo_laser.",
-   "msg": "coordination/channel/Nova/MSG_096_VEGA_precio_panel_conectado.md",
-   "status": "pendiente",
+   "msg": "coordination/channel/Nova/MSG_108_ORBIT_deploy_precio_y_flycut_ok.md",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "Ejecutable SIN Constantino. La carga de coeficientes va aparte (ORBIT_CARGAR_COEFS_LASER, espera nombre de material)."
+   "nota": "COMPLETADO 2026-07-14 (Orbit MSG_108). Deployado en el pull server c4b2a45->17a8a33 (junto con el flycut). UI precio Vega + unificacion precio-por-segundo en produccion, 7/7 workers, panel-decorativo 301. UI muestra 'pendiente' hasta coeficientes = correcto. La carga de coeficientes va aparte (ORBIT_CARGAR_COEFS_LASER)."
   },
   {
    "agent": "Orbit",
@@ -18,7 +18,7 @@
    "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "COMPLETADO 2026-07-14 (Orbit MSG_106). Token 41A67498 purgado del historial main+erpnext, force-push a GitHub (main=a4598ee, erpnext=ffc462b). Verificado en clon fresco de GitHub: git log --all -S = 0 y 0 en todos los blobs. 3 clones reconciliados: Mint main (a4598ee), Mint erpnext (ffc462b), server (equivalente reescrito c4b2a45 = mismo codigo de produccion, NO deploy). Server 7/7 workers + admin-patrones OK, sync con token ENV intacto (sin rotar). Backups: mirror PREPURGE-2026-07-14 + pattern_thumbnails. PASO 2 hecho: worktrees feat/<agente> (punto/vega/gemu/cybelec/tango/atlas), convencion en coordination/reports/ORBIT_WORKTREES_CONVENCION.md."
+   "nota": "COMPLETADO (MSG_106_ORBIT): token 41A67498 purgado de main+erpnext, verificado en clon fresco (git log -S=0). HEADs: main a4598ee, erpnext ffc462b. 3 clones reconciliados, server sano sin deploy no intencionado. Freeze soltado."
   },
   {
    "agent": "Orbit",
@@ -837,8 +837,8 @@
    "msg": "coordination/channel/Punto/MSG_032_nova_thumbnails_motor_nativo.md",
    "status": "pendiente",
    "sprint": "panel-decorativo",
-   "prioridad": "media",
-   "nota": "EJECUTABLE YA: la calibracion quedo gateada por la Bateria 2 (mide Constantino), asi que Punto puede avanzar con los thumbnails ahora. No depende de ningun gate de Constantino."
+   "prioridad": "baja",
+   "nota": "DEBAJO del flycut urgente (prioridad #1). Retomar despues."
   },
   {
    "agent": "Orbit (+Forge apoyo)",
@@ -865,10 +865,10 @@
    "task": "ORBIT_PREPARAR_ESQUEMA_WORKTREES",
    "descripcion": "Despues de la purga (repo ya limpio): armar los worktrees por agente en la Mint (rama feat/<agente>, compartiendo UN solo .git) sobre el repo purgado (asi nacen limpios) y dejar la estructura ordenada. Samba ya operativo. Definir la lista de agentes con worktree (los que trabajan codigo) + convencion feat/<agente> + PR.",
    "msg": "coordination/channel/Nova/MSG_102_ORBIT_opinion_modelo_mint.md",
-   "status": "en-curso-ejecucion-despues-purga",
+   "status": "completado",
    "sprint": "infra",
    "prioridad": "alta",
-   "nota": "Ejecutar DESPUES de que la purga quede reconciliada. Orden: purga -> worktrees desde repo limpio."
+   "nota": "COMPLETADO (MSG_106_ORBIT): 6 worktrees feat/<agente> (punto,vega,gemu,cybelec,tango,atlas) sobre erpnext ffc462b, un solo .git. Convencion en coordination/reports/ORBIT_WORKTREES_CONVENCION.md (rama->PR->merge por integrador)."
   },
   {
    "agent": "Forge",
@@ -908,7 +908,7 @@
    "status": "completado",
    "sprint": "infra",
    "prioridad": "alta",
-   "nota": "COMPLETADO (MSG_105_FORGE, verificado): shares planos(RO)/compartida(windows_import RO+intercambio RW), users costa/sunshine (RW) y agente/agentes-ro-2026 (RO). Restringido a LAN. windows_import VACIO (espera cred disco viejo o copia manual de Constantino). Distribuir pass 'agentes-ro-2026' a los agentes para montar."
+   "nota": "COMPLETADO (MSG_105_FORGE). windows_import lo llena CONSTANTINO por su cuenta (copia manual desde su Windows PERSONAL). Ya NO depende de la credencial del disco viejo (descartada). Distribuir pass 'agentes-ro-2026' a los agentes."
   },
   {
    "agent": "Orbit",
@@ -919,6 +919,56 @@
    "sprint": "seguridad-token",
    "prioridad": "alta",
    "nota": "COMPLETADO (MSG_105_ORBIT): NO hay token nuevo. SI_NEXUS_KEY y APP_INSTANCE_ID = mismo valor VIEJO 41A67498. Fue un renombre, no rotacion. Sync activo usa el viejo."
+  },
+  {
+   "agent": "Punto",
+   "task": "PUNTO_BATERIA2_ARCHIVO_UNICO",
+   "descripcion": "Poner los 12 dibujos de la Bateria 2 en UN SOLO archivo DXF, acomodados con la MISMA logica con que el sistema ordena los paneles cuando hay varios en un pedido (layout multi-panel). Objetivo: Constantino abre 1 archivo en vez de 12. IMPORTANTE: Punto debe ACLARAR (para Constantino) si juntarlos cambia la forma de medir para la calibracion -ej. si CypCut daria un TIEMPO TOTAL combinado con el desplazamiento entre paneles incluido en vez de 12 tiempos por panel- y como se maneja eso para el ajuste de a/b/g. Dejar explicado, SIN trabar la entrega. Dejar el archivo en el share planos/calibracion_laser/bateria2/ para abrir por red. NO urgente: es para mañana (Constantino mide la Bateria 2 mañana).",
+   "msg": "coordination/channel/Punto/MSG_033_nova_bateria2_archivo_unico.md",
+   "status": "pendiente",
+   "sprint": "calibracion-laser",
+   "prioridad": "baja",
+   "nota": "DEBAJO del flycut urgente. Sigue siendo para mañana pero el flycut va primero."
+  },
+  {
+   "agent": "Constantino",
+   "task": "CONSTANTINO_COPIA_WINDOWS_A_MINT",
+   "descripcion": "INFORMATIVO (accion manual de Constantino, NO es tarea del equipo): la Windows .15 es su maquina PERSONAL, fuera del sistema. Constantino copia a la Mint, por su cuenta y cuando pueda, los standalone que queden ahi (CostADCAM, VBA pedido-Excel, ocr_transferencias.pyw, clave SSH, version stamp, etc.). El codigo standalone va a Programas_hechos/ en git (DECISION_004); datos/exe al share.",
+   "msg": "aclaracion-constantino-2026-07-14",
+   "status": "accion-manual-constantino",
+   "sprint": "migracion",
+   "prioridad": "baja",
+   "nota": "El equipo NO accede a la Windows ni monta el disco viejo. Espera a que Constantino deje los archivos en la Mint/share."
+  },
+  {
+   "agent": "Forge",
+   "task": "FORGE_SHARE_MINT_PARA_WINDOWS",
+   "descripcion": "Compartir TODO el Mint (home de costa) por Samba para verlo/copiarlo desde Windows: todas las carpetas del home, RW, usuario costa/sunshine, restringido a LAN 190.190.190.0/24. Objetivo: Constantino ve y copia desde su Windows a la Mint por red.",
+   "msg": "pendiente-brief",
+   "status": "completado",
+   "sprint": "infra",
+   "prioridad": "media",
+   "nota": "COMPLETADO (MSG_106_FORGE): share 'home-costa' en la Mint .139, home completo RW, costa/sunshine, LAN-only. AVISO SEGURIDAD escalado a Constantino: expone ~/.ssh, ~/.claude.json (tokens), ~/.mozilla (passwords). Forge tiene 2 mitigaciones listas (veto de credenciales / password Samba propia)."
+  },
+  {
+   "agent": "Punto",
+   "task": "PUNTO_FLYCUT_LATIN_SQUARE_CUADRICULADO",
+   "descripcion": "URGENTE #1 (Constantino tiene pedido para cortar MAÑANA): terminar y deployar el flycut por 'Latin Square' del cuadriculado cuadrado. Problema: al aplicar flycut, el calor entre la pasada de verticales y la de horizontales desfasa las lineas. Solucion (Punto ya casi lista en MAIN): dividir el panel en areas <200x200 y asignar cada una a una capa distinta de CypCut con restriccion tipo sudoku (Latin Square): ninguna area comparte capa con otra de su misma fila/columna. FALTA terminarlo/deployarlo en ERPNEXT (main tiene Latin Square; erpnext usa flycut clasico y le falta -Punto MSG_087: falta XDATA FS_CYPCUT en la version erpnext de _write_cuadriculado_square_to_doc). Trabajar en worktree feat/punto (base ffc462b) -> PR -> Orbit deploya.",
+   "msg": "coordination/channel/Punto/MSG_034_nova_urgente_flycut_latin_square.md",
+   "status": "en-curso-dispatch-directo",
+   "sprint": "001-rebanada",
+   "prioridad": "URGENTE-#1",
+   "nota": "Activado DIRECTO por Constantino 2026-07-14 por urgencia. PRIORIDAD #1 sobre todo lo de Punto (thumbnails y Bateria2 quedan debajo). Para mañana. Coordinar deploy con Orbit."
+  },
+  {
+   "agent": "Orbit",
+   "task": "ORBIT_DEPLOY_FLYCUT_LATIN_SQUARE",
+   "descripcion": "Deployar el flycut Latin Square apenas Punto abra el PR desde feat/punto: merge a erpnext + git pull en server + bench build (+ migrate si toca) + restart. Debe quedar listo para MAÑANA. Verificar que un cuadriculado cuadrado genera las capas CypCut con la asignacion Latin Square.",
+   "msg": "coordination/channel/Nova/MSG_108_ORBIT_deploy_precio_y_flycut_ok.md",
+   "status": "completado",
+   "sprint": "001-rebanada",
+   "prioridad": "URGENTE-#1",
+   "nota": "COMPLETADO y VERIFICADO 2026-07-14 (Orbit MSG_108). Flycut 17a8a33 deployado (server en 17a8a33). Verificado con tests/test_cuadriculado_square_dxf.py contra el codigo deployado: 14/14 PASSED, incluidos Latin Square (capa=(col+fila)%N, sin repeticion en fila/columna, areas <=200, agujeros en capas 0-15). Listo para el corte de manana. El flycut ya estaba integrado en erpnext al momento del deploy (no PR abierto)."
   }
  ],
  "foco_2026-07-02": {
@@ -1643,6 +1693,7 @@
    "Orbit: mapa de canales truncados (solo mapear, no borrar)"
   ],
   "regla_vigente": "Por ahora NO borrar nada (Constantino, 2026-07-10).",
-  "prioridad_2026-07-13": "Constantino: las MEJORAS no se frenan por la migracion. PRODUCTO (calibracion laser + precio Panel Decorativo) es FOREGROUND y prioritario. La reorg de INFRA (rotar+purgar token -> worktrees -> Samba) corre en SEGUNDO PLANO y no debe frenar producto. Modelo aprobado: agentes trabajan en la Mint -> push a GitHub -> server solo pull para deploy."
+  "prioridad_2026-07-13": "Constantino: las MEJORAS no se frenan por la migracion. PRODUCTO (calibracion laser + precio Panel Decorativo) es FOREGROUND y prioritario. La reorg de INFRA (rotar+purgar token -> worktrees -> Samba) corre en SEGUNDO PLANO y no debe frenar producto. Modelo aprobado: agentes trabajan en la Mint -> push a GitHub -> server solo pull para deploy.",
+  "windows_fuera_de_scope_2026-07-14": "La Windows .15 es la maquina PERSONAL de Constantino, NO parte del sistema. Los agentes NUNCA acceden a la Windows ni montan el disco viejo \\\\190.190.190.15\\c. La credencial LOGON_FAILURE ya no importa (descartada). Constantino copia lo suyo a la Mint por su cuenta."
  }
 }
