@@ -1,7 +1,7 @@
 """Migración de patrones al DocType SI Patron.
 
 Migra:
-  - Patrones paramétricos builtin (solo Tresbolillo — Cuadriculado y Cuadriculado Square eliminados)
+  - Patrones paramétricos builtin: Tresbolillo, Cuadriculado (redondo), Cuadriculado Square
   - Patrones de archivo de pattern_library.json (Subte, Philo, Cosmos, Hexagonal, Aconcagua)
 
 Uso:
@@ -35,6 +35,8 @@ _DXF_FILENAMES = {
 }
 
 
+# Parámetros definitivos de Constantino para los cuadriculados nativos (2026-07-14):
+# panel 300×300, margen 20, paso 18; figura base 10mm (Ø10 redondo / 10×10 cuadrado).
 _PARAMETRICOS = [
     {
         "name": "Tresbolillo",
@@ -43,8 +45,25 @@ _PARAMETRICOS = [
         "descripcion": "Perforación circular en tresbolillo (hexagonal offset)",
         "parametros": {"forma": "tresbolillo", "step_x": None, "step_y": None},
     },
-    # "Cuadriculado" y "Cuadriculado Square" eliminados por decisión de Constantino (2026-07-03).
-    # No recrear. Usar delete_named_patrones() para hard-delete si reaparecen.
+    {
+        "name": "Cuadriculado",
+        "tipo": "Paramétrico",
+        "visibilidad": "Público",
+        "descripcion": "Cuadriculado de círculos Ø10mm (motor nativo)",
+        "parametros": {"forma": "cuadriculado", "hole_shape": "circle",
+                       "hole_size": 10.0, "step_x": 18.0, "step_y": 18.0},
+    },
+    {
+        "name": "Cuadriculado Square",
+        "tipo": "Paramétrico",
+        "visibilidad": "Público",
+        "descripcion": "Cuadriculado de cuadrados 10×10mm (motor nativo)",
+        "parametros": {"forma": "cuadriculado", "hole_shape": "square",
+                       "hole_size": 10.0, "step_x": 18.0, "step_y": 18.0},
+    },
+    # Los cuadriculados NATIVOS se recrean (OK Constantino 2026-07-14). El "No recrear"
+    # anterior fue un malentendido: se pidió borrar el cuadriculado viejo de DXF, pero por
+    # error se borró el nativo — no había que borrarlo.
 ]
 
 

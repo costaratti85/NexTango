@@ -628,18 +628,64 @@ def get_patron(name, version=None):
 
 
 @frappe.whitelist(allow_guest=False)
+def _save_thumbnail_cuadriculado_nativo(nombre: str, params: dict):
+    """Thumbnail de un cuadriculado paramétrico con el MOTOR NATIVO.
+
+    Genera el DXF con LegacyPanelAdapter (cuadrados o círculos tileados según
+    hole_shape) usando los parámetros del patrón y lo renderiza a PNG. No usa
+    archivo_dxf ni el fallback de render directo.
+    """
+    import tempfile
+    safe = _safe_name(nombre)
+    out_path = _thumb_dir() / f"{safe}.png"
+    try:
+        from sistema_industrial.presets.legacy_panel_adapter import (
+            LegacyPanelAdapter, LegacyPanelRunRequest,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_dxf = Path(tmp) / f"{safe}.dxf"
+            req = LegacyPanelRunRequest(
+                preset_code=f"thumb_{safe}",
+                preset_name=f"thumb_{safe}",
+                material="generic",
+                thickness_mm=1.0,
+                width_mm=300.0,
+                height_mm=300.0,
+                quantity=1,
+                output_dxf_path=tmp_dxf,
+                pattern_type="cuadriculado",
+                hole_shape=params.get("hole_shape", "square"),
+                hole_size_mm=float(params.get("hole_size", 10.0)),
+                step_x_mm=float(params.get("step_x", 18.0)),
+                step_y_mm=float(params.get("step_y", 18.0)),
+                margin_mm=20.0,
+                cut_partial_figures=True,
+            )
+            LegacyPanelAdapter().run(req)
+            if not _render_dxf_to_png(tmp_dxf, out_path):
+                return None
+    except Exception as exc:
+        frappe.log_error(f"thumbnail cuadriculado nativo {nombre}: {exc}", "thumbnail_nativo")
+        return None
+    return f"{_THUMBNAIL_BASE}/{safe}.png" if out_path.exists() else None
+
+
 def generate_thumbnail(name):
     """Genera (o regenera) el thumbnail de un patrón. r.message: {ok, url}"""
     if not frappe.db.exists("SI Patron", name):
         frappe.throw(f"Patrón no encontrado: {name}", frappe.DoesNotExistError)
     doc = frappe.get_doc("SI Patron", name)
-    dxf_path = doc.archivo_dxf or ""
-    if not dxf_path:
-        return {"ok": False, "url": None, "reason": "sin archivo DXF"}
     try:
         params = json.loads(doc.parametros or "{}")
     except Exception:
         params = {}
+    # Paramétrico cuadriculado → motor nativo (sin archivo DXF)
+    if params.get("forma") == "cuadriculado":
+        url = _save_thumbnail_cuadriculado_nativo(name, params)
+        return {"ok": bool(url), "url": url}
+    dxf_path = doc.archivo_dxf or ""
+    if not dxf_path:
+        return {"ok": False, "url": None, "reason": "sin archivo DXF"}
     url = _save_thumbnail(name, dxf_path, params.get("step_x"), params.get("step_y"))
     return {"ok": bool(url), "url": url}
 
@@ -670,7 +716,7 @@ def backfill_thumbnails(force=False, names=None):
     else:
         docs = frappe.get_all(
             "SI Patron",
-            filters=[["tipo", "in", ["Archivo", "Vectorizado"]], ["activo", "=", 1]],
+            filters=[["tipo", "in", ["Archivo", "Vectorizado", "Paramétrico"]], ["activo", "=", 1]],
             fields=["name"],
         )
         names = [d["name"] for d in docs]
@@ -684,20 +730,14 @@ def backfill_thumbnails(force=False, names=None):
             if not frappe.db.exists("SI Patron", n):
                 failed.append({"name": n, "error": "no existe"})
                 continue
-            doc = frappe.get_doc("SI Patron", n)
-            dxf_path = doc.archivo_dxf or ""
-            if not dxf_path:
-                skipped.append(n)
-                continue
-            try:
-                params = json.loads(doc.parametros or "{}")
-            except Exception:
-                params = {}
-            url = _save_thumbnail(n, dxf_path, params.get("step_x"), params.get("step_y"))
-            if url:
+            # generate_thumbnail enruta: paramétrico cuadriculado → motor nativo;
+            # resto → tileado del archivo DXF. Paramétricos sin thumbnail (ej.
+            # tresbolillo sin archivo) devuelven ok=False → se saltan sin error.
+            result = generate_thumbnail(n)
+            if result.get("ok"):
                 generated.append(n)
             else:
-                failed.append({"name": n, "error": "render falló"})
+                skipped.append(n)
         except Exception as exc:
             failed.append({"name": n, "error": str(exc)})
 
