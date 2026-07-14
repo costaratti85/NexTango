@@ -958,17 +958,17 @@
    "status": "en-curso-dispatch-directo",
    "sprint": "001-rebanada",
    "prioridad": "URGENTE-#1",
-   "nota": "Activado DIRECTO por Constantino 2026-07-14 por urgencia. PRIORIDAD #1 sobre todo lo de Punto (thumbnails y Bateria2 quedan debajo). Para mañana. Coordinar deploy con Orbit."
+   "nota": "URGENTE #1 (para mañana). AJUSTE Constantino 2026-07-14 (pasado directo a Punto): (1) limite de capas = 9 (no 16) -> modulo 9; (2) tamaño de area por lado = min(9, ceil(lado/200)) -> apuntar a <200 pero tope 9 areas por lado; si con <=9 no se baja de 200, el area queda >200; areas iguales salvo ultima fila/columna que ajusta. Punto actualiza tests, pushea y coordina REDEPLOY con Orbit."
   },
   {
    "agent": "Orbit",
    "task": "ORBIT_DEPLOY_FLYCUT_LATIN_SQUARE",
    "descripcion": "Deployar el flycut Latin Square apenas Punto abra el PR desde feat/punto: merge a erpnext + git pull en server + bench build (+ migrate si toca) + restart. Debe quedar listo para MAÑANA. Verificar que un cuadriculado cuadrado genera las capas CypCut con la asignacion Latin Square.",
-   "msg": "coordination/channel/Nova/MSG_108_ORBIT_deploy_precio_y_flycut_ok.md",
+   "msg": "coordination/channel/Nova/MSG_111_ORBIT_deploy_flycut_modulo9.md",
    "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "URGENTE-#1",
-   "nota": "COMPLETADO y VERIFICADO 2026-07-14 (Orbit MSG_108). Flycut 17a8a33 deployado (server en 17a8a33). Verificado con tests/test_cuadriculado_square_dxf.py contra el codigo deployado: 14/14 PASSED, incluidos Latin Square (capa=(col+fila)%N, sin repeticion en fila/columna, areas <=200, agujeros en capas 0-15). Listo para el corte de manana. El flycut ya estaba integrado en erpnext al momento del deploy (no PR abierto)."
+   "nota": "COMPLETADO y VERIFICADO 2026-07-14 (Orbit MSG_111). Version FINAL 9962ea9 (modulo 9, areas min(9,ceil(lado/200))) deployada, reemplaza 17a8a33 (modulo 16). Server en 9962ea9, 7/7 workers. Cotejo del demo_latin_square_1000x2000.dxf contra el codigo deployado: capas usadas exactamente 0-8, regla (col+fila)%9 sin errores, adyacentes nunca comparten capa. 17/17 tests. Listo para el corte."
   }
  ],
  "foco_2026-07-02": {
