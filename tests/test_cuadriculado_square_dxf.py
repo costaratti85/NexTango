@@ -1,8 +1,14 @@
-"""Tests para cuadriculado square DXF — LWPOLYLINE + flycut zone layers (CypCut capas 0-15)."""
+"""Tests para cuadriculado square DXF — LWPOLYLINE + flycut con CUADRADO LATINO.
+
+Cada zona de flycut (≤200×200mm) se asigna a una capa de CypCut con
+capa = (col + fila) % 16, de modo que dos zonas de la misma fila o columna nunca
+comparten capa y el láser no corta áreas contiguas de forma consecutiva (evita
+que el calor desplace la chapa entre pasadas). Todo el panel va en un solo DXF.
+"""
 
 import sys
-import math
 import shutil
+from collections import defaultdict
 from pathlib import Path
 
 import pytest
@@ -11,12 +17,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "apps" / "sistema_i
 
 from sistema_industrial.presets.legacy_panel_adapter import (
     _generate_cuadriculado_square_dxf,
-    _generate_cuadriculado_square_dxf_files,
     calcular_zonas,
     zona_de_agujero,
+    zona_a_capa,
+    NUM_CAPAS_CYPCUT,
+    ZONE_TARGET_MM,
 )
 
-# Directorio temporal propio (evita el PermissionError sistémico de pytest tmp_path)
 _TESTS_TMP = Path(__file__).resolve().parent / "_tmp_cuad_sq"
 
 
@@ -45,48 +52,69 @@ def _make_dxf(**kwargs):
     return _generate_cuadriculado_square_dxf(**defaults)
 
 
-# ---- calcular_zonas (spec tests) ----
+def _zona_capa_map(dxf_path, w_mm, h_mm):
+    """Lee el DXF y devuelve {(col_zona, row_zona): capa} a partir de los agujeros."""
+    import ezdxf
+    n_cols, n_rows, zw, zh, _ = calcular_zonas(w_mm, h_mm)
+    doc = ezdxf.readfile(str(dxf_path))
+    out = {}
+    for e in doc.modelspace():
+        if e.dxf.layer == "CONTORNO":
+            continue
+        pts = list(e.get_points())
+        cx = sum(p[0] for p in pts) / len(pts)
+        cy = sum(p[1] for p in pts) / len(pts)
+        col = min(int(cx / zw), n_cols - 1)
+        row = min(int(cy / zh), n_rows - 1)
+        out[(col, row)] = int(e.dxf.layer)
+    return out
+
+
+# ---- calcular_zonas (zonas ≤ 200mm) ----
+
+def test_zonas_target_por_defecto_200():
+    assert ZONE_TARGET_MM == 200.0
+
 
 def test_zonas_panel_pequeno():
-    # 500×500mm → ceil(500/250)=2 × ceil(500/250)=2 = 4 zonas → 1 DXF
+    # 500×500 → ceil(500/200)=3 × 3 = 9 zonas; cada zona 166.7mm ≤ 200
     n_cols, n_rows, zw, zh, total = calcular_zonas(500, 500)
-    assert n_cols == 2
-    assert n_rows == 2
-    assert total == 4
+    assert (n_cols, n_rows, total) == (3, 3, 9)
+    assert zw <= 200.0 and zh <= 200.0
 
 
-def test_zonas_panel_grande():
-    # 1220×2440mm → ceil(1220/250)=5 × ceil(2440/250)=10 = 50 zonas → 4 DXFs
-    n_cols, n_rows, zw, zh, total = calcular_zonas(1220, 2440)
-    assert n_cols == 5
-    assert n_rows == 10
-    assert total == 50
-    assert math.ceil(total / 16) == 4
+def test_zonas_lado_nunca_supera_target():
+    for w, h in [(1000, 1000), (1220, 2440), (333, 777)]:
+        n_cols, n_rows, zw, zh, _ = calcular_zonas(w, h)
+        assert zw <= ZONE_TARGET_MM + 1e-6
+        assert zh <= ZONE_TARGET_MM + 1e-6
 
 
-def test_asignacion_zona_esquinas():
-    # Panel 500×500 con 4 zonas: zona_w=250, zona_h=250
-    n_cols, n_rows, zw, zh, _ = calcular_zonas(500, 500)
-    assert zona_de_agujero(125, 125, n_cols, n_rows, zw, zh) == 0  # inf-izq
-    assert zona_de_agujero(375, 125, n_cols, n_rows, zw, zh) == 1  # inf-der
-    assert zona_de_agujero(125, 375, n_cols, n_rows, zw, zh) == 2  # sup-izq
-    assert zona_de_agujero(375, 375, n_cols, n_rows, zw, zh) == 3  # sup-der
+# ---- zona_a_capa (cuadrado latino) ----
+
+def test_capa_es_col_mas_fila_mod_n():
+    assert zona_a_capa(0, 0) == 0
+    assert zona_a_capa(3, 2) == 5
+    assert zona_a_capa(15, 1) == 0  # (15+1)%16
+    assert zona_a_capa(8, 8) == 0   # (16)%16
+
+
+def test_capa_en_rango_valido():
+    for c in range(20):
+        for r in range(20):
+            assert 0 <= zona_a_capa(c, r) < NUM_CAPAS_CYPCUT
 
 
 # ---- resultado struct ----
 
 def test_returns_pierce_count_and_cut_length():
     result = _make_dxf()
-    assert "pierce_count" in result
-    assert "cut_length_mm" in result
-    assert result["pierce_count"] >= 0
-    assert result["cut_length_mm"] == pytest.approx(result["pierce_count"] * 4 * 10.0)
+    # cut = perímetro de los agujeros + contorno del panel
+    contorno = 2.0 * (200.0 + 150.0)
+    assert result["cut_length_mm"] == pytest.approx(result["pierce_count"] * 4 * 10.0 + contorno)
 
 
 def test_known_grid_dimensions():
-    # usable = 200-40=160 × 150-40=110; step=30, hole=10
-    # cols = floor(160/30)=5; check (4)*30+10=130 ≤ 160 ✓
-    # rows = floor(110/30)=3; check (2)*30+10=70 ≤ 110 ✓
     result = _make_dxf()
     assert result["pierce_count"] == 5 * 3
 
@@ -107,98 +135,62 @@ def test_dxf_file_created():
 def test_dxf_has_contorno_layer():
     import ezdxf
     _make_dxf()
-    doc = ezdxf.readfile(str(_out()))
-    msp = doc.modelspace()
-    layers = {e.dxf.layer for e in msp}
+    layers = {e.dxf.layer for e in ezdxf.readfile(str(_out())).modelspace()}
     assert "CONTORNO" in layers
 
 
-def test_dxf_squares_are_lwpolyline():
+def test_holes_on_numeric_layers_0_15():
     import ezdxf
     _make_dxf()
-    doc = ezdxf.readfile(str(_out()))
-    msp = doc.modelspace()
-    # Holes are on numeric layers (zone % 16), not "CORTE"
-    holes = [e for e in msp if e.dxf.layer != "CONTORNO"]
-    assert len(holes) == 5 * 3
-    for e in holes:
-        assert e.dxftype() == "LWPOLYLINE"
-
-
-def test_dxf_squares_have_4_vertices():
-    import ezdxf
-    _make_dxf()
-    doc = ezdxf.readfile(str(_out()))
-    msp = doc.modelspace()
-    holes = [e for e in msp if e.dxf.layer != "CONTORNO"]
-    for e in holes:
-        assert len(list(e)) == 4
-
-
-def test_dxf_squares_are_closed():
-    import ezdxf
-    _make_dxf()
-    doc = ezdxf.readfile(str(_out()))
-    msp = doc.modelspace()
-    holes = [e for e in msp if e.dxf.layer != "CONTORNO"]
-    for e in holes:
-        assert bool(e.closed)
-
-
-def test_holes_on_numeric_layers():
-    """Cada agujero va en una capa numérica (0-15), no en 'CORTE'."""
-    import ezdxf
-    _make_dxf()
-    doc = ezdxf.readfile(str(_out()))
-    msp = doc.modelspace()
+    msp = ezdxf.readfile(str(_out())).modelspace()
     hole_layers = {e.dxf.layer for e in msp if e.dxf.layer != "CONTORNO"}
     assert "CORTE" not in hole_layers
     for lyr in hole_layers:
-        assert lyr.isdigit(), f"Layer '{lyr}' no es numérico"
-        assert 0 <= int(lyr) <= 15
+        assert lyr.isdigit() and 0 <= int(lyr) < NUM_CAPAS_CYPCUT
 
 
-# ---- zone size ----
+# ---- un solo archivo, cualquier tamaño ----
 
-def test_zone_size_respected():
-    """Las zonas se calculan sobre las dimensiones del panel completo."""
-    # 930×1540mm → ceil(930/250)=4 cols × ceil(1540/250)=7 rows
-    result = _make_dxf(
-        hole_size_mm=10.0,
-        step_x_mm=20.0,
-        step_y_mm=20.0,
-        sheet_width_mm=930.0,
-        sheet_height_mm=1540.0,
-        margin_mm=0.0,
-        zone_size_mm=250.0,
-        output_path=_out("large.dxf"),
-    )
-    assert result["zone_cols"] == 4
-    assert result["zone_rows"] == 7
-
-
-# ---- multi-file generation ----
-
-def test_single_zone_produces_one_file():
-    """Panel pequeño (≤16 zonas) → 1 archivo DXF."""
-    geo = _generate_cuadriculado_square_dxf_files(
-        hole_size_mm=10.0, step_x_mm=30.0, step_y_mm=30.0,
-        sheet_width_mm=200.0, sheet_height_mm=150.0, margin_mm=20.0,
-        output_dir=_TESTS_TMP, stem="small_panel",
+def test_panel_grande_un_solo_archivo():
+    """Antes se dividía en N bloques; con cuadrado latino todo va en 1 archivo."""
+    geo = _make_dxf(
+        step_x_mm=20.0, step_y_mm=20.0,
+        sheet_width_mm=1220.0, sheet_height_mm=2440.0, margin_mm=0.0,
+        output_path=_out("grande.dxf"),
     )
     assert geo["n_files"] == 1
-    assert len(geo["paths"]) == 1
-    assert geo["paths"][0].name == "small_panel.dxf"
+    assert _out("grande.dxf").exists()
 
 
-def test_large_panel_produces_multiple_files():
-    """Panel 1220×2440mm → 50 zonas → 4 archivos flycut."""
-    geo = _generate_cuadriculado_square_dxf_files(
-        hole_size_mm=10.0, step_x_mm=20.0, step_y_mm=20.0,
-        sheet_width_mm=1220.0, sheet_height_mm=2440.0, margin_mm=0.0,
-        output_dir=_TESTS_TMP, stem="large_panel",
+# ---- propiedad del cuadrado latino ----
+
+def test_latin_square_sin_repeticion_en_fila_ni_columna():
+    """Panel con ≤16 zonas por lado: ninguna fila ni columna repite capa."""
+    _make_dxf(
+        hole_size_mm=10.0, step_x_mm=50.0, step_y_mm=50.0,
+        sheet_width_mm=1000.0, sheet_height_mm=1000.0, margin_mm=20.0,
+        output_path=_out("latin.dxf"),
     )
-    assert geo["n_files"] == 4
-    assert len(geo["paths"]) == 4
-    assert geo["paths"][0].name == "large_panel_flycut_1de4.dxf"
-    assert geo["paths"][3].name == "large_panel_flycut_4de4.dxf"
+    zc = _zona_capa_map(_out("latin.dxf"), 1000.0, 1000.0)
+    filas, cols = defaultdict(list), defaultdict(list)
+    for (c, r), capa in zc.items():
+        filas[r].append(capa)
+        cols[c].append(capa)
+    for r, capas in filas.items():
+        assert len(capas) == len(set(capas)), f"fila {r} repite capa"
+    for c, capas in cols.items():
+        assert len(capas) == len(set(capas)), f"columna {c} repite capa"
+
+
+def test_latin_square_zonas_adyacentes_distinta_capa():
+    """Ninguna zona adyacente (horizontal o vertical) comparte capa."""
+    _make_dxf(
+        hole_size_mm=10.0, step_x_mm=50.0, step_y_mm=50.0,
+        sheet_width_mm=1000.0, sheet_height_mm=1000.0, margin_mm=20.0,
+        output_path=_out("adj.dxf"),
+    )
+    zc = _zona_capa_map(_out("adj.dxf"), 1000.0, 1000.0)
+    for (c, r), capa in zc.items():
+        for dc, dr in ((1, 0), (0, 1)):
+            vecino = zc.get((c + dc, r + dr))
+            assert vecino != capa, f"zona ({c},{r}) y vecina comparten capa {capa}"

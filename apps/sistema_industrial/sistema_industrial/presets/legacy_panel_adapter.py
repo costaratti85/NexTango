@@ -456,11 +456,19 @@ def delete_pattern_from_library(name: str, legacy_dir: Path | None = None) -> No
         lib.delete_pattern(name)
 
 
-def calcular_zonas(w_mm: float, h_mm: float, target: float = 250.0):
+# CypCut procesa capas 0..15 en orden secuencial al aplicar flycut.
+NUM_CAPAS_CYPCUT = 16
+
+# Lado máximo de cada zona de flycut (mm). Constantino: áreas < 200×200.
+ZONE_TARGET_MM = 200.0
+
+
+def calcular_zonas(w_mm: float, h_mm: float, target: float = ZONE_TARGET_MM):
     """Divide el área del panel en n_cols × n_rows zonas de flycut.
 
-    CypCut procesa 16 capas (0-15) en orden secuencial; cada zona ocupa una
-    capa.  Si total_zonas > 16 se necesitan múltiples archivos DXF.
+    Cada zona se asigna a una capa de CypCut con esquema de CUADRADO LATINO
+    (ver zona_a_capa): dos zonas de la misma fila o columna nunca comparten
+    capa, así el flycut no corta áreas contiguas de forma consecutiva.
 
     Devuelve (n_cols, n_rows, zone_w, zone_h, total_zonas).
     """
@@ -482,6 +490,25 @@ def zona_de_agujero(
     return row_zona * n_cols + col_zona
 
 
+def zona_a_capa(col_zona: int, row_zona: int, num_capas: int = NUM_CAPAS_CYPCUT) -> int:
+    """Capa de CypCut para la zona (col, fila) según cuadrado latino.
+
+    capa = (col + fila) % num_capas.
+
+    Propiedad: en una misma fila (row fijo) la capa recorre valores consecutivos
+    al variar col, y lo mismo por columna → si n_cols y n_rows ≤ num_capas,
+    ninguna fila ni columna repite capa (cuadrado latino). Además zonas
+    adyacentes (Δcol=1 o Δfila=1) siempre caen en capas distintas, por lo que el
+    flycut nunca corta dos áreas contiguas de forma consecutiva y el calor no
+    desplaza la chapa entre pasadas.
+
+    Para paneles con más de num_capas zonas por lado, la capa se repite recién
+    cada num_capas zonas (≥ 16×200mm = 3200mm de separación), distancia a la que
+    el calor ya no acopla — la propiedad física se mantiene en la práctica.
+    """
+    return (col_zona + row_zona) % num_capas
+
+
 def _write_cuadriculado_square_to_doc(
     doc,
     msp,
@@ -493,17 +520,17 @@ def _write_cuadriculado_square_to_doc(
     margin_mm: float,
     offset_x: float = 0.0,
     offset_y: float = 0.0,
-    zone_size_mm: float = 250.0,
-    file_index: int = 0,
+    zone_size_mm: float = ZONE_TARGET_MM,
 ) -> dict:
     """Write cuadriculado square entities into an *existing* ezdxf doc/msp.
 
-    Each hole is placed on the CypCut layer that corresponds to its zone:
-    ``layer = str(zona % 16)``.  When total_zones > 16 the caller creates one
-    doc per chunk of 16 zones and passes file_index to select which holes to
-    include.  The CONTORNO outline is always written regardless of file_index.
+    Cada agujero se asigna a la capa de CypCut de su zona con esquema de CUADRADO
+    LATINO: ``capa = (col_zona + fila_zona) % 16`` (ver zona_a_capa). Así el
+    flycut nunca corta dos áreas contiguas de forma consecutiva → evita el
+    desfase por calor. Todo el panel va en UN solo archivo (16 capas alcanzan
+    para cualquier tamaño; ya no se divide en bloques).
 
-    Returns {pierce_count, cut_length_mm, zone_cols, zone_rows,
+    Returns {pierce_count, cut_length_mm, travel_length_mm, zone_cols, zone_rows,
              total_zones, n_files}.
     """
     half = hole_size_mm / 2.0
@@ -529,7 +556,8 @@ def _write_cuadriculado_square_to_doc(
     n_cols, n_rows, zone_w, zone_h, total_zones = calcular_zonas(
         sheet_width_mm, sheet_height_mm, zone_size_mm
     )
-    n_files = math.ceil(total_zones / 16)
+    # Cuadrado latino: todo en un solo archivo, 16 capas alcanzan para cualquier tamaño.
+    n_files = 1
 
     if cols == 0 or rows == 0:
         return {
@@ -550,13 +578,14 @@ def _write_cuadriculado_square_to_doc(
             # Position relative to sheet origin for zone lookup
             rx, ry = cx - ox, cy - oy
             zona = zona_de_agujero(rx, ry, n_cols, n_rows, zone_w, zone_h)
-            if zona // 16 != file_index:
-                continue
+            col_zona = zona % n_cols
+            row_zona = zona // n_cols
+            capa = zona_a_capa(col_zona, row_zona)
             msp.add_lwpolyline(
                 [(cx - half, cy - half), (cx + half, cy - half),
                  (cx + half, cy + half), (cx - half, cy + half)],
                 close=True,
-                dxfattribs={"layer": str(zona % 16)},
+                dxfattribs={"layer": str(capa)},
             )
 
     pierce_count = cols * rows
@@ -575,70 +604,6 @@ def _write_cuadriculado_square_to_doc(
     }
 
 
-def _generate_cuadriculado_square_dxf_files(
-    hole_size_mm: float,
-    step_x_mm: float,
-    step_y_mm: float,
-    sheet_width_mm: float,
-    sheet_height_mm: float,
-    margin_mm: float,
-    output_dir,
-    stem: str,
-    zone_size_mm: float = 250.0,
-) -> dict:
-    """Generate 1 or N DXF files for a cuadriculado square panel.
-
-    When total_zones ≤ 16  → one file:  ``{stem}.dxf``
-    When total_zones > 16  → N files:   ``{stem}_flycut_1deN.dxf`` …
-
-    Returns {paths, pierce_count, cut_length_mm, zone_cols, zone_rows,
-             total_zones, n_files}.
-    """
-    import ezdxf as _ezdxf
-    from pathlib import Path as _Path
-
-    output_dir = _Path(output_dir)
-    n_cols, n_rows, zone_w, zone_h, total_zones = calcular_zonas(
-        sheet_width_mm, sheet_height_mm, zone_size_mm
-    )
-    n_files = math.ceil(total_zones / 16) if total_zones > 0 else 1
-
-    paths = []
-    last_result: dict = {}
-
-    for fi in range(n_files):
-        doc = _ezdxf.new("R2010")
-        msp = doc.modelspace()
-        result = _write_cuadriculado_square_to_doc(
-            doc, msp,
-            hole_size_mm=hole_size_mm,
-            step_x_mm=step_x_mm,
-            step_y_mm=step_y_mm,
-            sheet_width_mm=sheet_width_mm,
-            sheet_height_mm=sheet_height_mm,
-            margin_mm=margin_mm,
-            zone_size_mm=zone_size_mm,
-            file_index=fi,
-        )
-        last_result = result
-        if n_files == 1:
-            fpath = output_dir / f"{stem}.dxf"
-        else:
-            fpath = output_dir / f"{stem}_flycut_{fi + 1}de{n_files}.dxf"
-        doc.saveas(str(fpath))
-        paths.append(fpath)
-
-    return {
-        "paths": paths,
-        "pierce_count": last_result.get("pierce_count", 0),
-        "cut_length_mm": last_result.get("cut_length_mm", 0.0),
-        "zone_cols": last_result.get("zone_cols", n_cols),
-        "zone_rows": last_result.get("zone_rows", n_rows),
-        "total_zones": total_zones,
-        "n_files": n_files,
-    }
-
-
 def _generate_cuadriculado_square_dxf(
     hole_size_mm: float,
     step_x_mm: float,
@@ -647,38 +612,32 @@ def _generate_cuadriculado_square_dxf(
     sheet_height_mm: float,
     margin_mm: float,
     output_path,
-    zone_size_mm: float = 250.0,
+    zone_size_mm: float = ZONE_TARGET_MM,
 ) -> dict:
     """Generate a single DXF for a cuadriculado square pattern.
 
-    When total_zones <= 16: one block at the origin.
-    When total_zones > 16: N blocks side by side (offset_x = i*(W+100mm)),
-    each covering up to 16 zones. All in one file — cut each block and join.
+    El panel entero va en UN solo bloque. Las zonas de flycut se reparten en las
+    16 capas de CypCut con esquema de cuadrado latino (ver zona_a_capa), así el
+    láser nunca corta áreas contiguas de forma consecutiva y el calor no
+    desplaza la chapa entre pasadas. Ya no se divide en bloques a unir a mano.
 
-    Returns dict: {pierce_count, cut_length_mm, zone_cols, zone_rows,
-                   total_zones, n_files}.
+    Returns dict: {pierce_count, cut_length_mm, travel_length_mm, zone_cols,
+                   zone_rows, total_zones, n_files}.
     """
     import ezdxf as _ezdxf
 
-    _, _, _, _, total_zones = calcular_zonas(sheet_width_mm, sheet_height_mm, zone_size_mm)
-    n_files = math.ceil(total_zones / 16) if total_zones > 0 else 1
-
     doc = _ezdxf.new("R2010")
     msp = doc.modelspace()
-    result: dict = {}
-    for fi in range(n_files):
-        result = _write_cuadriculado_square_to_doc(
-            doc, msp,
-            hole_size_mm=hole_size_mm,
-            step_x_mm=step_x_mm,
-            step_y_mm=step_y_mm,
-            sheet_width_mm=sheet_width_mm,
-            sheet_height_mm=sheet_height_mm,
-            margin_mm=margin_mm,
-            zone_size_mm=zone_size_mm,
-            file_index=fi,
-            offset_x=fi * (sheet_width_mm + 100.0),
-        )
+    result = _write_cuadriculado_square_to_doc(
+        doc, msp,
+        hole_size_mm=hole_size_mm,
+        step_x_mm=step_x_mm,
+        step_y_mm=step_y_mm,
+        sheet_width_mm=sheet_width_mm,
+        sheet_height_mm=sheet_height_mm,
+        margin_mm=margin_mm,
+        zone_size_mm=zone_size_mm,
+    )
     doc.saveas(str(output_path))
     return result
 
@@ -776,14 +735,13 @@ class LegacyPanelAdapter:
         }
 
         zone_info = f"{geo['zone_cols']} col × {geo['zone_rows']} fila"
-        n_files = geo.get("n_files", 1)
-        if n_files > 1:
-            w_msg = (
-                f"Panel dividido en {n_files} bloques de flycut dentro del mismo archivo — "
-                f"cortar cada bloque y unir físicamente ({zone_info} zonas de ≤250mm)"
-            )
-        else:
-            w_msg = f"Flycut: {geo['pierce_count']} cuadrados en {zone_info} zonas de ≤250mm"
+        capas_usadas = min(NUM_CAPAS_CYPCUT, geo["zone_cols"] + geo["zone_rows"] - 1)
+        w_msg = (
+            f"Flycut cuadrado latino: {geo['pierce_count']} cuadrados en {zone_info} "
+            f"zonas de ≤200mm, repartidas en {capas_usadas} capas de CypCut. "
+            f"Seleccionar todo y aplicar flycut — no se cortan áreas contiguas "
+            f"de forma consecutiva (evita el desfase por calor)."
+        )
         return LegacyPanelRunResult(
             dxf_path=request.output_dxf_path,
             calculated_resources=[resource],
