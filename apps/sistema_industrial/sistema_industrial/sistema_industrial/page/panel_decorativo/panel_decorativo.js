@@ -344,6 +344,10 @@ class PanelDecorativo {
 			} else if (forma === 'tresbolillo') {
 				batch.hole_diameter_mm = parseFloat($('#pd-diam').val());
 				batch.hole_distance_mm = parseFloat($('#pd-dist').val());
+				// Forma del agujero: círculo (motor legacy) o hexágono (generador de Punto,
+				// hole_shape=hexagon). El diámetro es el "across-flats" del hexágono.
+				const tres_shape = $('#pd-tres-shape').val();
+				batch.hole_shape = tres_shape === 'hexagon' ? 'hexagon' : 'circle';
 				if (!(batch.hole_diameter_mm > 0)) throw new Error(__('Diámetro inválido.'));
 				if (!(batch.hole_distance_mm > 0)) throw new Error(__('Separación inválida.'));
 			} else if (patron.startsWith('cuadriculado')) {
@@ -374,7 +378,13 @@ class PanelDecorativo {
 		this.batches.forEach((b, i) => {
 			const sz = b.sheet_sizes[0];
 			const tr = $('<tr>');
-			tr.append($('<td>').text(b.preset_name));
+			const $name = $('<td>').text(b.preset_name);
+			if (b.panel_mode === 'tresbolillo' && b.hole_shape === 'hexagon') {
+				$name.append(
+					$('<span class="dimmed" style="font-size:11px"> · hexágono</span>')
+				);
+			}
+			tr.append($name);
 			tr.append($('<td>').text(b.material + ' ' + b.thickness_mm + 'mm'));
 			tr.append($('<td>').text(sz[0] + ' × ' + sz[1] + ' mm'));
 			tr.append($('<td style="text-align:center">').text(sz[2]));

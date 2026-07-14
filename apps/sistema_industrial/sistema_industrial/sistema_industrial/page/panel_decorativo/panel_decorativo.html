@@ -40,8 +40,15 @@
 
       <!-- Parámetros condicionales del patrón -->
       <div class="form-row" id="pd-params-tresbolillo">
+        <div class="form-group" style="max-width:180px">
+          <label for="pd-tres-shape">Forma del agujero</label>
+          <select id="pd-tres-shape">
+            <option value="circle" selected>Círculo</option>
+            <option value="hexagon">Hexágono</option>
+          </select>
+        </div>
         <div class="form-group">
-          <label for="pd-diam">Diámetro agujero mm</label>
+          <label for="pd-diam">Diámetro agujero mm <span class="dimmed">(entre caras si es hexágono)</span></label>
           <input type="number" id="pd-diam" step="0.1" min="0.5" value="3.5">
         </div>
         <div class="form-group">
