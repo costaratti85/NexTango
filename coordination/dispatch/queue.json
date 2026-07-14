@@ -18,6 +18,7 @@
    "sprint": "001-rebanada",
    "prioridad": "media",
    "nota": "COMPLETADO y VERIFICADO 2026-07-14 (Orbit MSG_126). Deploy conjunto server->e3fcd7b (backend hexagono e3fcd7b/1463274 + frontend Vega 434421b + thumbnails d51f005), bench build (JS Vega), 7/7 workers. HEXAGONO verificado via flujo real de la UI (_run_all_batches tresbolillo+hexagon): 238 hexagonos LWPOLYLINE 6-vertices, 0 circulos, 238/238 con XDATA FS_CYPCUT; 8/8 tests. THUMBNAILS cuadriculado: migrate_patrones {'overwrite':True} -> inserted 3/updated 5; backfill_thumbnails {'force':True} -> generated [Cuadriculado, Cuadriculado Square]; PNG en disco y list_admin los sirve con thumbnail_url (aparecen en admin-patrones/galeria). Nota: bench execute evalua --kwargs como Python (True, no true)."
+  },
   {
    "agent": "Orbit",
    "task": "ORBIT_DEPLOY_PRECIO_PANEL_DECORATIVO",
