@@ -964,11 +964,11 @@
    "agent": "Orbit",
    "task": "ORBIT_DEPLOY_FLYCUT_LATIN_SQUARE",
    "descripcion": "Deployar el flycut Latin Square apenas Punto abra el PR desde feat/punto: merge a erpnext + git pull en server + bench build (+ migrate si toca) + restart. Debe quedar listo para MAÑANA. Verificar que un cuadriculado cuadrado genera las capas CypCut con la asignacion Latin Square.",
-   "msg": "coordination/channel/Nova/MSG_111_ORBIT_deploy_flycut_modulo9.md",
+   "msg": "coordination/channel/Nova/MSG_121_ORBIT_flycut_cierre_produccion_25dfd0b.md",
    "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "URGENTE-#1",
-   "nota": "COMPLETADO y VERIFICADO 2026-07-14 (Orbit MSG_111). Version FINAL 9962ea9 (modulo 9, areas min(9,ceil(lado/200))) deployada, reemplaza 17a8a33 (modulo 16). Server en 9962ea9, 7/7 workers. Cotejo del demo_latin_square_1000x2000.dxf contra el codigo deployado: capas usadas exactamente 0-8, regla (col+fila)%9 sin errores, adyacentes nunca comparten capa. 17/17 tests. Listo para el corte."
+   "nota": "COMPLETADO y VERIFICADO 2026-07-14 (Orbit MSG_121). Version FINAL en produccion: 25dfd0b (flycut CIERRE — modulo 14, capa=(col+fila)%14+1 canales 1-14, areas min(14,ceil(lado/200)), XDATA FS_CYPCUT por agujero). Evolucion: 17a8a33(mod16) -> 9962ea9(mod9) -> 25dfd0b(mod14+XDATA). Server en 25dfd0b, 7/7 workers. Verificado generando cuadriculado 3000x3000 con codigo deployado: 2401 agujeros TODOS con XDATA FS_CYPCUT, Channel=capa, canales exactamente 1-14, APPID registrado. 20/20 tests. Listo para el corte."
   }
  ],
  "foco_2026-07-02": {
