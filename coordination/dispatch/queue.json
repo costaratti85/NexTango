@@ -884,11 +884,11 @@
    "agent": "Orbit",
    "task": "ORBIT_CARGAR_COEFS_LASER",
    "descripcion": "Cargar los coeficientes laser DEFINITIVOS en SI Material Corte via bench execute set_laser_coefs.run. EN ESPERA: los coefs de P01-P14 quedan DESCARTADOS (muestra no valida). Los definitivos salen de la BATERIA 2, que Constantino aun NO midio en CypCut. NO cargar nada hasta que Punto reporte los coefs de Bateria 2.",
-   "msg": "coordination/channel/Orbit/MSG_019_nova_deploy_ya_coefs_esperan_material.md",
-   "status": "pospuesto-bateria2",
+   "msg": "coordination/channel/Nova/MSG_117_ORBIT_coefs_cargados_2_alertas.md",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "Pospuesto: Constantino mide Bateria 2 mas adelante. Sin accion hasta entonces."
+   "nota": "COMPLETADO 2026-07-14 (Orbit MSG_117). Cargados coefs definitivos bateria2 (a=0.013372, b=0.004946, c=1.1852, d=0) en 'Chapa doble decapada 2.0mm' (=N14/2.0mm, registro confirmado) via set_laser_coefs.run --kwargs, sin deploy. Panel Decorativo YA calcula precio (formula calibrada activa, no pendiente). 2 ALERTAS escaladas a Nova: (1) los campos laser_b decimal(21,4) y laser_c decimal(21,2) TRUNCAN los coefs (0.004946->0.0049, 1.1852->1.19), error ~0.24%, conviene subir precision del DocType (decision Punto); (2) el flycut de Punto para CypCut (11866d3: base-1 1..9 + declarar LAYER) NO esta deployado, server sigue en 9962ea9 (capas 0-8 sin LAYER) — decision para el corte de manana."
   },
   {
    "agent": "Forge (lider) + Orbit",
