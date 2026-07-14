@@ -499,6 +499,26 @@ def zona_de_agujero(
     return row_zona * n_cols + col_zona
 
 
+def asegurar_capas_flycut(doc, num_capas: int = NUM_CAPAS_CYPCUT) -> None:
+    """Declara en la tabla LAYER del DXF las capas de flycut (0..num_capas-1) + CONTORNO.
+
+    Sin esto, ezdxf asigna el atributo `layer` a cada entidad pero NO crea la
+    entrada en la tabla de capas → CypCut puede no reconocerlas como capas de
+    flycut separadas. Cada capa recibe un color ACI distinto (1..num_capas) para
+    que se distingan visualmente; CONTORNO va en un color aparte.
+
+    Idempotente: si la capa ya existe, la deja como está.
+    PENDIENTE: ajustar nombres/colores al DXF de referencia que exporte Constantino
+    desde CypCut (validación de formato de capas).
+    """
+    for i in range(num_capas):
+        name = str(i)
+        if name not in doc.layers:
+            doc.layers.add(name, color=(i % 9) + 1)  # ACI 1..9
+    if "CONTORNO" not in doc.layers:
+        doc.layers.add("CONTORNO", color=7)
+
+
 def zona_a_capa(col_zona: int, row_zona: int, num_capas: int = NUM_CAPAS_CYPCUT) -> int:
     """Capa de CypCut para la zona (col, fila) según cuadrado latino.
 
@@ -550,6 +570,9 @@ def _write_cuadriculado_square_to_doc(
         cols -= 1
     while rows > 0 and (rows - 1) * step_y_mm + hole_size_mm > usable_h:
         rows -= 1
+
+    # Declarar las capas de flycut en la tabla LAYER (CypCut las necesita ahí).
+    asegurar_capas_flycut(doc)
 
     ox, oy = offset_x, offset_y
     msp.add_lwpolyline(

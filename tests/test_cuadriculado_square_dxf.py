@@ -162,6 +162,20 @@ def test_dxf_has_contorno_layer():
     assert "CONTORNO" in layers
 
 
+def test_todas_las_capas_declaradas_en_tabla():
+    """CypCut necesita las capas en la tabla LAYER, no solo como atributo de entidad."""
+    import ezdxf
+    _make_dxf(
+        hole_size_mm=10.0, step_x_mm=40.0, step_y_mm=40.0,
+        sheet_width_mm=1000.0, sheet_height_mm=1000.0, margin_mm=20.0,
+        output_path=_out("capas.dxf"),
+    )
+    doc = ezdxf.readfile(str(_out("capas.dxf")))
+    usadas = {e.dxf.layer for e in doc.modelspace()}
+    declaradas = {l.dxf.name for l in doc.layers}
+    assert usadas <= declaradas, f"capas usadas sin declarar en la tabla: {usadas - declaradas}"
+
+
 def test_holes_on_numeric_layers_0_8():
     import ezdxf
     _make_dxf()
