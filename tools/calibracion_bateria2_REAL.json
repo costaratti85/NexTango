@@ -1,0 +1,115 @@
+{
+  "_meta": "Bateria 2 medida REAL en CypCut (log de Constantino). Material N14/2.0mm, corte 75mm/s, rapido 1650mm/s. Valores del log CypCut (Cut/Vacant/Pierce/Total).",
+  "material": "Chapa N°14",
+  "espesor_mm": 2.0,
+  "muestras": [
+    {
+      "nombre": "B2_01",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 10640.0,
+      "travel_length_mm": 2911.19,
+      "pierce_count": 37,
+      "t_cypcut_s": 200.59
+    },
+    {
+      "nombre": "B2_02",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 6320.0,
+      "travel_length_mm": 2949.22,
+      "pierce_count": 37,
+      "t_cypcut_s": 143.14
+    },
+    {
+      "nombre": "B2_03",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 50080.0,
+      "travel_length_mm": 23992.9,
+      "pierce_count": 577,
+      "t_cypcut_s": 1472.215
+    },
+    {
+      "nombre": "B2_04",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 9880.0,
+      "travel_length_mm": 8091.79,
+      "pierce_count": 50,
+      "t_cypcut_s": 229.871
+    },
+    {
+      "nombre": "B2_05",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 7032.0,
+      "travel_length_mm": 6310.07,
+      "pierce_count": 85,
+      "t_cypcut_s": 226.439
+    },
+    {
+      "nombre": "B2_06",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 5688.0,
+      "travel_length_mm": 6314.98,
+      "pierce_count": 85,
+      "t_cypcut_s": 208.539
+    },
+    {
+      "nombre": "B2_07",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 13408.0,
+      "travel_length_mm": 14654.96,
+      "pierce_count": 197,
+      "t_cypcut_s": 485.957
+    },
+    {
+      "nombre": "B2_08",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 34420.0,
+      "travel_length_mm": 39407.14,
+      "pierce_count": 1522,
+      "t_cypcut_s": 2459.03
+    },
+    {
+      "nombre": "B2_09",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 10272.0,
+      "travel_length_mm": 14659.87,
+      "pierce_count": 197,
+      "t_cypcut_s": 444.164
+    },
+    {
+      "nombre": "B2_10",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 5620.0,
+      "travel_length_mm": 9407.14,
+      "pierce_count": 82,
+      "t_cypcut_s": 217.54
+    },
+    {
+      "nombre": "B2_11",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 12820.0,
+      "travel_length_mm": 21207.14,
+      "pierce_count": 442,
+      "t_cypcut_s": 799.413
+    },
+    {
+      "nombre": "B2_12",
+      "material": "Chapa N°14",
+      "espesor_mm": 2.0,
+      "cut_length_mm": 7920.0,
+      "travel_length_mm": 14663.55,
+      "pierce_count": 197,
+      "t_cypcut_s": 412.819
+    }
+  ]
+}
