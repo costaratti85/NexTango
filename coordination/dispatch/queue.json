@@ -14,11 +14,11 @@
    "agent": "Orbit",
    "task": "ORBIT_PURGA_HISTORIAL_TOKEN",
    "descripcion": "OPCION B (Constantino 2026-07-14): purgar el string 41A67498 del HISTORIAL de git en TODAS las ramas (main+erpnext), force-push a GitHub, y reconciliar los 3 clones (worktree main Mint, worktree erpnext Mint, clon del server) para que ningun deploy se rompa. SIN ROTAR: el token activo se mantiene (sigue vivo en /etc/environment + /etc/frappe-bench-nexus.env + .env de la Mint, que estan fuera de git). Backup mirror ya hecho. Coordinar ventana de freeze. Confirmar: git log --all -S '41A67498' = VACIO en GitHub y clones reconciliados. Redactar tambien las copias de referencia (MSG_012, MSG_095) si aun tienen el literal.",
-   "msg": "coordination/channel/Nova/MSG_090_ORBIT_auditoria_truncados.md",
-   "status": "en-curso-ejecucion",
+   "msg": "coordination/channel/Nova/MSG_106_ORBIT_purga_completa_worktrees_listos.md",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "Greenlight ejecucion 2026-07-14. Nova coordina freeze (no despacha a nadie durante la ventana). Al terminar -> worktrees."
+   "nota": "COMPLETADO 2026-07-14 (Orbit MSG_106). Token 41A67498 purgado del historial main+erpnext, force-push a GitHub (main=a4598ee, erpnext=ffc462b). Verificado en clon fresco de GitHub: git log --all -S = 0 y 0 en todos los blobs. 3 clones reconciliados: Mint main (a4598ee), Mint erpnext (ffc462b), server (equivalente reescrito c4b2a45 = mismo codigo de produccion, NO deploy). Server 7/7 workers + admin-patrones OK, sync con token ENV intacto (sin rotar). Backups: mirror PREPURGE-2026-07-14 + pattern_thumbnails. PASO 2 hecho: worktrees feat/<agente> (punto/vega/gemu/cybelec/tango/atlas), convencion en coordination/reports/ORBIT_WORKTREES_CONVENCION.md."
   },
   {
    "agent": "Orbit",
