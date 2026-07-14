@@ -133,3 +133,26 @@ def test_adapter_dispatch_tresbolillo_hexagon():
     assert (_TMP / "adapter.dxf").exists()
     assert result.legacy_result_raw["generator"] == "tresbolillo_hex_direct"
     assert result.calculated_resources[0]["pierce_count"] > 0
+
+
+def test_ui_flow_run_all_batches_da_hexagonos_reales():
+    """El endpoint que usa la UI (_run_all_batches) debe producir HEXÁGONOS, no círculos."""
+    import ezdxf
+    from sistema_industrial.presets.panel_sales_local_app import _run_all_batches
+    batch = {
+        "panel_mode": "tresbolillo", "hole_shape": "hexagon", "pattern_type": "tresbolillo",
+        "preset_name": "Tresbolillo Hex", "material": "Chapa doble decapada",
+        "thickness_mm": 2.0, "margin_mm": 20.0, "cut_partial_figures": True,
+        "sheet_sizes": [[300.0, 300.0, 1]],
+        "hole_diameter_mm": 10.0, "hole_distance_mm": 18.0,
+    }
+    res = _run_all_batches([batch], customer="T", job_name="hex", observations="",
+                           output_dir=_TMP, price_file=Path("/nonexistent"))
+    doc = ezdxf.readfile(str(res.service_result.dxf_path))
+    figs = [e for e in doc.modelspace() if e.dxf.layer != "CONTORNO" and e.dxftype() == "LWPOLYLINE"]
+    hexes = [e for e in figs if len(list(e.get_points())) == 6]
+    circles = [e for e in doc.modelspace() if e.dxftype() == "CIRCLE"]
+    assert len(hexes) > 0
+    assert len(hexes) == len(figs)   # todas las figuras son hexágonos
+    assert len(circles) == 0         # ningún círculo (el bug era que salían círculos)
+    assert res.service_result.calculated_resources[0]["pierce_count"] == len(hexes)

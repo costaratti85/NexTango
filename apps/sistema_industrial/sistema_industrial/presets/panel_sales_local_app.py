@@ -60,6 +60,7 @@ def _browse_dxf_file() -> str:
 
 from sistema_industrial.presets.legacy_panel_adapter import (
     _write_cuadriculado_square_to_doc,
+    _write_tresbolillo_hex_to_doc,
     add_pattern_to_library,
     calculate_consumed_resources,
     calculate_cut_length_mm,
@@ -1518,6 +1519,9 @@ def _run_all_batches(
         # cuad+square batches are handled separately (LWPOLYLINE + zone groups).
         # Each entry: {"batch": ..., "geo": {pierce_count, cut_length_mm, ...}}
         cuad_sq_batches_geo: list[dict] = []
+        # tresbolillo+hexágono: el motor standalone no tiene hexágono → se difiere
+        # al generador del adapter (_write_tresbolillo_hex_to_doc), igual que cuad+square.
+        hex_batches_geo: list[dict] = []
 
         for batch in all_batches:
             settings = settings_module.Settings()
@@ -1537,6 +1541,11 @@ def _run_all_batches(
             if panel_mode == "cuadriculado" and hole_shape == "square":
                 # Defer to post-legacy DXF step — record batch, skip legacy engine
                 cuad_sq_batches_geo.append({"batch": batch, "geo": None})
+                continue
+
+            if panel_mode == "tresbolillo" and hole_shape == "hexagon":
+                # El standalone no tiene hexágono → diferir al generador del adapter
+                hex_batches_geo.append({"batch": batch, "geo": None})
                 continue
 
             if panel_mode == "none":
@@ -1582,8 +1591,8 @@ def _run_all_batches(
             exporter_module.MixedDXFExporter().save(arranged, str(dxf_path))
 
         # Append cuadriculado+square panels into the combined DXF.
-        # All batches (legacy + cuad+square) always end up in the same .dxf file.
-        if cuad_sq_batches_geo:
+        # All batches (legacy + cuad+square + tresbolillo hex) end up in the same .dxf.
+        if cuad_sq_batches_geo or hex_batches_geo:
             import ezdxf as _ezdxf
             if dxf_path.exists():
                 combined_doc = _ezdxf.readfile(str(dxf_path))
@@ -1591,8 +1600,8 @@ def _run_all_batches(
                 combined_doc = _ezdxf.new("R2010")
             combined_msp = combined_doc.modelspace()
 
-            # Place cuad+square panels to the right of any legacy content
-            cuad_x = sum(float(it.occupied_width) + 200.0 for it in all_result_items)
+            # Place deferred panels to the right of any legacy content
+            next_x = sum(float(it.occupied_width) + 200.0 for it in all_result_items)
             for entry in cuad_sq_batches_geo:
                 b = entry["batch"]
                 sw, sh, _sq = [(float(w), float(h), int(q)) for w, h, q in b["sheet_sizes"]][0]
@@ -1604,11 +1613,27 @@ def _run_all_batches(
                     sheet_width_mm=sw,
                     sheet_height_mm=sh,
                     margin_mm=float(b["margin_mm"]),
-                    offset_x=cuad_x,
+                    offset_x=next_x,
                     offset_y=0.0,
                 )
                 entry["geo"] = geo
-                cuad_x += sw + 200.0
+                next_x += sw + 200.0
+
+            for entry in hex_batches_geo:
+                b = entry["batch"]
+                sw, sh, _sq = [(float(w), float(h), int(q)) for w, h, q in b["sheet_sizes"]][0]
+                geo = _write_tresbolillo_hex_to_doc(
+                    combined_doc, combined_msp,
+                    hole_diameter_mm=float(b["hole_diameter_mm"]),
+                    hole_distance_mm=float(b["hole_distance_mm"]),
+                    sheet_width_mm=sw,
+                    sheet_height_mm=sh,
+                    margin_mm=float(b["margin_mm"]),
+                    offset_x=next_x,
+                    offset_y=0.0,
+                )
+                entry["geo"] = geo
+                next_x += sw + 200.0
 
             combined_doc.saveas(str(dxf_path))
 
@@ -1711,6 +1736,57 @@ def _run_all_batches(
 
     # Add resource entries for cuadriculado+square batches (bypassed the legacy engine).
     for entry in cuad_sq_batches_geo:
+        b = entry["batch"]
+        geo = entry["geo"] or {}
+        sw, sh, sq = [(float(w), float(h), int(q)) for w, h, q in b["sheet_sizes"]][0]
+        _item_mat_entry = _mat_lookup.get((b["material"], float(b["thickness_mm"])))
+        if _item_mat_entry is None:
+            _any_missing_material = True
+        c_len = geo.get("cut_length_mm", 0.0)
+        p_cnt = geo.get("pierce_count", 0)
+        sheet_area_m2 = calculate_sheet_area_m2(sw, sh)
+        if _item_mat_entry is not None:
+            consumed = calculate_consumed_resources(
+                cut_length_m=c_len / 1000.0,
+                pierce_count=p_cnt,
+                sheet_area_m2=sheet_area_m2,
+                material_entry=_item_mat_entry,
+                travel_length_mm=geo.get("travel_length_mm", 0.0),
+            )
+        else:
+            consumed = None
+        if consumed is not None:
+            cost_entry = calculate_cost(consumed, b["material"], _daily_prices)
+        else:
+            cost_entry = {"costo_material": 0.0, "costo_maquina": 0.0, "costo_total": 0.0}
+        if _prices_missing:
+            cost_entry["prices_missing"] = True
+        all_resources.append(
+            {
+                "name": b["preset_name"],
+                "material": b["material"],
+                "thickness_mm": float(b["thickness_mm"]),
+                "quantity": sq,
+                "occupied_width_mm": sw,
+                "occupied_height_mm": sh,
+                "geometry_item_count": p_cnt,
+                "cut_length_mm": c_len,
+                "travel_length_mm": geo.get("travel_length_mm", 0.0),
+                "pierce_count": p_cnt,
+                "bend_count": 0,
+                "consumed_resources": consumed,
+                "consumed_resources_warning": (
+                    None if _item_mat_entry is not None else (
+                        f"Material '{b['material']}' {b['thickness_mm']} mm "
+                        f"no está en la tabla de materiales."
+                    )
+                ),
+                "cost": cost_entry,
+            }
+        )
+
+    # Add resource entries for tresbolillo+hexágono batches (bypassed the legacy engine).
+    for entry in hex_batches_geo:
         b = entry["batch"]
         geo = entry["geo"] or {}
         sw, sh, sq = [(float(w), float(h), int(q)) for w, h, q in b["sheet_sizes"]][0]

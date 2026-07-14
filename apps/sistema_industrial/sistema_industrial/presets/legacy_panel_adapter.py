@@ -747,35 +747,36 @@ def _hexagon_vertices(cx: float, cy: float, across_flats: float) -> list:
     ]
 
 
-def _generate_tresbolillo_hex_dxf(
+def _write_tresbolillo_hex_to_doc(
+    doc,
+    msp,
     hole_diameter_mm: float,
     hole_distance_mm: float,
     sheet_width_mm: float,
     sheet_height_mm: float,
     margin_mm: float,
-    output_path,
+    offset_x: float = 0.0,
+    offset_y: float = 0.0,
     zone_size_mm: float = ZONE_TARGET_MM,
 ) -> dict:
-    """DXF de tresbolillo con HEXÁGONOS (flat-top) + división por áreas (cuadrado latino).
+    """Escribe un panel de tresbolillo hexagonal en un doc/msp existente.
 
-    Posiciones tresbolillo: filas separadas por dy = distancia·√3/2; las filas
-    impares se desplazan medio paso en X. Cada hexágono va en su capa de flycut
-    (Channel por XDATA FS_CYPCUT), reusando la división por áreas genérica → el
+    Hexágonos flat-top en grilla tresbolillo (filas separadas por dy = distancia·
+    √3/2; filas impares desplazadas medio paso). Cada hexágono va en su capa de
+    flycut (Channel por XDATA FS_CYPCUT), con la división por áreas genérica → el
     flycut de 3 pasadas (horizontales / inclinadas der / izq) nunca corta áreas
-    contiguas de forma consecutiva (evita el desfase por calor).
+    contiguas de forma consecutiva (evita el desfase por calor). `offset_x/y`
+    posiciona el panel (para combinarlo con otros en el mismo DXF).
 
     Returns: {pierce_count, cut_length_mm, travel_length_mm, zone_cols, zone_rows,
               total_zones, n_files}.
     """
-    import ezdxf as _ezdxf
-
-    doc = _ezdxf.new("R2010")
-    msp = doc.modelspace()
     asegurar_capas_flycut(doc)
+    ox, oy = offset_x, offset_y
 
-    # Contorno del panel
     msp.add_lwpolyline(
-        [(0, 0), (sheet_width_mm, 0), (sheet_width_mm, sheet_height_mm), (0, sheet_height_mm)],
+        [(ox, oy), (ox + sheet_width_mm, oy),
+         (ox + sheet_width_mm, oy + sheet_height_mm), (ox, oy + sheet_height_mm)],
         close=True, dxfattribs={"layer": "CONTORNO"},
     )
 
@@ -795,21 +796,22 @@ def _generate_tresbolillo_hex_dxf(
                 "zone_cols": n_cols, "zone_rows": n_rows, "total_zones": total_zones, "n_files": 1}
 
     pierce_count = 0
-    x0 = margin_mm
-    y0 = margin_mm
+    x0 = ox + margin_mm
+    y0 = oy + margin_mm
     n_filas = int(usable_h // dy) + 1
     for r in range(n_filas):
         cy = y0 + half_h + r * dy
-        if cy + half_h > margin_mm + usable_h:
+        if cy + half_h > oy + margin_mm + usable_h:
             break
-        offset = (d / 2.0) if (r % 2) else 0.0
+        row_offset = (d / 2.0) if (r % 2) else 0.0
         c = 0
         while True:
-            cx = x0 + half_w + offset + c * d
+            cx = x0 + half_w + row_offset + c * d
             c += 1
-            if cx + half_w > margin_mm + usable_w:
+            if cx + half_w > ox + margin_mm + usable_w:
                 break
-            capa = capa_de_punto(cx, cy, n_cols, n_rows, zone_w, zone_h)
+            # capa por posición RELATIVA al origen del panel
+            capa = capa_de_punto(cx - ox, cy - oy, n_cols, n_rows, zone_w, zone_h)
             escribir_figura_flycut(msp, _hexagon_vertices(cx, cy, hole_diameter_mm), capa)
             pierce_count += 1
 
@@ -818,7 +820,6 @@ def _generate_tresbolillo_hex_dxf(
     cut_length_mm = pierce_count * 6.0 * lado + contorno_mm
     travel_mm = compute_travel_length_mm(pierce_count, d, dy, usable_w, usable_h)
 
-    doc.saveas(str(output_path))
     return {
         "pierce_count": pierce_count,
         "cut_length_mm": cut_length_mm,
@@ -828,6 +829,33 @@ def _generate_tresbolillo_hex_dxf(
         "total_zones": total_zones,
         "n_files": 1,
     }
+
+
+def _generate_tresbolillo_hex_dxf(
+    hole_diameter_mm: float,
+    hole_distance_mm: float,
+    sheet_width_mm: float,
+    sheet_height_mm: float,
+    margin_mm: float,
+    output_path,
+    zone_size_mm: float = ZONE_TARGET_MM,
+) -> dict:
+    """DXF standalone de tresbolillo hexagonal (un solo panel). Ver _write_tresbolillo_hex_to_doc."""
+    import ezdxf as _ezdxf
+
+    doc = _ezdxf.new("R2010")
+    msp = doc.modelspace()
+    result = _write_tresbolillo_hex_to_doc(
+        doc, msp,
+        hole_diameter_mm=hole_diameter_mm,
+        hole_distance_mm=hole_distance_mm,
+        sheet_width_mm=sheet_width_mm,
+        sheet_height_mm=sheet_height_mm,
+        margin_mm=margin_mm,
+        zone_size_mm=zone_size_mm,
+    )
+    doc.saveas(str(output_path))
+    return result
 
 
 class LegacyPanelAdapter:
