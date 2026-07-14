@@ -456,8 +456,12 @@ def delete_pattern_from_library(name: str, legacy_dir: Path | None = None) -> No
         lib.delete_pattern(name)
 
 
-# CypCut solo levanta 9 áreas/capas desde un DXF → capas 0..8 y tope de 9 áreas por lado.
-NUM_CAPAS_CYPCUT = 9
+# CypCut levanta hasta 14 canales/capas desde un DXF (límite real confirmado
+# empíricamente con test_20_capas_xdata.dxf) → canales 1..14, tope 14 áreas por lado.
+NUM_CAPAS_CYPCUT = 14
+
+# Application ID del XDATA que CypCut usa para asignar el canal de flycut de cada entidad.
+CYPCUT_APPID = "FS_CYPCUT"
 
 # Lado máximo deseado de cada zona de flycut (mm). Constantino: áreas < 200.
 ZONE_TARGET_MM = 200.0
@@ -467,9 +471,9 @@ def calcular_zonas(w_mm: float, h_mm: float, target: float = ZONE_TARGET_MM):
     """Divide el área del panel en n_cols × n_rows zonas de flycut.
 
     Por cada lado: la MENOR cantidad de áreas que deje cada una < target (200mm),
-    con TOPE de NUM_CAPAS_CYPCUT (9) áreas por lado:
-        N_lado = min(9, ceil(lado / target))
-    Si para bajar de 200 harían falta más de 9 áreas, se queda en 9 y esas áreas
+    con TOPE de NUM_CAPAS_CYPCUT (14) áreas por lado:
+        N_lado = min(14, ceil(lado / target))
+    Si para bajar de 200 harían falta más de 14 áreas, se queda en 14 y esas áreas
     quedan > 200 (límite de CypCut). Cada dimensión se calcula independiente.
 
     Las áreas de un lado son de igual tamaño (lado/N); la última fila/columna
@@ -499,6 +503,30 @@ def zona_de_agujero(
     return row_zona * n_cols + col_zona
 
 
+def _xdata_fs_cypcut(channel: int) -> list:
+    """XDATA FS_CYPCUT para una entidad de flycut, con su canal.
+
+    CypCut asigna el canal de proceso por este XDATA (no por el nombre de capa ni
+    el color). Formato validado byte-idéntico contra un export nativo de CypCut
+    (ver test_14_capas_xdata.dxf / Prueba definitiva.dxf). Todos los parámetros de
+    corte van en cero salvo IsFill=1; sólo `Channel` varía por entidad.
+    """
+    return [
+        (1000, "Channel"), (1070, channel),
+        (1000, "LeadIn"), (1002, "{"),
+        (1070, 0), (1040, 0.0), (1040, 0.0), (1040, 0.0), (1040, 0.0), (1070, 0), (1040, 0.0), (1070, 0),
+        (1002, "}"),
+        (1000, "LeadOut"), (1002, "{"),
+        (1070, 0), (1040, 0.0), (1040, 0.0), (1040, 0.0), (1070, 0),
+        (1002, "}"),
+        (1000, "IsFill"), (1070, 1),
+        (1000, "PathStart"), (1040, 0.0),
+        (1000, "ToolCompensation"), (1002, "{"),
+        (1070, 0), (1040, 0.0), (1070, 0),
+        (1002, "}"),
+    ]
+
+
 def asegurar_capas_flycut(doc, num_capas: int = NUM_CAPAS_CYPCUT) -> None:
     """Declara en la tabla LAYER del DXF las capas de flycut (0..num_capas-1) + CONTORNO.
 
@@ -509,9 +537,13 @@ def asegurar_capas_flycut(doc, num_capas: int = NUM_CAPAS_CYPCUT) -> None:
 
     Capas de flycut nombradas "1".."num_capas" (CypCut arranca en 1; la "0" no se
     usa para flycut — ver zona_a_capa y el DXF de referencia cypcut_capas.dxf).
+    Registra además el APPID FS_CYPCUT, requerido para escribir el XDATA que CypCut
+    usa para asignar el canal de cada agujero (ver _xdata_fs_cypcut).
 
-    Idempotente: si la capa ya existe, la deja como está.
+    Idempotente: si la capa/appid ya existe, la deja como está.
     """
+    if CYPCUT_APPID not in doc.appids:
+        doc.appids.add(CYPCUT_APPID)
     for i in range(1, num_capas + 1):
         name = str(i)
         if name not in doc.layers:
@@ -530,8 +562,8 @@ def zona_a_capa(col_zona: int, row_zona: int, num_capas: int = NUM_CAPAS_CYPCUT)
     cypcut_capas.dxf). Por eso el "+1".
 
     Propiedad: en una misma fila (row fijo) la capa recorre valores consecutivos
-    al variar col, y lo mismo por columna → como n_cols y n_rows ≤ num_capas (9)
-    por construcción (calcular_zonas topea en 9 áreas por lado), ninguna fila ni
+    al variar col, y lo mismo por columna → como n_cols y n_rows ≤ num_capas (14)
+    por construcción (calcular_zonas topea en 14 áreas por lado), ninguna fila ni
     columna repite capa (cuadrado latino). Además zonas adyacentes (Δcol=1 o
     Δfila=1) siempre caen en capas distintas, por lo que el flycut nunca corta
     dos áreas contiguas de forma consecutiva y el calor no desplaza la chapa
@@ -615,12 +647,15 @@ def _write_cuadriculado_square_to_doc(
             col_zona = zona % n_cols
             row_zona = zona // n_cols
             capa = zona_a_capa(col_zona, row_zona)
-            msp.add_lwpolyline(
+            hole = msp.add_lwpolyline(
                 [(cx - half, cy - half), (cx + half, cy - half),
                  (cx + half, cy + half), (cx - half, cy + half)],
                 close=True,
                 dxfattribs={"layer": str(capa)},
             )
+            # XDATA FS_CYPCUT con Channel = capa: es lo que hace que CypCut separe
+            # las capas de flycut de verdad (no el nombre de capa ni el color).
+            hole.set_xdata(CYPCUT_APPID, _xdata_fs_cypcut(capa))
 
     pierce_count = cols * rows
     contorno_mm = 2.0 * (sheet_width_mm + sheet_height_mm)
@@ -772,7 +807,7 @@ class LegacyPanelAdapter:
         capas_usadas = min(NUM_CAPAS_CYPCUT, geo["zone_cols"] + geo["zone_rows"] - 1)
         w_msg = (
             f"Flycut cuadrado latino: {geo['pierce_count']} cuadrados en {zone_info} "
-            f"áreas (≤200mm; máx 9 por lado), repartidas en {capas_usadas} capas de "
+            f"áreas (≤200mm; máx 14 por lado), repartidas en {capas_usadas} capas de "
             f"CypCut. Seleccionar todo y aplicar flycut — no se cortan áreas "
             f"contiguas de forma consecutiva (evita el desfase por calor)."
         )

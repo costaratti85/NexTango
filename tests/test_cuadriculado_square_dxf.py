@@ -22,6 +22,7 @@ from sistema_industrial.presets.legacy_panel_adapter import (
     zona_a_capa,
     NUM_CAPAS_CYPCUT,
     ZONE_TARGET_MM,
+    CYPCUT_APPID,
 )
 
 _TESTS_TMP = Path(__file__).resolve().parent / "_tmp_cuad_sq"
@@ -84,48 +85,48 @@ def test_zonas_panel_pequeno():
 
 
 def test_n_areas_por_lado_formula():
-    # N_lado = min(9, ceil(lado/200)); cada dimensión independiente
-    assert calcular_zonas(1000, 1000)[:2] == (5, 5)   # ceil(1000/200)=5
-    assert calcular_zonas(1500, 1500)[:2] == (8, 8)   # ceil(1500/200)=8
-    assert calcular_zonas(3000, 3000)[:2] == (9, 9)   # ceil=15 → tope 9
-    assert calcular_zonas(1500, 3000)[:2] == (8, 9)   # ancho≠alto
+    # N_lado = min(14, ceil(lado/200)); cada dimensión independiente
+    assert calcular_zonas(1000, 1000)[:2] == (5, 5)    # ceil(1000/200)=5
+    assert calcular_zonas(1500, 1500)[:2] == (8, 8)    # ceil(1500/200)=8
+    assert calcular_zonas(3000, 3000)[:2] == (14, 14)  # ceil=15 → tope 14
+    assert calcular_zonas(1500, 3000)[:2] == (8, 14)   # ancho≠alto
 
 
-def test_ejemplos_constantino():
-    # lado 3000 → 9 áreas de 333mm; lado 1500 → 8 áreas de 187mm
+def test_ejemplos():
+    # lado 3000 → 14 áreas (tope); lado 1500 → 8 áreas de 187mm
     nc, _, zw, _, _ = calcular_zonas(3000, 3000)
-    assert nc == 9 and zw == pytest.approx(3000 / 9, abs=0.5)   # 333.3
+    assert nc == 14 and zw == pytest.approx(3000 / 14, abs=0.5)
     nc, _, zw, _, _ = calcular_zonas(1500, 1500)
     assert nc == 8 and zw == pytest.approx(1500 / 8, abs=0.5)   # 187.5
 
 
 def test_area_menor_a_200_si_no_capeado():
-    # Si ceil(lado/200) ≤ 9, el área queda ≤ 200
-    for lado in [1000, 1500, 1799]:
+    # Si ceil(lado/200) ≤ 14, el área queda ≤ 200
+    for lado in [1000, 1500, 2799]:
         n = calcular_zonas(lado, lado)[0]
         assert lado / n <= ZONE_TARGET_MM + 1e-6
 
 
-def test_area_supera_200_cuando_capeado_en_9():
-    # >1800mm necesitaría >9 áreas para <200 → capeado a 9 → área > 200 (límite CypCut)
+def test_area_supera_200_cuando_capeado_en_14():
+    # >2800mm necesitaría >14 áreas para <200 → capeado a 14 → área > 200 (límite CypCut)
     n_cols, n_rows, zw, zh, _ = calcular_zonas(3000, 3000)
-    assert n_cols == 9 and zw > 200.0
+    assert n_cols == 14 and zw > 200.0
 
 
 # ---- zona_a_capa (cuadrado latino) ----
 
-def test_capa_es_col_mas_fila_mod_9_base_1():
-    # CypCut arranca las capas en 1 (no 0): capa = (col+fila)%9 + 1
-    assert NUM_CAPAS_CYPCUT == 9
+def test_capa_es_col_mas_fila_mod_14_base_1():
+    # CypCut: 14 canales, base 1 → capa = (col+fila)%14 + 1
+    assert NUM_CAPAS_CYPCUT == 14
     assert zona_a_capa(0, 0) == 1
     assert zona_a_capa(3, 2) == 6
-    assert zona_a_capa(8, 1) == 1   # (9)%9 + 1
-    assert zona_a_capa(8, 8) == 8   # (16)%9 + 1
+    assert zona_a_capa(13, 1) == 1   # (14)%14 + 1
+    assert zona_a_capa(8, 8) == 3    # (16)%14 + 1
 
 
-def test_capa_en_rango_1_a_9():
-    for c in range(20):
-        for r in range(20):
+def test_capa_en_rango_1_a_14():
+    for c in range(28):
+        for r in range(28):
             assert 1 <= zona_a_capa(c, r) <= NUM_CAPAS_CYPCUT
 
 
@@ -177,7 +178,7 @@ def test_todas_las_capas_declaradas_en_tabla():
     assert usadas <= declaradas, f"capas usadas sin declarar en la tabla: {usadas - declaradas}"
 
 
-def test_holes_on_numeric_layers_1_9():
+def test_holes_on_numeric_layers_1_14():
     import ezdxf
     _make_dxf()
     msp = ezdxf.readfile(str(_out())).modelspace()
@@ -186,6 +187,40 @@ def test_holes_on_numeric_layers_1_9():
     assert "0" not in hole_layers  # CypCut no usa la capa 0 para flycut
     for lyr in hole_layers:
         assert lyr.isdigit() and 1 <= int(lyr) <= NUM_CAPAS_CYPCUT
+
+
+# ---- XDATA FS_CYPCUT (lo que CypCut usa para separar capas) ----
+
+def test_appid_fs_cypcut_registrado():
+    import ezdxf
+    _make_dxf(
+        hole_size_mm=10.0, step_x_mm=50.0, step_y_mm=50.0,
+        sheet_width_mm=1000.0, sheet_height_mm=1000.0, margin_mm=20.0,
+        output_path=_out("xd.dxf"),
+    )
+    doc = ezdxf.readfile(str(_out("xd.dxf")))
+    assert CYPCUT_APPID in doc.appids
+
+
+def test_cada_agujero_tiene_xdata_con_channel_igual_a_capa():
+    import ezdxf
+    _make_dxf(
+        hole_size_mm=10.0, step_x_mm=50.0, step_y_mm=50.0,
+        sheet_width_mm=1000.0, sheet_height_mm=1000.0, margin_mm=20.0,
+        output_path=_out("xd.dxf"),
+    )
+    doc = ezdxf.readfile(str(_out("xd.dxf")))
+    n_holes = 0
+    for e in doc.modelspace():
+        if e.dxf.layer == "CONTORNO":
+            continue
+        n_holes += 1
+        xd = e.get_xdata(CYPCUT_APPID)   # lanza si no existe
+        channel = next(xd[i + 1][1] for i, (c, v) in enumerate(xd)
+                       if c == 1000 and v == "Channel")
+        # el Channel del XDATA debe coincidir con la capa (layer) del agujero
+        assert channel == int(e.dxf.layer), f"Channel {channel} != capa {e.dxf.layer}"
+    assert n_holes > 0
 
 
 # ---- un solo archivo, cualquier tamaño ----
