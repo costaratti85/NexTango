@@ -77,26 +77,49 @@ def test_zonas_target_por_defecto_200():
 
 
 def test_zonas_panel_pequeno():
-    # 500×500 → ceil(500/200)=3 × 3 = 9 zonas; cada zona 166.7mm ≤ 200
+    # 500×500 → min(9, ceil(500/200)=3) = 3 × 3 = 9 zonas; cada zona 166.7mm < 200
     n_cols, n_rows, zw, zh, total = calcular_zonas(500, 500)
     assert (n_cols, n_rows, total) == (3, 3, 9)
-    assert zw <= 200.0 and zh <= 200.0
+    assert zw < 200.0 and zh < 200.0
 
 
-def test_zonas_lado_nunca_supera_target():
-    for w, h in [(1000, 1000), (1220, 2440), (333, 777)]:
-        n_cols, n_rows, zw, zh, _ = calcular_zonas(w, h)
-        assert zw <= ZONE_TARGET_MM + 1e-6
-        assert zh <= ZONE_TARGET_MM + 1e-6
+def test_n_areas_por_lado_formula():
+    # N_lado = min(9, ceil(lado/200)); cada dimensión independiente
+    assert calcular_zonas(1000, 1000)[:2] == (5, 5)   # ceil(1000/200)=5
+    assert calcular_zonas(1500, 1500)[:2] == (8, 8)   # ceil(1500/200)=8
+    assert calcular_zonas(3000, 3000)[:2] == (9, 9)   # ceil=15 → tope 9
+    assert calcular_zonas(1500, 3000)[:2] == (8, 9)   # ancho≠alto
+
+
+def test_ejemplos_constantino():
+    # lado 3000 → 9 áreas de 333mm; lado 1500 → 8 áreas de 187mm
+    nc, _, zw, _, _ = calcular_zonas(3000, 3000)
+    assert nc == 9 and zw == pytest.approx(3000 / 9, abs=0.5)   # 333.3
+    nc, _, zw, _, _ = calcular_zonas(1500, 1500)
+    assert nc == 8 and zw == pytest.approx(1500 / 8, abs=0.5)   # 187.5
+
+
+def test_area_menor_a_200_si_no_capeado():
+    # Si ceil(lado/200) ≤ 9, el área queda ≤ 200
+    for lado in [1000, 1500, 1799]:
+        n = calcular_zonas(lado, lado)[0]
+        assert lado / n <= ZONE_TARGET_MM + 1e-6
+
+
+def test_area_supera_200_cuando_capeado_en_9():
+    # >1800mm necesitaría >9 áreas para <200 → capeado a 9 → área > 200 (límite CypCut)
+    n_cols, n_rows, zw, zh, _ = calcular_zonas(3000, 3000)
+    assert n_cols == 9 and zw > 200.0
 
 
 # ---- zona_a_capa (cuadrado latino) ----
 
-def test_capa_es_col_mas_fila_mod_n():
+def test_capa_es_col_mas_fila_mod_9():
+    assert NUM_CAPAS_CYPCUT == 9
     assert zona_a_capa(0, 0) == 0
     assert zona_a_capa(3, 2) == 5
-    assert zona_a_capa(15, 1) == 0  # (15+1)%16
-    assert zona_a_capa(8, 8) == 0   # (16)%16
+    assert zona_a_capa(8, 1) == 0   # (9)%9
+    assert zona_a_capa(8, 8) == 7   # (16)%9
 
 
 def test_capa_en_rango_valido():
@@ -139,7 +162,7 @@ def test_dxf_has_contorno_layer():
     assert "CONTORNO" in layers
 
 
-def test_holes_on_numeric_layers_0_15():
+def test_holes_on_numeric_layers_0_8():
     import ezdxf
     _make_dxf()
     msp = ezdxf.readfile(str(_out())).modelspace()
@@ -165,13 +188,13 @@ def test_panel_grande_un_solo_archivo():
 # ---- propiedad del cuadrado latino ----
 
 def test_latin_square_sin_repeticion_en_fila_ni_columna():
-    """Panel con ≤16 zonas por lado: ninguna fila ni columna repite capa."""
+    """Panel 1500×1500 → 8×8 zonas (cerca del tope 9): ninguna fila ni columna repite capa."""
     _make_dxf(
-        hole_size_mm=10.0, step_x_mm=50.0, step_y_mm=50.0,
-        sheet_width_mm=1000.0, sheet_height_mm=1000.0, margin_mm=20.0,
+        hole_size_mm=10.0, step_x_mm=40.0, step_y_mm=40.0,
+        sheet_width_mm=1500.0, sheet_height_mm=1500.0, margin_mm=20.0,
         output_path=_out("latin.dxf"),
     )
-    zc = _zona_capa_map(_out("latin.dxf"), 1000.0, 1000.0)
+    zc = _zona_capa_map(_out("latin.dxf"), 1500.0, 1500.0)
     filas, cols = defaultdict(list), defaultdict(list)
     for (c, r), capa in zc.items():
         filas[r].append(capa)
@@ -185,11 +208,11 @@ def test_latin_square_sin_repeticion_en_fila_ni_columna():
 def test_latin_square_zonas_adyacentes_distinta_capa():
     """Ninguna zona adyacente (horizontal o vertical) comparte capa."""
     _make_dxf(
-        hole_size_mm=10.0, step_x_mm=50.0, step_y_mm=50.0,
-        sheet_width_mm=1000.0, sheet_height_mm=1000.0, margin_mm=20.0,
+        hole_size_mm=10.0, step_x_mm=40.0, step_y_mm=40.0,
+        sheet_width_mm=1500.0, sheet_height_mm=1500.0, margin_mm=20.0,
         output_path=_out("adj.dxf"),
     )
-    zc = _zona_capa_map(_out("adj.dxf"), 1000.0, 1000.0)
+    zc = _zona_capa_map(_out("adj.dxf"), 1500.0, 1500.0)
     for (c, r), capa in zc.items():
         for dc, dr in ((1, 0), (0, 1)):
             vecino = zc.get((c + dc, r + dr))
