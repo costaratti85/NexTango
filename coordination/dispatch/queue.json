@@ -2,13 +2,23 @@
  "pending": [
   {
    "agent": "Orbit",
-   "task": "ORBIT_PURGA_HISTORIAL_TOKEN",
-   "descripcion": "Purgar el string del token viejo (rotado/muerto) de TODO el historial git en ambas ramas (main+erpnext) del repo costaratti85/NexTango, con git filter-repo. Higiene, sin riesgo de seguridad. BLOQUEADO por Tango: primero Tango limpia el token del codigo ACTUAL en ambas ramas, commitea/pushea, y pasa a Orbit el string exacto + archivos afectados. Secuencia: (1) todos pushean su trabajo a origin (el rewrite se hace sobre el estado de origin); (2) backup mirror intocable; (3) clon --mirror de trabajo + filter-repo --replace-text; (4) force-push --all; (5) reconciliar server .20 (fetch + reset --hard origin/erpnext, decidir antes que pasa con el working tree sucio de thumbnails) y worktrees locales. NO ejecutar el force-push hasta OK explicito de Constantino. Plan completo reportado a Dispatch 2026-07-11.",
-   "msg": "coordination/channel/Nova/MSG_090_ORBIT_auditoria_truncados.md",
-   "status": "bloqueado",
+   "task": "ORBIT_DEPLOY_PRECIO_PANEL_DECORATIVO",
+   "descripcion": "DEPLOY YA (no depende del material): UI de precio de Vega (1d4ba96) + unificacion precio-por-segundo (1433f9e) + endpoint precio (0e662a8). git pull + bench build + bump_page_cache + restart, SIN migrate. Esperado: hasta cargar los coeficientes, la columna dice 'pendiente de calibracion' -> es CORRECTO, no bug. Verificar /app/panel-decorativo carga y SI Precios Globales.precio_segundo_laser.",
+   "msg": "coordination/channel/Nova/MSG_096_VEGA_precio_panel_conectado.md",
+   "status": "pendiente",
    "sprint": "001-rebanada",
-   "prioridad": "media",
-   "nota": "Orbit (2026-07-11): plan relevado y reportado. Repo unico, 2 worktrees (main 76 commits / erpnext 124), 0 tags, .git 8.1M, remote GitHub costaratti85/NexTango. filter-repo NO instalado (a instalar). Bloqueado por Tango (string del token) + OK de Constantino para el force-push."
+   "prioridad": "alta",
+   "nota": "Ejecutable SIN Constantino. La carga de coeficientes va aparte (ORBIT_CARGAR_COEFS_LASER, espera nombre de material)."
+  },
+  {
+   "agent": "Orbit",
+   "task": "ORBIT_PURGA_HISTORIAL_TOKEN",
+   "descripcion": "OPCION B (Constantino 2026-07-14): purgar el string 41A67498 del HISTORIAL de git en TODAS las ramas (main+erpnext), force-push a GitHub, y reconciliar los 3 clones (worktree main Mint, worktree erpnext Mint, clon del server) para que ningun deploy se rompa. SIN ROTAR: el token activo se mantiene (sigue vivo en /etc/environment + /etc/frappe-bench-nexus.env + .env de la Mint, que estan fuera de git). Backup mirror ya hecho. Coordinar ventana de freeze. Confirmar: git log --all -S '41A67498' = VACIO en GitHub y clones reconciliados. Redactar tambien las copias de referencia (MSG_012, MSG_095) si aun tienen el literal.",
+   "msg": "coordination/channel/Nova/MSG_090_ORBIT_auditoria_truncados.md",
+   "status": "en-curso-ejecucion",
+   "sprint": "001-rebanada",
+   "prioridad": "alta",
+   "nota": "Greenlight ejecucion 2026-07-14. Nova coordina freeze (no despacha a nadie durante la ventana). Al terminar -> worktrees."
   },
   {
    "agent": "Orbit",
@@ -685,50 +695,50 @@
    "task": "TANGO_CREATE_SI_TANGO_ID_FIELD",
    "descripcion": "Crear Custom Field 'si_tango_id' en ERPNext Item y re-sincronizar los articulos para poblarlo. article_push.py ya lo escribe; sin el campo se descartaba en silencio. Habilita GetById de precios y push de Pedidos.",
    "msg": "coordination/channel/Nova/MSG_087_TANGO_dudas_migracion.md",
-   "status": "aprobado-en-curso-dispatch-directo",
+   "status": "completado",
    "sprint": "tango-crm",
    "prioridad": "alta",
-   "nota": "Constantino aprobo 2026-07-10. Despachado directo por Constantino/Dispatch. No re-despachar."
+   "nota": "COMPLETADO (confirmado canal MSG_095_TANGO 2026-07-11): Custom Field si_tango_id creado + re-sync de 2189 articulos hecho."
   },
   {
    "agent": "Tango",
    "task": "TANGO_CLEANUP_16_CLIENTES_NEWLINE",
-   "descripcion": "Limpiar los 16 clientes con '\\n' en el nombre (heredado del primer sync). El job diario no los puede actualizar. Script de cleanup ya listo.",
+   "descripcion": "Renombrar los 15 clientes con '\\n' en el nombre (Tango recuento: 15, no 16). El job diario no los puede actualizar. Script listo. BLOQUEADO por decision de Constantino.",
    "msg": "coordination/channel/Nova/MSG_087_TANGO_dudas_migracion.md",
-   "status": "aprobado-en-curso-dispatch-directo",
+   "status": "bloqueado-decision-constantino",
    "sprint": "tango-crm",
    "prioridad": "media",
-   "nota": "Constantino aprobo 2026-07-10. Despachado directo. No re-despachar."
+   "nota": "BLOQUEADO (canal MSG_095_TANGO): Tango espera 2 definiciones de Constantino: (1) nombre destino opcion 1 vs 2; (2) OK para correr rename_doc con cascada a transacciones. Status corregido de 'aprobado-en-curso' -> bloqueado (estaba mal etiquetado)."
   },
   {
    "agent": "Tango",
    "task": "TANGO_LIMPIAR_TOKEN_VIEJO_REPO",
    "descripcion": "Limpiar el token viejo hardcodeado (<APP_INSTANCE_ID>) del repo: 10 archivos en erpnext (incluye .py reales) + 2 en main. Token rotado/muerto pero sucio.",
    "msg": "coordination/channel/Nova/MSG_087_TANGO_dudas_migracion.md",
-   "status": "en-espera-decision",
+   "status": "completado",
    "sprint": "tango-crm",
    "prioridad": "baja",
-   "nota": "NO ejecutar por ahora. Pendiente de confirmacion de Constantino. Regla 2026-07-10: por ahora no borren nada."
+   "nota": "COMPLETADO (confirmado canal MSG_095_TANGO / commits 7b59a19 erpnext + 9798551 main): token viejo fuera del CODIGO en ambas ramas (ahora os.environ). OJO: la purga del HISTORIAL git es tarea aparte de Orbit (ORBIT_PURGA_HISTORIAL_TOKEN, bloqueada) y el token NO fue rotado."
   },
   {
    "agent": "Cybelec",
    "task": "CYBELEC_SYNC_PLEGADO_STANDALONE_7_8",
    "descripcion": "Re-sincronizar fix #7 (boton 'Volver a la secuencia' / keepOrder) y #8 (simulacion de fin de carrera: penDepth, TOL_PEN, SIM_CACHE) desde la copia erpnext (7777517) hacia el standalone plegado_app/index.html. Recuperacion pura, sin logica nueva. Verificar en preview local y commitear en main.",
    "msg": "coordination/channel/Nova/MSG_088_CYBELEC_dudas_migracion.md",
-   "status": "en-curso-dispatch-directo",
+   "status": "completado",
    "sprint": "plegados",
    "prioridad": "media",
-   "nota": "Constantino aprobo 2026-07-10. Despachado directo. No re-despachar."
+   "nota": "COMPLETADO (confirmado canal MSG_091_CYBELEC / commit 26090e4 main): fix #7 y #8 portados erpnext->standalone, byte-identico verificado. No requiere deploy prod."
   },
   {
    "agent": "Orbit",
    "task": "ORBIT_MAPA_CANALES_TRUNCADOS",
    "descripcion": "Barrido read-only de todos los canales para mapear que MSG referenciados en la queue faltan como archivos tras la migracion (inbox truncados en Vega/Orbit/Gemu/Nido). Cosmetico, integridad de audit trail.",
    "msg": "coordination/channel/Nova/MSG_087_ORBIT_dudas_migracion.md",
-   "status": "en-curso-dispatch-directo",
+   "status": "completado",
    "sprint": "infra",
    "prioridad": "baja",
-   "nota": "Despachado directo 2026-07-10. SOLO mapear, NO borrar nada (regla 2026-07-10)."
+   "nota": "COMPLETADO (confirmado canal MSG_090_ORBIT): mapeadas 46 referencias rotas, todas de tareas ya cerradas. No se perdio trabajo pendiente."
   },
   {
    "agent": "Postprocesador+Punto",
@@ -765,10 +775,150 @@
    "task": "PUNTO_FORMULA_SEGUNDOS_LASER_PRECIO",
    "descripcion": "Cerrar el CALCULO DE PRECIO del Panel Decorativo via el MODELO FISICO CALIBRADO T = A*cut + B*travel + C*pierce. Punto prepara: (1) el procedimiento de calibracion (script de minimos cuadrados que ajusta A,B,C comparando tiempo CypCut vs formula en paneles de muestra) y (2) la lista exacta de datos que Constantino debe sacar de CypCut. NO es el modelo nominal segundos=f(largo,velocidad). Punto reporta estado.",
    "msg": "dispatch-directo-constantino-2026-07-11",
-   "status": "en-curso-dispatch-directo",
+   "status": "espera-bateria2",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "Rebanada ACTIVA de Panel Decorativo. Modelo fisico calibrado, no nominal. Despachado directo por Constantino 2026-07-11. No re-despachar. Al cerrar, se define como se genera un pedido -> destraba MES/Nido. Depende de que Constantino corra los paneles de muestra en CypCut."
+   "nota": "Constantino 2026-07-14: la medicion de Bateria 2 queda PARA DESPUES por decision suya -> coeficientes laser en espera (sin fecha). Codigo/motor listos; UI muestra 'pendiente'. No bloquea otros frentes."
+  },
+  {
+   "agent": "Vega",
+   "task": "VEGA_CONECTAR_PRECIO_UI_PANEL_DECORATIVO",
+   "descripcion": "Conectar el PRECIO en la pantalla de Panel Decorativo. Punto ya lo expone en el endpoint api/paneles.calcular() (commit 0e662a8): costo_material, costo_maquina, costo_total por panel + costo_total_linea + prices_missing. Falta que la UI los muestre. Cierra el precio end-to-end en la pantalla.",
+   "msg": "coordination/channel/Nova/MSG_093_PUNTO_avance_precio_endpoint.md",
+   "status": "completado-codigo-espera-deploy",
+   "sprint": "001-rebanada",
+   "prioridad": "alta",
+   "nota": "Codigo HECHO (MSG_096, commit 1d4ba96, pusheado): columna 'Costo motor' + resumen + manejo prices_missing. Falta DEPLOY (ORBIT_DEPLOY_PRECIO_PANEL_DECORATIVO). No verificado visual (sin bench local)."
+  },
+  {
+   "agent": "Punto",
+   "task": "PUNTO_UNIFICAR_PRECIO_SEGUNDO",
+   "descripcion": "Unificar el precio-por-segundo a UNA sola fuente de verdad y eliminar el duplicado. Hoy conviven dos: 'precio_segundo_maquina' (JSON legacy daily_prices.json, lo usa calculate_cost) y 'precio_segundo_laser' (doctype SI Precios, lo usan si_presupuesto_panel / api/materiales). Constantino: el nombre da igual (laser o maquina); Punto elige cual queda, apunta TODOS los callers a esa unica fuente y elimina el otro. Constantino APROBA la eliminacion del duplicado.",
+   "msg": "coordination/channel/Punto/MSG_031_nova_calibracion_ok_y_unificar_precio.md",
+   "status": "completado",
+   "sprint": "001-rebanada",
+   "prioridad": "alta",
+   "nota": "COMPLETADO (MSG_098, commit 1433f9e): unificado a SI Precios Globales.precio_segundo_laser. Duplicado funcional eliminado. Dead-code UI legacy señalado para tarea aparte (no bloquea)."
+  },
+  {
+   "agent": "Constantino",
+   "task": "CONSTANTINO_GENERAR_TOKEN_NUEVO_TANGO",
+   "descripcion": "PRECONDICION MANUAL: generar/regenerar el token de API (APP_INSTANCE_ID) DENTRO del software Tango Gestion (menu usuario -> Desarrollador, a confirmar ubicacion con agente Tango). Debe INVALIDAR/REVOCAR el viejo 41A67498... (no solo agregar uno nuevo, sino matar el viejo). Entregar el valor NUEVO FUERA DE BANDA (a Forge para server env y a quien actualice el .env) - NUNCA pegarlo en un canal versionado ni commitearlo.",
+   "msg": "canal-directo-constantino-nova",
+   "status": "descartado-decision-sin-rotar",
+   "sprint": "seguridad-token",
+   "prioridad": "alta",
+   "nota": "DESCARTADO 2026-07-14: Constantino decidio Opcion B (purgar SIN rotar). El token NO se rota por ahora. Queda como opcion de seguridad futura si Constantino la pide (Orbit MSG_105: el token no esta rotado, sigue el viejo)."
+  },
+  {
+   "agent": "Forge",
+   "task": "FORGE_ROTAR_TOKEN_SERVER_ENV",
+   "descripcion": "Poner el token NUEVO en el env del SERVER (190.190.190.20) con el MISMO metodo que hoy tiene APP_INSTANCE_ID (drop-in systemd / /etc/frappe-bench-nexus.env / /etc/environment / bench set-config -g), sin dejar dos definiciones. Reiniciar servicios (supervisorctl restart all + bench). El valor llega fuera de banda; NO commitear el token.",
+   "msg": "coordination/channel/Forge/MSG_027_nova_rotacion_token.md",
+   "status": "descartado-decision-sin-rotar",
+   "sprint": "seguridad-token",
+   "prioridad": "alta",
+   "nota": "DESCARTADO 2026-07-14: Constantino decidio Opcion B (purgar SIN rotar). El token NO se rota por ahora. Queda como opcion de seguridad futura si Constantino la pide (Orbit MSG_105: el token no esta rotado, sigue el viejo)."
+  },
+  {
+   "agent": "Tango",
+   "task": "TANGO_ROTAR_ENV_LOCAL_Y_VERIFICAR_SYNC",
+   "descripcion": "Actualizar el .env local (gitignoreado) con el token NUEVO y VERIFICAR el sync con Tango: correr un probe/GetById/sync incremental y confirmar 200 (no 401). Confirmar tambien que el token VIEJO ya NO autentica (da 401) -> prueba de que la rotacion mato al viejo. Reportar resultado.",
+   "msg": "coordination/channel/Tango/MSG_007_nova_rotacion_token.md",
+   "status": "descartado-decision-sin-rotar",
+   "sprint": "seguridad-token",
+   "prioridad": "alta",
+   "nota": "DESCARTADO 2026-07-14: Constantino decidio Opcion B (purgar SIN rotar). El token NO se rota por ahora. Queda como opcion de seguridad futura si Constantino la pide (Orbit MSG_105: el token no esta rotado, sigue el viejo)."
+  },
+  {
+   "agent": "Punto",
+   "task": "PUNTO_THUMBNAILS_MOTOR_NATIVO_PARAMETROS",
+   "descripcion": "Generar los thumbnails de los patrones con el MOTOR NATIVO, para los TRES motores nativos. Parametros a usar: agujero 10mm, distancia entre agujeros 15mm, margen 20mm, panel 300x300mm. Hipotesis de Constantino: los thumbnails quedaron sin generar porque los patrones no tenian parametros definidos (sin parametros no existe el patron -> no hay que renderizar). Al definir estos parametros deberia existir el patron y poder generarse el thumbnail nativo.",
+   "msg": "coordination/channel/Punto/MSG_032_nova_thumbnails_motor_nativo.md",
+   "status": "pendiente",
+   "sprint": "panel-decorativo",
+   "prioridad": "media",
+   "nota": "EJECUTABLE YA: la calibracion quedo gateada por la Bateria 2 (mide Constantino), asi que Punto puede avanzar con los thumbnails ahora. No depende de ningun gate de Constantino."
+  },
+  {
+   "agent": "Orbit (+Forge apoyo)",
+   "task": "ORBIT_PLAN_CONSOLIDACION_INFRA",
+   "descripcion": "DISEÑAR (NO ejecutar) plan de consolidacion en el server 190.190.190.20 con MODELO SSH: los ~15 agentes ENTRAN POR SSH al server y hacen TODAS las operaciones git (pull/push/commit/PR) sobre el repo del server. NO mas clones locales por maquina (reemplaza la decision #4 anterior de clon+venv local). Contemplar: CONCURRENCIA (~15 agentes sin pisarse: worktrees/checkouts por agente + ramas+PRs), SEGURIDAD DE PRODUCCION (ERPNext en vivo, aislar carpeta de trabajo del bench, no correr scripts pesados contra la instancia viva), ACCESO SSH por agente (llaves/creds, hoy solo Orbit tiene sshpass), VENV en el SERVER para herramientas standalone (resuelve venv-sobre-SMB), flujo de PR (gh CLI). Mantener: app Frappe en su path del bench, carpeta central, Samba para Windows/Mint restringido a LAN 190.190.190.0/24, coordinacion con la purga del token. El plan dice que necesita de Constantino. Entregar doc, NO ejecutar.",
+   "msg": "coordination/channel/Orbit/MSG_015_nova_plan_consolidacion_infra.md",
+   "status": "descartado-reemplazado",
+   "sprint": "infra",
+   "prioridad": "alta",
+   "nota": "DESCARTADO 2026-07-13: Constantino cambio al modelo git (agentes en Mint -> GitHub -> server pull). Ver ORBIT_OPINION_MODELO_GIT_MINT. Se conserva solo Samba para archivos no-codigo."
+  },
+  {
+   "agent": "Orbit",
+   "task": "ORBIT_OPINION_MODELO_GIT_MINT",
+   "descripcion": "OPINION TECNICA CORTA (no ejecutar) sobre el nuevo modelo: agentes trabajan en la Mint, suben a GitHub, el server solo pull para deploy (nadie toca el server a mano). Responder: (1) capacidad de la Mint para ~15 agentes en paralelo (edicion/venv/tests) y si el build pesado corre en Mint o solo en server; (2) aislamiento de concurrencia en la Mint (worktrees por agente vs clon por agente vs rama+PR sobre un working tree) con recomendacion; (3) que de Samba se conserva y para que; origin canonico GitHub confirmado; (4) orden respecto a la purga del token.",
+   "msg": "coordination/channel/Orbit/MSG_017_nova_opinion_modelo_git_mint.md",
+   "status": "completado",
+   "sprint": "infra",
+   "prioridad": "alta",
+   "nota": "COMPLETADO (MSG_102). Constantino APROBO el modelo Mint+git+server-pull. Orden acordado: rotar+purgar token -> worktrees por agente -> Samba archivos no-codigo."
+  },
+  {
+   "agent": "Orbit",
+   "task": "ORBIT_PREPARAR_ESQUEMA_WORKTREES",
+   "descripcion": "Despues de la purga (repo ya limpio): armar los worktrees por agente en la Mint (rama feat/<agente>, compartiendo UN solo .git) sobre el repo purgado (asi nacen limpios) y dejar la estructura ordenada. Samba ya operativo. Definir la lista de agentes con worktree (los que trabajan codigo) + convencion feat/<agente> + PR.",
+   "msg": "coordination/channel/Nova/MSG_102_ORBIT_opinion_modelo_mint.md",
+   "status": "en-curso-ejecucion-despues-purga",
+   "sprint": "infra",
+   "prioridad": "alta",
+   "nota": "Ejecutar DESPUES de que la purga quede reconciliada. Orden: purga -> worktrees desde repo limpio."
+  },
+  {
+   "agent": "Forge",
+   "task": "FORGE_PREPARAR_SHARE_PLANOS_SAMBA",
+   "descripcion": "SEGUNDO PLANO: preparar la config de Samba para el share de archivos NO-codigo (planos + import de la Windows), restringido a LAN 190.190.190.0/24, accesible Windows+Mint. Dejar todo listo MENOS la contraseña (la elige Constantino).",
+   "msg": "coordination/channel/Forge/MSG_029_ORBIT_convoca_samba_consolidacion.md",
+   "status": "absorbida",
+   "sprint": "infra",
+   "prioridad": "baja",
+   "nota": "Absorbida por INFRA_PROPUESTA_CARPETAS_ACCESO_FINAL (propuesta consolidada, foreground)."
+  },
+  {
+   "agent": "Orbit",
+   "task": "ORBIT_CARGAR_COEFS_LASER",
+   "descripcion": "Cargar los coeficientes laser DEFINITIVOS en SI Material Corte via bench execute set_laser_coefs.run. EN ESPERA: los coefs de P01-P14 quedan DESCARTADOS (muestra no valida). Los definitivos salen de la BATERIA 2, que Constantino aun NO midio en CypCut. NO cargar nada hasta que Punto reporte los coefs de Bateria 2.",
+   "msg": "coordination/channel/Orbit/MSG_019_nova_deploy_ya_coefs_esperan_material.md",
+   "status": "pospuesto-bateria2",
+   "sprint": "001-rebanada",
+   "prioridad": "alta",
+   "nota": "Pospuesto: Constantino mide Bateria 2 mas adelante. Sin accion hasta entonces."
+  },
+  {
+   "agent": "Forge (lider) + Orbit",
+   "task": "INFRA_PROPUESTA_CARPETAS_ACCESO_FINAL",
+   "descripcion": "FOREGROUND (prioridad de Constantino). UNA propuesta consolidada, CONCRETA y FINAL, para aprobar: (1) estructura exacta de carpetas compartidas en el server (base /home/costa/compartida/ con subcarpetas: planos RO, planos/calibracion_laser, windows_import RW, intercambio RW; el CODIGO NO va aca -va por git-); (2) matriz de acceso: quien entra a que y con que permiso (los ~15 agentes desde la Mint; Constantino desde Windows Y desde la Mint; RO vs RW por carpeta); (3) exactamente que necesita de Constantino para dejarlo operativo (contraseña de Samba + cualquier otra cosa). Coexiste con la app Frappe en su bench (no se mueve). Entregar como doc, NO ejecutar hasta aprobacion.",
+   "msg": "coordination/channel/Forge/MSG_030_nova_propuesta_carpetas_acceso.md",
+   "status": "completado",
+   "sprint": "infra",
+   "prioridad": "alta",
+   "nota": "COMPLETADO: propuesta entregada (MSG_104_FORGE) e implementada (MSG_105_FORGE). planos quedo en /home/costa/planos (paths congelados en DB, no se movio)."
+  },
+  {
+   "agent": "Forge",
+   "task": "FORGE_IMPLEMENTAR_SHARES_SAMBA",
+   "descripcion": "GREENLIGHT: implementar los shares Samba en el server (planos + /home/costa/compartida/ con subcarpetas planos RO, calibracion_laser, windows_import RW, intercambio RW), con la estructura y permisos aprobados. Password Samba = la de costa (misma que SSH; red interna, aceptable). Restringido a LAN 190.190.190.0/24. Confirmar que Constantino puede MONTAR desde Windows Y desde la Mint.",
+   "msg": "coordination/channel/Forge/MSG_031_nova_greenlight_implementar_shares.md",
+   "status": "completado",
+   "sprint": "infra",
+   "prioridad": "alta",
+   "nota": "COMPLETADO (MSG_105_FORGE, verificado): shares planos(RO)/compartida(windows_import RO+intercambio RW), users costa/sunshine (RW) y agente/agentes-ro-2026 (RO). Restringido a LAN. windows_import VACIO (espera cred disco viejo o copia manual de Constantino). Distribuir pass 'agentes-ro-2026' a los agentes para montar."
+  },
+  {
+   "agent": "Orbit",
+   "task": "ORBIT_VERIFICAR_TOKENS_SERVER",
+   "descripcion": "SOLO LECTURA. Verificar en el server que constantes/tokens tipo GUID existen (nombres + ubicacion: /etc/environment, /etc/frappe-bench-nexus.env, drop-in systemd, site_config/bench get-config, .env, profile), y si el token ACTIVO sigue siendo el viejo (41A67498...) o ya hay uno NUEVO distinto. Constantino dice que el token nuevo ya estaria guardado como constante con nombre que no recuerda. Reportar NOMBRES de las constantes y si el valor == token viejo (si/no) SIN pegar el secreto completo en el canal. Dato critico antes de tocar rotacion/purga.",
+   "msg": "coordination/channel/Orbit/MSG_022_nova_verificar_tokens_server.md",
+   "status": "completado",
+   "sprint": "seguridad-token",
+   "prioridad": "alta",
+   "nota": "COMPLETADO (MSG_105_ORBIT): NO hay token nuevo. SI_NEXUS_KEY y APP_INSTANCE_ID = mismo valor VIEJO 41A67498. Fue un renombre, no rotacion. Sync activo usa el viejo."
   }
  ],
  "foco_2026-07-02": {
@@ -1477,8 +1627,9 @@
     "2. La lista EXACTA de datos que Constantino tiene que sacar de CypCut para alimentar la calibracion"
    ],
    "owner": "Punto (en curso, dispatch directo)",
-   "requiere_de_constantino": "Correr los paneles de muestra en CypCut y traer los tiempos/datos que Punto liste.",
-   "por_que_importa": "Al cerrar esta rebanada se termina de definir COMO SE GENERA UN PEDIDO; por eso MES (Lechu) y compilador (Nido) esperan a que cierre."
+   "requiere_de_constantino": "CUMPLIDO para 2.0mm. Pendiente confirmar con Punto si hace falta correr la bateria en otros espesores/materiales (la velocidad de corte cambia con material y espesor).",
+   "por_que_importa": "Al cerrar esta rebanada se termina de definir COMO SE GENERA UN PEDIDO; por eso MES (Lechu) y compilador (Nido) esperan a que cierre.",
+   "datos_calibracion_cypcut": "ENTREGADOS por Constantino 2026-07-13 (MSG_029 a Punto): bateria P01-P14 en chapa N14 (2.0mm), corte 75mm/s, rapido 1650mm/s, archivo \\\\190.190.190.20\\planos\\calibracion_laser\\bateria_calibracion.dxf. 14 puntos con cut/vacant/pierce y tiempos Processing/Move/Delay/Total."
   },
   "en_pausa_hasta_cerrar_rebanada_1": [
    "Lechu (MES) - EN PAUSA a proposito: espera la definicion de como se genera un pedido",
@@ -1491,6 +1642,7 @@
    "Postprocesador+Punto: contrato DXF",
    "Orbit: mapa de canales truncados (solo mapear, no borrar)"
   ],
-  "regla_vigente": "Por ahora NO borrar nada (Constantino, 2026-07-10)."
+  "regla_vigente": "Por ahora NO borrar nada (Constantino, 2026-07-10).",
+  "prioridad_2026-07-13": "Constantino: las MEJORAS no se frenan por la migracion. PRODUCTO (calibracion laser + precio Panel Decorativo) es FOREGROUND y prioritario. La reorg de INFRA (rotar+purgar token -> worktrees -> Samba) corre en SEGUNDO PLANO y no debe frenar producto. Modelo aprobado: agentes trabajan en la Mint -> push a GitHub -> server solo pull para deploy."
  }
 }
