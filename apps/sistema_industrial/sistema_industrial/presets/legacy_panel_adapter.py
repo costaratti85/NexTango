@@ -572,6 +572,29 @@ def zona_a_capa(col_zona: int, row_zona: int, num_capas: int = NUM_CAPAS_CYPCUT)
     return (col_zona + row_zona) % num_capas + 1
 
 
+def capa_de_punto(x_rel: float, y_rel: float, n_cols: int, n_rows: int,
+                  zone_w: float, zone_h: float) -> int:
+    """Capa de flycut (cuadrado latino, 1..NUM_CAPAS_CYPCUT) para un punto del panel.
+
+    GENÉRICO — sirve para cualquier patrón (cuadriculado cuadrado, tresbolillo
+    hexagonal, etc.). Combina zona_de_agujero + zona_a_capa. El punto es relativo
+    al origen del panel; las zonas se obtienen con calcular_zonas(sheet_w, sheet_h).
+    """
+    zona = zona_de_agujero(x_rel, y_rel, n_cols, n_rows, zone_w, zone_h)
+    return zona_a_capa(zona % n_cols, zona // n_cols)
+
+
+def escribir_figura_flycut(msp, puntos, capa: int) -> None:
+    """Dibuja una figura cerrada (LWPOLYLINE) en su capa de flycut + XDATA FS_CYPCUT.
+
+    GENÉRICO — cualquier generador de patrón usa esto para que la figura quede en
+    la capa correcta y con el Channel que CypCut necesita. `puntos` = lista de
+    (x, y) de los vértices (sin repetir el primero; close=True lo cierra).
+    """
+    fig = msp.add_lwpolyline(puntos, close=True, dxfattribs={"layer": str(capa)})
+    fig.set_xdata(CYPCUT_APPID, _xdata_fs_cypcut(capa))
+
+
 def _write_cuadriculado_square_to_doc(
     doc,
     msp,
@@ -622,7 +645,7 @@ def _write_cuadriculado_square_to_doc(
     n_cols, n_rows, zone_w, zone_h, total_zones = calcular_zonas(
         sheet_width_mm, sheet_height_mm, zone_size_mm
     )
-    # Cuadrado latino: todo en un solo archivo, 16 capas alcanzan para cualquier tamaño.
+    # Cuadrado latino: todo en un solo archivo, 14 capas alcanzan para cualquier tamaño.
     n_files = 1
 
     if cols == 0 or rows == 0:
@@ -643,19 +666,11 @@ def _write_cuadriculado_square_to_doc(
             cy = start_y + r * step_y_mm
             # Position relative to sheet origin for zone lookup
             rx, ry = cx - ox, cy - oy
-            zona = zona_de_agujero(rx, ry, n_cols, n_rows, zone_w, zone_h)
-            col_zona = zona % n_cols
-            row_zona = zona // n_cols
-            capa = zona_a_capa(col_zona, row_zona)
-            hole = msp.add_lwpolyline(
-                [(cx - half, cy - half), (cx + half, cy - half),
-                 (cx + half, cy + half), (cx - half, cy + half)],
-                close=True,
-                dxfattribs={"layer": str(capa)},
-            )
-            # XDATA FS_CYPCUT con Channel = capa: es lo que hace que CypCut separe
-            # las capas de flycut de verdad (no el nombre de capa ni el color).
-            hole.set_xdata(CYPCUT_APPID, _xdata_fs_cypcut(capa))
+            capa = capa_de_punto(rx, ry, n_cols, n_rows, zone_w, zone_h)
+            escribir_figura_flycut(msp, [
+                (cx - half, cy - half), (cx + half, cy - half),
+                (cx + half, cy + half), (cx - half, cy + half),
+            ], capa)
 
     pierce_count = cols * rows
     contorno_mm = 2.0 * (sheet_width_mm + sheet_height_mm)
@@ -686,7 +701,7 @@ def _generate_cuadriculado_square_dxf(
     """Generate a single DXF for a cuadriculado square pattern.
 
     El panel entero va en UN solo bloque. Las zonas de flycut se reparten en las
-    9 capas de CypCut con esquema de cuadrado latino (ver zona_a_capa), así el
+    14 capas de CypCut con esquema de cuadrado latino (ver zona_a_capa), así el
     láser nunca corta áreas contiguas de forma consecutiva y el calor no
     desplaza la chapa entre pasadas. Ya no se divide en bloques a unir a mano.
 
@@ -711,6 +726,110 @@ def _generate_cuadriculado_square_dxf(
     return result
 
 
+def _hexagon_vertices(cx: float, cy: float, across_flats: float) -> list:
+    """Vértices de un hexágono FLAT-TOP (dos lados horizontales arriba/abajo).
+
+    across_flats = distancia entre los lados horizontales (se toma = diámetro del
+    agujero, para que el hexágono ocupe el mismo alto que el círculo equivalente).
+    Radio (centro→vértice) = across_flats / sqrt(3). Los 6 lados se reparten en 3
+    orientaciones (horizontal, inclinado der, inclinado izq) → las 3 pasadas de
+    flycut de hexágonos.
+    """
+    R = across_flats / math.sqrt(3.0)
+    h = across_flats / 2.0  # = R·√3/2
+    return [
+        (cx + R, cy),
+        (cx + R / 2.0, cy + h),
+        (cx - R / 2.0, cy + h),
+        (cx - R, cy),
+        (cx - R / 2.0, cy - h),
+        (cx + R / 2.0, cy - h),
+    ]
+
+
+def _generate_tresbolillo_hex_dxf(
+    hole_diameter_mm: float,
+    hole_distance_mm: float,
+    sheet_width_mm: float,
+    sheet_height_mm: float,
+    margin_mm: float,
+    output_path,
+    zone_size_mm: float = ZONE_TARGET_MM,
+) -> dict:
+    """DXF de tresbolillo con HEXÁGONOS (flat-top) + división por áreas (cuadrado latino).
+
+    Posiciones tresbolillo: filas separadas por dy = distancia·√3/2; las filas
+    impares se desplazan medio paso en X. Cada hexágono va en su capa de flycut
+    (Channel por XDATA FS_CYPCUT), reusando la división por áreas genérica → el
+    flycut de 3 pasadas (horizontales / inclinadas der / izq) nunca corta áreas
+    contiguas de forma consecutiva (evita el desfase por calor).
+
+    Returns: {pierce_count, cut_length_mm, travel_length_mm, zone_cols, zone_rows,
+              total_zones, n_files}.
+    """
+    import ezdxf as _ezdxf
+
+    doc = _ezdxf.new("R2010")
+    msp = doc.modelspace()
+    asegurar_capas_flycut(doc)
+
+    # Contorno del panel
+    msp.add_lwpolyline(
+        [(0, 0), (sheet_width_mm, 0), (sheet_width_mm, sheet_height_mm), (0, sheet_height_mm)],
+        close=True, dxfattribs={"layer": "CONTORNO"},
+    )
+
+    n_cols, n_rows, zone_w, zone_h, total_zones = calcular_zonas(
+        sheet_width_mm, sheet_height_mm, zone_size_mm
+    )
+    usable_w = sheet_width_mm - 2.0 * margin_mm
+    usable_h = sheet_height_mm - 2.0 * margin_mm
+    R = hole_diameter_mm / math.sqrt(3.0)          # radio centro→vértice
+    half_w = R                                     # medio ancho del hexágono (horizontal)
+    half_h = hole_diameter_mm / 2.0                # medio alto (across_flats/2)
+    d = hole_distance_mm
+    dy = d * math.sqrt(3.0) / 2.0                  # separación vertical de filas
+
+    if d <= 0 or usable_w <= 0 or usable_h <= 0 or dy <= 0:
+        return {"pierce_count": 0, "cut_length_mm": 0.0, "travel_length_mm": 0.0,
+                "zone_cols": n_cols, "zone_rows": n_rows, "total_zones": total_zones, "n_files": 1}
+
+    pierce_count = 0
+    x0 = margin_mm
+    y0 = margin_mm
+    n_filas = int(usable_h // dy) + 1
+    for r in range(n_filas):
+        cy = y0 + half_h + r * dy
+        if cy + half_h > margin_mm + usable_h:
+            break
+        offset = (d / 2.0) if (r % 2) else 0.0
+        c = 0
+        while True:
+            cx = x0 + half_w + offset + c * d
+            c += 1
+            if cx + half_w > margin_mm + usable_w:
+                break
+            capa = capa_de_punto(cx, cy, n_cols, n_rows, zone_w, zone_h)
+            escribir_figura_flycut(msp, _hexagon_vertices(cx, cy, hole_diameter_mm), capa)
+            pierce_count += 1
+
+    lado = R                                        # lado del hexágono regular = R
+    contorno_mm = 2.0 * (sheet_width_mm + sheet_height_mm)
+    cut_length_mm = pierce_count * 6.0 * lado + contorno_mm
+    travel_mm = compute_travel_length_mm(pierce_count, d, dy, usable_w, usable_h)
+
+    doc.saveas(str(output_path))
+    return {
+        "pierce_count": pierce_count,
+        "cut_length_mm": cut_length_mm,
+        "travel_length_mm": travel_mm,
+        "zone_cols": n_cols,
+        "zone_rows": n_rows,
+        "total_zones": total_zones,
+        "n_files": 1,
+    }
+
+
 class LegacyPanelAdapter:
     def __init__(self, legacy_dir: Path | None = None):
         self.legacy_dir = legacy_dir or find_legacy_panel_dir()
@@ -721,6 +840,10 @@ class LegacyPanelAdapter:
         # Cuadriculado + square → dedicated generator: LWPOLYLINE per hole + DXF GROUP per zone
         if request.pattern_type == "cuadriculado" and request.hole_shape == "square":
             return self._run_cuadriculado_square(request)
+
+        # Tresbolillo + hexágono → generador directo con división por áreas + XDATA flycut
+        if request.pattern_type == "tresbolillo" and request.hole_shape == "hexagon":
+            return self._run_tresbolillo_hex(request)
 
         with _legacy_import_context(self.legacy_dir):
             legacy_main = import_module("main")
@@ -817,6 +940,61 @@ class LegacyPanelAdapter:
             warnings=[w_msg] if geo["pierce_count"] > 0 else [],
             legacy_result_raw={
                 "generator": "cuadriculado_square_direct",
+                "zone_cols": geo["zone_cols"],
+                "zone_rows": geo["zone_rows"],
+                "request": _raw_request_payload(request),
+                "items": [resource],
+            },
+        )
+
+    def _run_tresbolillo_hex(self, request: LegacyPanelRunRequest) -> LegacyPanelRunResult:
+        """Direct DXF generation for tresbolillo+hexágono: hexágonos + flycut por áreas."""
+        sheet_sizes = request.sheet_sizes or [(request.width_mm, request.height_mm, request.quantity)]
+        sheet_width, sheet_height, quantity = sheet_sizes[0]
+
+        geo = _generate_tresbolillo_hex_dxf(
+            hole_diameter_mm=request.hole_diameter_mm,
+            hole_distance_mm=request.hole_distance_mm,
+            sheet_width_mm=sheet_width,
+            sheet_height_mm=sheet_height,
+            margin_mm=request.margin_mm,
+            output_path=request.output_dxf_path,
+        )
+
+        if not request.output_dxf_path.exists():
+            raise FileNotFoundError(f"DXF was not generated: {request.output_dxf_path}")
+
+        sheet_area_m2 = calculate_sheet_area_m2(sheet_width, sheet_height)
+        resource = {
+            "name": f"{request.preset_name} {sheet_width}x{sheet_height}",
+            "material": request.material,
+            "thickness_mm": request.thickness_mm,
+            "quantity": quantity,
+            "occupied_width_mm": sheet_width,
+            "occupied_height_mm": sheet_height,
+            "geometry_item_count": geo["pierce_count"] + 1,  # +1 for outline
+            "cut_length_mm": geo["cut_length_mm"],
+            "cut_length_m": geo["cut_length_mm"] / 1000.0,
+            "pierce_count": geo["pierce_count"],
+            "travel_length_mm": geo.get("travel_length_mm", 0.0),
+            "sheet_area_m2": sheet_area_m2,
+            "bend_count": 0,
+        }
+
+        zone_info = f"{geo['zone_cols']} col × {geo['zone_rows']} fila"
+        capas_usadas = min(NUM_CAPAS_CYPCUT, geo["zone_cols"] + geo["zone_rows"] - 1)
+        w_msg = (
+            f"Flycut cuadrado latino: {geo['pierce_count']} hexágonos en {zone_info} "
+            f"áreas (≤200mm; máx 14 por lado), repartidas en {capas_usadas} capas de "
+            f"CypCut. Las 3 pasadas (horizontales / inclinadas der / izq) no cortan "
+            f"áreas contiguas de forma consecutiva (evita el desfase por calor)."
+        )
+        return LegacyPanelRunResult(
+            dxf_path=request.output_dxf_path,
+            calculated_resources=[resource],
+            warnings=[w_msg] if geo["pierce_count"] > 0 else [],
+            legacy_result_raw={
+                "generator": "tresbolillo_hex_direct",
                 "zone_cols": geo["zone_cols"],
                 "zone_rows": geo["zone_rows"],
                 "request": _raw_request_payload(request),
