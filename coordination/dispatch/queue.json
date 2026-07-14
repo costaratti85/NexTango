@@ -1,6 +1,24 @@
 {
  "pending": [
   {
+   "agent": "Punto",
+   "task": "PUNTO_WIRING_TRESBOLILLO_HEX_ENDPOINT",
+   "descripcion": "BLOQUEA el hexagono en tresbolillo. Vega ya expuso el selector Circulo/Hexagono en la UI (commit 434421b, erpnext) y manda batch.hole_shape='hexagon' en el batch del tresbolillo. PERO el generador hex de Punto (_generate_tresbolillo_hex_dxf / LegacyPanelAdapter._run_tresbolillo_hex, commit 1463274) vive en legacy_panel_adapter.py, que los endpoints de Panel Decorativo NO usan. Evidencia: paneles.calcular() y paneles.descargar_dxf() -> panel_sales_local_app._run_all_batches() (def en linea 1489) -> motor STANDALONE (find_legacy_panel_dir -> Programas_hechos/Panel Decorativo/main.py), NO el adapter. En _run_all_batches el branch tresbolillo (lineas 1551-1554) ni siquiera setea settings.hole_shape, y el motor standalone solo tiene hole_shape en cuadriculado (circle/square), sin hexagono. Resultado HOY: elegir 'hexagono' produce circulos en silencio. Wiring necesario (Punto elige el camino): (a) en _run_all_batches, derivar tresbolillo+hexagon al generador del adapter igual que se difiere cuad+square (lineas 1537-1540, patron cuad_sq_batches_geo) -- reutiliza el generador ya testeado; o (b) portar _generate_tresbolillo_hex_dxf al motor standalone. Debe cubrir merge DXF + XDATA flycut + contabilidad de recursos/costo. Ver MSG_037 de tu canal.",
+   "msg": "coordination/channel/Punto/MSG_037_VEGA_wiring_tresbolillo_hex.md",
+   "status": "pendiente",
+   "sprint": "001-rebanada",
+   "prioridad": "alta"
+  },
+  {
+   "agent": "Orbit",
+   "task": "ORBIT_DEPLOY_TRESBOLILLO_HEXAGONO",
+   "descripcion": "Deploy del selector Circulo/Hexagono en tresbolillo (Vega commit 434421b, erpnext: panel_decorativo.js/.html). Solo frontend, aditivo (default circle = comportamiento actual). BLOQUEADO por PUNTO_WIRING_TRESBOLILLO_HEX_ENDPOINT: hasta que Punto cablee el endpoint al generador hex, elegir 'hexagono' produce circulos en silencio. NO deployar suelto -- bundlear con el fix de backend de Punto para que 'hexagono' realmente haga hexagonos. Cuando ambos esten: git pull + bench build --app sistema_industrial + bump_page_cache + restart, sin migrate. Verificar en /app/panel-decorativo: elegir Hexagono en tresbolillo, Calcular + Descargar DXF, confirmar hexagonos flat-top reales. Ver MSG_123 en canal Nova.",
+   "msg": "coordination/channel/Nova/MSG_126_ORBIT_deploy_hexagono_y_thumbnails.md",
+   "status": "completado",
+   "sprint": "001-rebanada",
+   "prioridad": "media",
+   "nota": "COMPLETADO y VERIFICADO 2026-07-14 (Orbit MSG_126). Deploy conjunto server->e3fcd7b (backend hexagono e3fcd7b/1463274 + frontend Vega 434421b + thumbnails d51f005), bench build (JS Vega), 7/7 workers. HEXAGONO verificado via flujo real de la UI (_run_all_batches tresbolillo+hexagon): 238 hexagonos LWPOLYLINE 6-vertices, 0 circulos, 238/238 con XDATA FS_CYPCUT; 8/8 tests. THUMBNAILS cuadriculado: migrate_patrones {'overwrite':True} -> inserted 3/updated 5; backfill_thumbnails {'force':True} -> generated [Cuadriculado, Cuadriculado Square]; PNG en disco y list_admin los sirve con thumbnail_url (aparecen en admin-patrones/galeria). Nota: bench execute evalua --kwargs como Python (True, no true)."
+  {
    "agent": "Orbit",
    "task": "ORBIT_DEPLOY_PRECIO_PANEL_DECORATIVO",
    "descripcion": "DEPLOY YA (no depende del material): UI de precio de Vega (1d4ba96) + unificacion precio-por-segundo (1433f9e) + endpoint precio (0e662a8). git pull + bench build + bump_page_cache + restart, SIN migrate. Esperado: hasta cargar los coeficientes, la columna dice 'pendiente de calibracion' -> es CORRECTO, no bug. Verificar /app/panel-decorativo carga y SI Precios Globales.precio_segundo_laser.",
@@ -833,12 +851,12 @@
   {
    "agent": "Punto",
    "task": "PUNTO_THUMBNAILS_MOTOR_NATIVO_PARAMETROS",
-   "descripcion": "Generar los thumbnails de los patrones con el MOTOR NATIVO, para los TRES motores nativos. Parametros a usar: agujero 10mm, distancia entre agujeros 15mm, margen 20mm, panel 300x300mm. Hipotesis de Constantino: los thumbnails quedaron sin generar porque los patrones no tenian parametros definidos (sin parametros no existe el patron -> no hay que renderizar). Al definir estos parametros deberia existir el patron y poder generarse el thumbnail nativo.",
+   "descripcion": "Thumbnails de cuadriculado REDONDO y CUADRADO con motor NATIVO. Parametros CORREGIDOS (Constantino 2026-07-14, reemplazan los del brief viejo MSG_032): panel 300x300, margen 20mm, DISTANCIA 18mm (antes decia 15 -> corregido), agujeros 10x10 (cuadrado) / 10mm de diametro (redondo). Punto coordina deploy con Orbit.",
    "msg": "coordination/channel/Punto/MSG_032_nova_thumbnails_motor_nativo.md",
-   "status": "pendiente",
+   "status": "en-curso-dispatch-directo",
    "sprint": "panel-decorativo",
-   "prioridad": "baja",
-   "nota": "DEBAJO del flycut urgente (prioridad #1). Retomar despues."
+   "prioridad": "media",
+   "nota": "Reactivada por Constantino 2026-07-14 con params corregidos (18mm). Ojo: el brief MSG_032 decia 15mm y 3 motores; ahora es redondo+cuadrado con 18mm. Va detras del flycut urgente."
   },
   {
    "agent": "Orbit (+Forge apoyo)",
@@ -969,6 +987,16 @@
    "sprint": "001-rebanada",
    "prioridad": "URGENTE-#1",
    "nota": "COMPLETADO y VERIFICADO 2026-07-14 (Orbit MSG_121). Version FINAL en produccion: 25dfd0b (flycut CIERRE — modulo 14, capa=(col+fila)%14+1 canales 1-14, areas min(14,ceil(lado/200)), XDATA FS_CYPCUT por agujero). Evolucion: 17a8a33(mod16) -> 9962ea9(mod9) -> 25dfd0b(mod14+XDATA). Server en 25dfd0b, 7/7 workers. Verificado generando cuadriculado 3000x3000 con codigo deployado: 2401 agujeros TODOS con XDATA FS_CYPCUT, Channel=capa, canales exactamente 1-14, APPID registrado. 20/20 tests. Listo para el corte."
+  },
+  {
+   "agent": "Punto",
+   "task": "PUNTO_HEXAGONOS_TRESBOLILLO_LATIN_SQUARE",
+   "descripcion": "Hexagonos en tresbolillo con la division por areas / cuadrado latino + XDATA FS_CYPCUT, AHORA GENERICA (el mecanismo del flycut Latin Square se generaliza para aplicarse tambien a tresbolillo, no solo al cuadriculado cuadrado). Punto coordina deploy con Orbit.",
+   "msg": "coordination/channel/Punto/MSG_036_nova_hexagonos_y_thumbnails.md",
+   "status": "en-curso-dispatch-directo",
+   "sprint": "001-rebanada",
+   "prioridad": "alta",
+   "nota": "Activada directo por Constantino 2026-07-14. Reusa/generaliza el motor del flycut Latin Square (URGENTE #1). Va junto/despues del flycut."
   }
  ],
  "foco_2026-07-02": {
