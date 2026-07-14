@@ -507,14 +507,15 @@ def asegurar_capas_flycut(doc, num_capas: int = NUM_CAPAS_CYPCUT) -> None:
     flycut separadas. Cada capa recibe un color ACI distinto (1..num_capas) para
     que se distingan visualmente; CONTORNO va en un color aparte.
 
+    Capas de flycut nombradas "1".."num_capas" (CypCut arranca en 1; la "0" no se
+    usa para flycut — ver zona_a_capa y el DXF de referencia cypcut_capas.dxf).
+
     Idempotente: si la capa ya existe, la deja como está.
-    PENDIENTE: ajustar nombres/colores al DXF de referencia que exporte Constantino
-    desde CypCut (validación de formato de capas).
     """
-    for i in range(num_capas):
+    for i in range(1, num_capas + 1):
         name = str(i)
         if name not in doc.layers:
-            doc.layers.add(name, color=(i % 9) + 1)  # ACI 1..9
+            doc.layers.add(name, color=(i % 9) + 1)  # ACI, color distinto por capa
     if "CONTORNO" not in doc.layers:
         doc.layers.add("CONTORNO", color=7)
 
@@ -522,7 +523,11 @@ def asegurar_capas_flycut(doc, num_capas: int = NUM_CAPAS_CYPCUT) -> None:
 def zona_a_capa(col_zona: int, row_zona: int, num_capas: int = NUM_CAPAS_CYPCUT) -> int:
     """Capa de CypCut para la zona (col, fila) según cuadrado latino.
 
-    capa = (col + fila) % num_capas.
+    capa = (col + fila) % num_capas + 1   →  capas 1..num_capas.
+
+    CypCut nombra las capas de flycut arrancando en "1" (la capa "0" es la default
+    de CAD y NO se usa para flycut — confirmado con el DXF de referencia
+    cypcut_capas.dxf). Por eso el "+1".
 
     Propiedad: en una misma fila (row fijo) la capa recorre valores consecutivos
     al variar col, y lo mismo por columna → como n_cols y n_rows ≤ num_capas (9)
@@ -532,7 +537,7 @@ def zona_a_capa(col_zona: int, row_zona: int, num_capas: int = NUM_CAPAS_CYPCUT)
     dos áreas contiguas de forma consecutiva y el calor no desplaza la chapa
     entre pasadas.
     """
-    return (col_zona + row_zona) % num_capas
+    return (col_zona + row_zona) % num_capas + 1
 
 
 def _write_cuadriculado_square_to_doc(

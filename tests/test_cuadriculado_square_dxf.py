@@ -114,18 +114,19 @@ def test_area_supera_200_cuando_capeado_en_9():
 
 # ---- zona_a_capa (cuadrado latino) ----
 
-def test_capa_es_col_mas_fila_mod_9():
+def test_capa_es_col_mas_fila_mod_9_base_1():
+    # CypCut arranca las capas en 1 (no 0): capa = (col+fila)%9 + 1
     assert NUM_CAPAS_CYPCUT == 9
-    assert zona_a_capa(0, 0) == 0
-    assert zona_a_capa(3, 2) == 5
-    assert zona_a_capa(8, 1) == 0   # (9)%9
-    assert zona_a_capa(8, 8) == 7   # (16)%9
+    assert zona_a_capa(0, 0) == 1
+    assert zona_a_capa(3, 2) == 6
+    assert zona_a_capa(8, 1) == 1   # (9)%9 + 1
+    assert zona_a_capa(8, 8) == 8   # (16)%9 + 1
 
 
-def test_capa_en_rango_valido():
+def test_capa_en_rango_1_a_9():
     for c in range(20):
         for r in range(20):
-            assert 0 <= zona_a_capa(c, r) < NUM_CAPAS_CYPCUT
+            assert 1 <= zona_a_capa(c, r) <= NUM_CAPAS_CYPCUT
 
 
 # ---- resultado struct ----
@@ -176,14 +177,15 @@ def test_todas_las_capas_declaradas_en_tabla():
     assert usadas <= declaradas, f"capas usadas sin declarar en la tabla: {usadas - declaradas}"
 
 
-def test_holes_on_numeric_layers_0_8():
+def test_holes_on_numeric_layers_1_9():
     import ezdxf
     _make_dxf()
     msp = ezdxf.readfile(str(_out())).modelspace()
     hole_layers = {e.dxf.layer for e in msp if e.dxf.layer != "CONTORNO"}
     assert "CORTE" not in hole_layers
+    assert "0" not in hole_layers  # CypCut no usa la capa 0 para flycut
     for lyr in hole_layers:
-        assert lyr.isdigit() and 0 <= int(lyr) < NUM_CAPAS_CYPCUT
+        assert lyr.isdigit() and 1 <= int(lyr) <= NUM_CAPAS_CYPCUT
 
 
 # ---- un solo archivo, cualquier tamaño ----
