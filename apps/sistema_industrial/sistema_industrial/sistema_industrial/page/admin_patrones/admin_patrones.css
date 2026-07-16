@@ -36,4 +36,5 @@
 .si-page .ap-card-cliente { font-size:11px; color:var(--si-muted); margin-top:3px; }
 .si-page .ap-convert { margin-top:8px; width:100%; }
 .si-page .ap-del { position:absolute; top:5px; right:5px; }
+.si-page .ap-edit { position:absolute; top:5px; left:5px; }
 .si-page .ap-empty { color:var(--si-muted); font-size:13px; padding:20px; }
