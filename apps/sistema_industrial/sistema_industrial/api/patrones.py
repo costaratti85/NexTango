@@ -491,8 +491,8 @@ def _validate_existing_dxf(dxf_path) -> Path:
 
 @frappe.whitelist(allow_guest=False)
 def update_pattern(name, descripcion=None, visibilidad=None, customer=None,
-                   step_x=None, step_y=None, parametros=None,
-                   file_url=None, dxf_path=None, activo=None):
+                   step_x=None, step_y=None, offset_x=None, offset_y=None,
+                   parametros=None, file_url=None, dxf_path=None, activo=None):
     """Edita la definición de un SI Patron existente y/o reemplaza/reapunta su DXF.
 
     Todos los argumentos salvo `name` son opcionales: lo que no se manda, no se toca.
@@ -503,8 +503,14 @@ def update_pattern(name, descripcion=None, visibilidad=None, customer=None,
         visibilidad: "Público" | "Exclusivo" (Exclusivo requiere customer).
         customer:    Customer ERPNext (se limpia si visibilidad queda Público).
         step_x/step_y: float; "" limpia el valor.
+        offset_x/offset_y: ALIAS de step_x/step_y (vocabulario del taller: el
+                     offset X/Y del patrón es el paso de tileado — ver
+                     legacy_panel_adapter: offset_x_mm <- step_x_mm). Se guarda
+                     canónico como step_x/step_y en parametros. No mandar el
+                     alias y el canónico a la vez.
         parametros:  JSON string — merge de claves sobre el JSON existente.
-                     step_x/step_y explícitos pisan lo que venga acá.
+                     step_x/step_y (u offset_x/offset_y) explícitos pisan lo
+                     que venga acá.
         file_url:    File de Frappe ya subido → se copia a /planos/ con sufijo _vN
                      (reemplazo con archivo nuevo).
         dxf_path:    path de un .dxf existente bajo la raíz de planos → reapunte
@@ -525,6 +531,16 @@ def update_pattern(name, descripcion=None, visibilidad=None, customer=None,
     if file_url and dxf_path:
         frappe.throw("file_url y dxf_path son mutuamente excluyentes: "
                      "subí un archivo nuevo O reapuntá a uno existente")
+
+    # offset_x/offset_y son alias de step_x/step_y (misma propiedad del patrón)
+    if offset_x is not None:
+        if step_x is not None:
+            frappe.throw("step_x y offset_x son la misma propiedad: mandá uno solo")
+        step_x = offset_x
+    if offset_y is not None:
+        if step_y is not None:
+            frappe.throw("step_y y offset_y son la misma propiedad: mandá uno solo")
+        step_y = offset_y
 
     doc = frappe.get_doc("SI Patron", name)
     previous_version = int(doc.version or 1)
@@ -628,6 +644,8 @@ def update_pattern(name, descripcion=None, visibilidad=None, customer=None,
         "descripcion": doc.descripcion or "",
         "activo": int(doc.activo or 0),
         "parametros": current_params,
+        "offset_x": current_params.get("step_x"),   # espejo de parametros.step_x
+        "offset_y": current_params.get("step_y"),   # espejo de parametros.step_y
         "archivo_dxf": file_path,
         "file_available": file_available,
         "spline_count": sc,

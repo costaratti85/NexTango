@@ -328,6 +328,43 @@ def test_update_sin_cambios_es_noop_versionado(env):
     assert len(env.doc.versiones) == 1
 
 
+def test_offset_alias_de_step(env):
+    r = patrones.update_pattern(name="Aconcagua", offset_x=85.0, offset_y=85.0)
+    assert r["version_created"] is True
+    # se guarda canónico como step_x/step_y
+    assert r["parametros"] == {"step_x": 85.0, "step_y": 85.0}
+    # espejo en la response para la UI
+    assert r["offset_x"] == 85.0 and r["offset_y"] == 85.0
+
+
+def test_offset_vacio_limpia_valor(env):
+    r = patrones.update_pattern(name="Aconcagua", offset_x="")
+    assert r["parametros"]["step_x"] is None
+    assert r["offset_x"] is None
+
+
+def test_offset_y_step_juntos_rechazado(env):
+    with pytest.raises(ValidationError, match="misma propiedad"):
+        patrones.update_pattern(name="Aconcagua", step_x=85.0, offset_x=85.0)
+    with pytest.raises(ValidationError, match="misma propiedad"):
+        patrones.update_pattern(name="Aconcagua", step_y=85.0, offset_y=85.0)
+
+
+def test_dxf_nuevo_mas_offsets_en_un_solo_update(env):
+    """El flujo pedido por Constantino: archivo + offset X + offset Y juntos."""
+    r = patrones.update_pattern(name="Aconcagua", dxf_path=str(env.real),
+                                offset_x=85.0, offset_y=85.0)
+    assert r["version"] == 2 and r["version_created"] is True
+    assert r["archivo_dxf"] == str(env.real) and r["file_available"] is True
+    assert r["offset_x"] == 85.0 and r["offset_y"] == 85.0
+
+    # una sola versión nueva congela archivo + offsets juntos
+    assert len(env.doc.versiones) == 2
+    v2 = next(v for v in env.doc.versiones if v.version_num == 2)
+    assert v2.archivo_dxf_frozen == str(env.real)
+    assert json.loads(v2.parametros_frozen) == {"step_x": 85.0, "step_y": 85.0}
+
+
 # ---------------------------------------------------------------- list_dxf_files
 
 def test_list_dxf_files_marca_used_by_y_huerfanos(env):
