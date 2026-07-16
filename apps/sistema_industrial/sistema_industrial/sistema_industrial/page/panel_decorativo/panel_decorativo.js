@@ -36,13 +36,17 @@ class PanelDecorativo {
 	// los thumbnails con el tileado real del panel (commit 8a8adc5).
 	//
 	// Cuadriculado redondo/cuadrado NO viene de get_all(): Constantino lo sacó del catálogo
-	// SI Patron el 2026-07-03 (quedaban como placeholders vacíos sin thumbnail), pero el
-	// motor lo sigue soportando como modo directo — se ofrece acá aparte, sin thumbnail.
+	// SI Patron el 2026-07-03, y luego un SI Patron "Cuadriculado"/"Cuadriculado Square"
+	// se recreó por error (duplicado, sin generar DXF) — hard-eliminado de nuevo el
+	// 2026-07-14 (unificar_cuadriculados_nativos). El motor lo sigue soportando como modo
+	// directo (panel_mode=cuadriculado); acá van con thumbnail estático (asset fijo,
+	// generado una vez con el motor nativo y transferido desde el SI Patron duplicado).
 
 	static get NATIVE_PATTERNS() {
+		const base = '/assets/sistema_industrial/pattern_thumbnails';
 		return [
-			{ val: 'cuadriculado_circle', label: __('Cuadriculado redondo') },
-			{ val: 'cuadriculado_square', label: __('Cuadriculado cuadrado') },
+			{ val: 'cuadriculado_circle', label: __('Cuadriculado redondo'), thumbnail: `${base}/cuadriculado_circle.png` },
+			{ val: 'cuadriculado_square', label: __('Cuadriculado cuadrado'), thumbnail: `${base}/cuadriculado_square.png` },
 		];
 	}
 
@@ -75,7 +79,7 @@ class PanelDecorativo {
 			$nativeRow.append(make_item('b:' + i, p.label || p.name, p.thumbnail_url, p.file_available !== false));
 		});
 		PanelDecorativo.NATIVE_PATTERNS.forEach((p) => {
-			$nativeRow.append(make_item(p.val, p.label, null, true));
+			$nativeRow.append(make_item(p.val, p.label, p.thumbnail, true));
 		});
 		$gallery.append($nativeRow);
 

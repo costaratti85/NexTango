@@ -1,5 +1,7 @@
-"""Tests para tresbolillo con HEXÁGONOS — flat-top + flycut por áreas (cuadrado latino + XDATA)."""
+"""Tests para tresbolillo con HEXÁGONOS — pointy-top (rotado 30°) + flycut por áreas
+(cuadrado latino + XDATA)."""
 
+import math
 import sys
 import shutil
 from collections import defaultdict
@@ -15,6 +17,7 @@ from sistema_industrial.presets.legacy_panel_adapter import (
     calcular_zonas,
     NUM_CAPAS_CYPCUT,
     CYPCUT_APPID,
+    HEX_ROTATION_DEG,
 )
 
 _TMP = Path(__file__).resolve().parent / "_tmp_hex"
@@ -39,15 +42,41 @@ def _gen(**kw):
 
 # ---- geometría del hexágono ----
 
-def test_hexagono_flat_top_6_vertices():
-    v = _hexagon_vertices(0.0, 0.0, across_flats=10.0)
+def test_hexagono_flat_top_con_rotation_0():
+    v = _hexagon_vertices(0.0, 0.0, across_flats=10.0, rotation_deg=0.0)
     assert len(v) == 6
     # flat-top: dos lados horizontales → across-flats (alto) = 10
     ys = [p[1] for p in v]
     assert max(ys) - min(ys) == pytest.approx(10.0)
-    # dos vértices arriba a la misma Y y dos abajo (lados horizontales)
     assert sum(1 for y in ys if y == pytest.approx(5.0)) == 2
     assert sum(1 for y in ys if y == pytest.approx(-5.0)) == 2
+
+
+def test_hexagono_default_rotado_30_pointy_top():
+    """Decisión Constantino (2026-07-14): cada hexágono girado 30° sobre su
+    propio centro → pointy-top (un vértice arriba, no dos lados horizontales)."""
+    assert HEX_ROTATION_DEG == 30.0
+    v = _hexagon_vertices(0.0, 0.0, across_flats=10.0)  # rotation_deg default
+    assert len(v) == 6
+    ys = [p[1] for p in v]
+    # pointy-top: exactamente un vértice en el Y máximo y uno en el Y mínimo
+    assert sum(1 for y in ys if y == pytest.approx(max(ys))) == 1
+    assert sum(1 for y in ys if y == pytest.approx(min(ys))) == 1
+    # el radio (centro→vértice) no cambia con la rotación
+    R_esperado = 10.0 / math.sqrt(3.0)
+    for x, y in v:
+        assert math.hypot(x, y) == pytest.approx(R_esperado)
+
+
+def test_rotacion_preserva_across_flats_intrinseco():
+    """across_flats es una medida intrínseca del hexágono (lados opuestos),
+    no depende de la rotación global: el radio (que la determina) es el mismo
+    en 0° y 30°."""
+    v0 = _hexagon_vertices(0.0, 0.0, across_flats=10.0, rotation_deg=0.0)
+    v30 = _hexagon_vertices(0.0, 0.0, across_flats=10.0, rotation_deg=30.0)
+    R0 = max(math.hypot(x, y) for x, y in v0)
+    R30 = max(math.hypot(x, y) for x, y in v30)
+    assert R0 == pytest.approx(R30)
 
 
 # ---- generación ----
@@ -70,13 +99,29 @@ def test_cada_hexagono_tiene_6_vertices_y_es_lwpolyline():
         assert bool(e.closed)
 
 
-def test_across_flats_igual_al_diametro():
+def test_hexagonos_generados_estan_rotados_30_pointy_top():
+    """Los hexágonos que escribe el generador usan la rotación default (30°)."""
+    import ezdxf
+    _gen()
+    msp = ezdxf.readfile(str(_TMP / "hex.dxf")).modelspace()
+    e = next(x for x in msp if x.dxf.layer != "CONTORNO")
+    pts = list(e.get_points())
+    ys = [p[1] for p in pts]
+    # pointy-top: un solo vértice en el Y máximo del hexágono (no dos, como flat-top)
+    assert sum(1 for y in ys if y == pytest.approx(max(ys), abs=1e-6)) == 1
+
+
+def test_radio_del_hexagono_igual_al_diametro_sobre_raiz3():
     import ezdxf
     _gen(hole_diameter_mm=12.0)
     msp = ezdxf.readfile(str(_TMP / "hex.dxf")).modelspace()
     e = next(x for x in msp if x.dxf.layer != "CONTORNO")
-    ys = [p[1] for p in e.get_points()]
-    assert max(ys) - min(ys) == pytest.approx(12.0)
+    pts = list(e.get_points())
+    cx = sum(p[0] for p in pts) / 6
+    cy = sum(p[1] for p in pts) / 6
+    R_esperado = 12.0 / math.sqrt(3.0)
+    for p in pts:
+        assert math.hypot(p[0] - cx, p[1] - cy) == pytest.approx(R_esperado, rel=1e-4)
 
 
 # ---- flycut: XDATA + cuadrado latino ----

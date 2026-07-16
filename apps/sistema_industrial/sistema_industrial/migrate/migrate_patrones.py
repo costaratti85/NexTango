@@ -1,8 +1,19 @@
 """Migración de patrones al DocType SI Patron.
 
 Migra:
-  - Patrones paramétricos builtin: Tresbolillo, Cuadriculado (redondo), Cuadriculado Square
+  - Patrones paramétricos builtin: solo Tresbolillo.
   - Patrones de archivo de pattern_library.json (Subte, Philo, Cosmos, Hexagonal, Aconcagua)
+
+NOTA sobre "Cuadriculado" / "Cuadriculado Square" (historia, 2026-07-14): existieron como
+SI Patron, se hard-borraron (2026-07-05), Punto los recreó por error de interpretación
+("No recrear" mal entendido) porque parecían faltantes — pero el cuadriculado NATIVO ya
+existe hardcodeado en el FRONTEND (panel_decorativo.js → PanelDecorativo.NATIVE_PATTERNS,
+vals 'cuadriculado_circle'/'cuadriculado_square', labels "Cuadriculado redondo"/"Cuadriculado
+cuadrado"), con un path de generación DXF directo que NO pasa por SI Patron. Los SI Patron
+recreados quedaban duplicados y NO generaban DXF (el flujo b:i no cubre 'forma=cuadriculado').
+Resuelto (unificar_cuadriculados_nativos, más abajo): se transfirió su thumbnail a un asset
+estático que usa el frontend, y se volvieron a hard-borrar. NO recrear — el cuadriculado
+nativo vive en el frontend, no en SI Patron.
 
 Uso:
     bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.run
@@ -12,6 +23,9 @@ Uso:
     # Borrar docs específicos por nombre (hard-delete con DXF + File huérfano):
     bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.delete_named_patrones \
         --kwargs '{"names": ["Cuadriculado", "Cuadriculado Square"]}'
+
+    # Unificar cuadriculados nativos duplicados (transfiere thumbnail + hard-delete, sin rastro):
+    bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.unificar_cuadriculados_nativos
 
     # Borrado total de patrones DXF (decisión Constantino — los va a recargar):
     bench --site erp.local execute sistema_industrial.migrate.migrate_patrones.wipe_file_patterns
@@ -35,8 +49,8 @@ _DXF_FILENAMES = {
 }
 
 
-# Parámetros definitivos de Constantino para los cuadriculados nativos (2026-07-14):
-# panel 300×300, margen 20, paso 18; figura base 10mm (Ø10 redondo / 10×10 cuadrado).
+# Cuadriculado (redondo/cuadrado) NO va acá — ver nota del docstring del módulo:
+# vive hardcodeado en el frontend (panel_decorativo.js), no como SI Patron.
 _PARAMETRICOS = [
     {
         "name": "Tresbolillo",
@@ -45,25 +59,15 @@ _PARAMETRICOS = [
         "descripcion": "Perforación circular en tresbolillo (hexagonal offset)",
         "parametros": {"forma": "tresbolillo", "step_x": None, "step_y": None},
     },
-    {
-        "name": "Cuadriculado",
-        "tipo": "Paramétrico",
-        "visibilidad": "Público",
-        "descripcion": "Cuadriculado de círculos Ø10mm (motor nativo)",
-        "parametros": {"forma": "cuadriculado", "hole_shape": "circle",
-                       "hole_size": 10.0, "step_x": 18.0, "step_y": 18.0},
-    },
-    {
-        "name": "Cuadriculado Square",
-        "tipo": "Paramétrico",
-        "visibilidad": "Público",
-        "descripcion": "Cuadriculado de cuadrados 10×10mm (motor nativo)",
-        "parametros": {"forma": "cuadriculado", "hole_shape": "square",
-                       "hole_size": 10.0, "step_x": 18.0, "step_y": 18.0},
-    },
-    # Los cuadriculados NATIVOS se recrean (OK Constantino 2026-07-14). El "No recrear"
-    # anterior fue un malentendido: se pidió borrar el cuadriculado viejo de DXF, pero por
-    # error se borró el nativo — no había que borrarlo.
+]
+
+# Duplicados de "Cuadriculado (redondo/cuadrado)" que unificar_cuadriculados_nativos()
+# elimina — el nativo real vive hardcodeado en el frontend, con thumbnail estático.
+# (nombre SI Patron a eliminar → nombre de archivo PNG estático que usa el frontend,
+# coincide con el `val` de PanelDecorativo.NATIVE_PATTERNS)
+_CUADRICULADOS_DUPLICADOS = [
+    ("Cuadriculado", "cuadriculado_circle"),
+    ("Cuadriculado Square", "cuadriculado_square"),
 ]
 
 
@@ -296,6 +300,59 @@ def delete_named_patrones(names):
 
     frappe.db.commit()
     return {"borrados": borrados, "no_encontrados": no_encontrados, "errors": errors}
+
+
+def unificar_cuadriculados_nativos():
+    """Resuelve el duplicado "Cuadriculado"/"Cuadriculado Square" (decisión
+    Constantino, 2026-07-14).
+
+    Son el MISMO patrón que las entradas hardcodeadas del frontend
+    ("Cuadriculado redondo"/"Cuadriculado cuadrado" — panel_decorativo.js,
+    NATIVE_PATTERNS): el SI Patron creado por migrate_patrones TIENE thumbnail
+    pero NO genera DXF (el flujo de selección b:i no cubre parámetros
+    'forma=cuadriculado'); la entrada hardcodeada del frontend SÍ genera DXF
+    (path directo panel_mode=cuadriculado) pero no tenía thumbnail.
+
+    Acción: transfiere el PNG del SI Patron al nombre de archivo estático que
+    usa el frontend (ver _CUADRICULADOS_DUPLICADOS), y hard-elimina el SI
+    Patron — doc + versiones + DXF físico + File huérfano — SIN dejar rastro
+    (el PNG no queda huérfano: se renombra, no se duplica).
+
+    Retorna: {"transferidos": [...], "eliminados": [...], "no_encontrados": [...],
+              "errors": [...]}
+    """
+    from sistema_industrial.api.patrones import _thumb_dir, _safe_name
+
+    thumb_dir = _thumb_dir()
+    transferidos, errors = [], []
+
+    for patron_name, static_name in _CUADRICULADOS_DUPLICADOS:
+        src = thumb_dir / f"{_safe_name(patron_name)}.png"
+        dst = thumb_dir / f"{static_name}.png"
+        try:
+            if src.exists():
+                src.replace(dst)  # rename in place — no deja huérfano, sobreescribe si existía
+                transferidos.append({"patron": patron_name, "from": src.name, "to": dst.name})
+            elif dst.exists():
+                transferidos.append({"patron": patron_name, "from": None,
+                                     "to": dst.name, "note": "el estático ya existía"})
+            else:
+                errors.append({
+                    "step": "transfer_thumb", "patron": patron_name,
+                    "error": f"no se encontró ni {src.name} ni {dst.name} en {thumb_dir}",
+                })
+        except Exception as exc:
+            errors.append({"step": "transfer_thumb", "patron": patron_name, "error": str(exc)})
+
+    del_result = delete_named_patrones([name for name, _ in _CUADRICULADOS_DUPLICADOS])
+    errors.extend(del_result["errors"])
+
+    return {
+        "transferidos": transferidos,
+        "eliminados": del_result["borrados"],
+        "no_encontrados": del_result["no_encontrados"],
+        "errors": errors,
+    }
 
 
 def wipe_file_patterns():

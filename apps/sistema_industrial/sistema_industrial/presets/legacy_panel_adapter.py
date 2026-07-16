@@ -726,24 +726,30 @@ def _generate_cuadriculado_square_dxf(
     return result
 
 
-def _hexagon_vertices(cx: float, cy: float, across_flats: float) -> list:
-    """Vértices de un hexágono FLAT-TOP (dos lados horizontales arriba/abajo).
+# Rotación de cada hexágono sobre su propio centro (decisión Constantino,
+# 2026-07-14): 0° da flat-top (2 lados horizontales); 30° da pointy-top (un
+# vértice arriba). Constantino confirmó que con 30° se pierde la pasada
+# horizontal de flycut (queda vertical + 2 inclinadas) y no hay problema.
+HEX_ROTATION_DEG = 30.0
 
-    across_flats = distancia entre los lados horizontales (se toma = diámetro del
-    agujero, para que el hexágono ocupe el mismo alto que el círculo equivalente).
-    Radio (centro→vértice) = across_flats / sqrt(3). Los 6 lados se reparten en 3
-    orientaciones (horizontal, inclinado der, inclinado izq) → las 3 pasadas de
-    flycut de hexágonos.
+
+def _hexagon_vertices(cx: float, cy: float, across_flats: float,
+                      rotation_deg: float = HEX_ROTATION_DEG) -> list:
+    """Vértices de un hexágono regular centrado en (cx, cy).
+
+    across_flats = distancia entre lados opuestos del hexágono (medida
+    intrínseca, no depende de la rotación global) — se toma = diámetro del
+    agujero. Radio (centro→vértice) = across_flats / sqrt(3), constante para
+    cualquier rotación. rotation_deg=0 → flat-top (2 lados horizontales);
+    rotation_deg=30 (default) → pointy-top (vértice arriba). Cada hexágono se
+    gira sobre su propio centro, así al tilear toda la grilla (tresbolillo,
+    columnas par/impar) queda con la misma orientación.
     """
     R = across_flats / math.sqrt(3.0)
-    h = across_flats / 2.0  # = R·√3/2
     return [
-        (cx + R, cy),
-        (cx + R / 2.0, cy + h),
-        (cx - R / 2.0, cy + h),
-        (cx - R, cy),
-        (cx - R / 2.0, cy - h),
-        (cx + R / 2.0, cy - h),
+        (cx + R * math.cos(math.radians(k * 60 + rotation_deg)),
+         cy + R * math.sin(math.radians(k * 60 + rotation_deg)))
+        for k in range(6)
     ]
 
 
@@ -761,12 +767,13 @@ def _write_tresbolillo_hex_to_doc(
 ) -> dict:
     """Escribe un panel de tresbolillo hexagonal en un doc/msp existente.
 
-    Hexágonos flat-top en grilla tresbolillo (filas separadas por dy = distancia·
-    √3/2; filas impares desplazadas medio paso). Cada hexágono va en su capa de
-    flycut (Channel por XDATA FS_CYPCUT), con la división por áreas genérica → el
-    flycut de 3 pasadas (horizontales / inclinadas der / izq) nunca corta áreas
-    contiguas de forma consecutiva (evita el desfase por calor). `offset_x/y`
-    posiciona el panel (para combinarlo con otros en el mismo DXF).
+    Hexágonos pointy-top (rotados 30° sobre su propio centro, HEX_ROTATION_DEG —
+    decisión Constantino) en grilla tresbolillo (filas separadas por dy =
+    distancia·√3/2; filas impares desplazadas medio paso). Cada hexágono va en su
+    capa de flycut (Channel por XDATA FS_CYPCUT), con la división por áreas
+    genérica → el flycut de 3 pasadas (vertical / inclinada der / inclinada izq)
+    nunca corta áreas contiguas de forma consecutiva (evita el desfase por calor).
+    `offset_x/y` posiciona el panel (para combinarlo con otros en el mismo DXF).
 
     Returns: {pierce_count, cut_length_mm, travel_length_mm, zone_cols, zone_rows,
               total_zones, n_files}.
@@ -1014,8 +1021,9 @@ class LegacyPanelAdapter:
         w_msg = (
             f"Flycut cuadrado latino: {geo['pierce_count']} hexágonos en {zone_info} "
             f"áreas (≤200mm; máx 14 por lado), repartidas en {capas_usadas} capas de "
-            f"CypCut. Las 3 pasadas (horizontales / inclinadas der / izq) no cortan "
-            f"áreas contiguas de forma consecutiva (evita el desfase por calor)."
+            f"CypCut. Hexágonos rotados 30° (pointy-top); las 3 pasadas (vertical / "
+            f"inclinada der / inclinada izq) no cortan áreas contiguas de forma "
+            f"consecutiva (evita el desfase por calor)."
         )
         return LegacyPanelRunResult(
             dxf_path=request.output_dxf_path,
