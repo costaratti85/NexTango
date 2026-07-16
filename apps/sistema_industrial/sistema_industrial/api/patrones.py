@@ -6,6 +6,8 @@ Endpoints:
     get_all(customer=None)       — patrones Públicos + Exclusivos del cliente (activos)
     get_patron(name, version)    — resolver versionado (contrato con SI Pieza / Lechu)
     upload_pattern(...)          — copia DXF desde File de Frappe a /planos/, crea SI Patron
+    update_pattern(...)          — edita definición y/o reemplaza/reapunta el DXF de un patrón
+    list_dxf_files()             — lista los .dxf bajo /planos/ (picker de reapunte)
     delete_pattern(name)         — baja lógica: activo=0 (archivo queda en disco)
     list_admin()                 — todos los patrones incl. inactivos (grilla de admin)
 """
@@ -463,6 +465,225 @@ def upload_pattern(nombre, step_x, step_y, visibilidad, file_url, customer=None,
         "has_splines": sc > 0,
         "spline_count": sc,
     }
+
+
+def _validate_existing_dxf(dxf_path) -> Path:
+    """Valida un path de reapunte: .dxf existente dentro de la raíz de planos.
+
+    Acepta path absoluto o relativo a la raíz. Rechaza traversal fuera de la raíz.
+    """
+    root = _planos_root().resolve()
+    p = Path(str(dxf_path))
+    if not p.is_absolute():
+        p = root / p
+    try:
+        resolved = p.resolve()
+    except Exception:
+        frappe.throw(f"Ruta inválida: {dxf_path}")
+    if not str(resolved).startswith(str(root) + os.sep):
+        frappe.throw("dxf_path debe estar dentro de la carpeta de planos del servidor")
+    if resolved.suffix.lower() != ".dxf":
+        frappe.throw("dxf_path debe apuntar a un archivo .dxf")
+    if not resolved.is_file():
+        frappe.throw(f"Archivo no encontrado en el servidor: {dxf_path}")
+    return resolved
+
+
+@frappe.whitelist(allow_guest=False)
+def update_pattern(name, descripcion=None, visibilidad=None, customer=None,
+                   step_x=None, step_y=None, parametros=None,
+                   file_url=None, dxf_path=None, activo=None):
+    """Edita la definición de un SI Patron existente y/o reemplaza/reapunta su DXF.
+
+    Todos los argumentos salvo `name` son opcionales: lo que no se manda, no se toca.
+
+    Args:
+        name:        SI Patron existente (requerido).
+        descripcion: reemplaza la descripción.
+        visibilidad: "Público" | "Exclusivo" (Exclusivo requiere customer).
+        customer:    Customer ERPNext (se limpia si visibilidad queda Público).
+        step_x/step_y: float; "" limpia el valor.
+        parametros:  JSON string — merge de claves sobre el JSON existente.
+                     step_x/step_y explícitos pisan lo que venga acá.
+        file_url:    File de Frappe ya subido → se copia a /planos/ con sufijo _vN
+                     (reemplazo con archivo nuevo).
+        dxf_path:    path de un .dxf existente bajo la raíz de planos → reapunte
+                     sin copia. Mutuamente excluyente con file_url.
+        activo:      0|1 baja/alta lógica.
+
+    Versionado (contrato con Lechu/MES): si cambia `parametros` o `archivo_dxf`,
+    el before_save de SI Patron congela automáticamente una nueva fila append-only
+    en SI Patron Version y bumpea `version`. Las versiones viejas nunca se tocan.
+
+    r.message: {ok, name, version, previous_version, version_created, tipo,
+                visibilidad, cliente, descripcion, activo, parametros,
+                archivo_dxf, file_available, spline_count, has_splines,
+                thumbnail_url}
+    """
+    if not frappe.db.exists("SI Patron", name):
+        frappe.throw(f"Patrón '{name}' no encontrado", frappe.DoesNotExistError)
+    if file_url and dxf_path:
+        frappe.throw("file_url y dxf_path son mutuamente excluyentes: "
+                     "subí un archivo nuevo O reapuntá a uno existente")
+
+    doc = frappe.get_doc("SI Patron", name)
+    previous_version = int(doc.version or 1)
+
+    if (file_url or dxf_path) and (doc.tipo or "") == "Paramétrico":
+        frappe.throw("Un patrón Paramétrico no usa archivo DXF")
+
+    # --- visibilidad / cliente (antes del DXF: definen carpeta destino del upload) ---
+    if visibilidad not in (None, ""):
+        if visibilidad not in ("Público", "Exclusivo"):
+            frappe.throw(f"visibilidad inválida: {visibilidad}")
+        doc.visibilidad = visibilidad
+    if customer not in (None, ""):
+        doc.cliente = customer
+    if (doc.visibilidad or "") == "Exclusivo" and not doc.cliente:
+        frappe.throw("customer es requerido para visibilidad Exclusivo")
+    if (doc.visibilidad or "") == "Público":
+        doc.cliente = ""
+
+    # --- archivo DXF: reemplazo (file_url) o reapunte (dxf_path) ---
+    dxf_changed = False
+    if file_url:
+        src_path = _resolve_frappe_file(file_url)
+        dest_dir = _patron_dest_dir(doc.visibilidad, doc.cliente or None)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        safe = _safe_filename(src_path.name)
+        stem, ext = os.path.splitext(safe)
+        dest_path = dest_dir / f"{stem}_v{previous_version + 1}{ext}"
+        shutil.copy2(str(src_path), str(dest_path))
+        doc.archivo_dxf = str(dest_path)
+        dxf_changed = True
+    elif dxf_path:
+        doc.archivo_dxf = str(_validate_existing_dxf(dxf_path))
+        dxf_changed = True
+
+    # --- parámetros: merge JSON + step_x/step_y explícitos ---
+    try:
+        current_params = json.loads(doc.parametros or "{}")
+    except (json.JSONDecodeError, TypeError):
+        current_params = {}
+    params_changed = False
+    if parametros not in (None, ""):
+        extra = parametros
+        if isinstance(extra, str):
+            try:
+                extra = json.loads(extra)
+            except json.JSONDecodeError:
+                frappe.throw("parametros no es JSON válido")
+        if not isinstance(extra, dict):
+            frappe.throw("parametros debe ser un objeto JSON")
+        current_params.update(extra)
+        params_changed = True
+    for key, val in (("step_x", step_x), ("step_y", step_y)):
+        if val is None:
+            continue
+        current_params[key] = float(val) if val != "" else None
+        params_changed = True
+    if params_changed:
+        doc.parametros = json.dumps(current_params, ensure_ascii=False)
+
+    # --- campos sueltos (no versionados) ---
+    if descripcion is not None:
+        doc.descripcion = descripcion
+    if activo not in (None, ""):
+        doc.activo = 1 if str(activo).lower() in ("1", "true") else 0
+
+    if dxf_changed:
+        doc.spline_count = _count_splines(doc.archivo_dxf)
+
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    new_version = int(doc.version or 1)
+
+    # thumbnail: regenerar best-effort si cambió el DXF o los parámetros
+    thumb_url = _thumb_url(name)
+    if dxf_changed or params_changed:
+        try:
+            result = generate_thumbnail(name)
+            thumb_url = result.get("url") or thumb_url
+        except Exception as exc:
+            frappe.log_error(f"update_pattern thumbnail {name}: {exc}",
+                             "update_pattern_thumbnail")
+
+    file_path = str(doc.archivo_dxf or "")
+    try:
+        file_available = bool(file_path) and Path(file_path).exists()
+    except Exception:
+        file_available = False
+    sc = int(doc.spline_count or 0)
+
+    return {
+        "ok": True,
+        "name": name,
+        "version": new_version,
+        "previous_version": previous_version,
+        "version_created": new_version != previous_version,
+        "tipo": doc.tipo or "",
+        "visibilidad": doc.visibilidad or "Público",
+        "cliente": doc.cliente or "",
+        "descripcion": doc.descripcion or "",
+        "activo": int(doc.activo or 0),
+        "parametros": current_params,
+        "archivo_dxf": file_path,
+        "file_available": file_available,
+        "spline_count": sc,
+        "has_splines": sc > 0,
+        "thumbnail_url": thumb_url,
+    }
+
+
+@frappe.whitelist(allow_guest=False)
+def list_dxf_files():
+    """Lista los archivos .dxf bajo la raíz de planos (picker de reapunte).
+
+    r.message:
+    {
+        "root": "/.../planos",
+        "files": [
+            {"path": "...", "relpath": "generico/patrones/x.dxf",
+             "size_kb": 34.2, "modified": "2026-07-01 10:22:33",
+             "used_by": ["Aconcagua"]}   // [] = huérfano
+        ]
+    }
+    """
+    from datetime import datetime
+
+    root = _planos_root()
+
+    used_map = {}
+    try:
+        for d in frappe.get_all("SI Patron", fields=["name", "archivo_dxf"]):
+            p = (d.get("archivo_dxf") or "").strip()
+            if p:
+                used_map.setdefault(os.path.normpath(p), []).append(d["name"])
+    except Exception as exc:
+        frappe.log_error(f"list_dxf_files: error leyendo SI Patron: {exc}")
+
+    files = []
+    if root.exists():
+        for f in sorted(root.rglob("*")):
+            if not f.is_file() or f.suffix.lower() != ".dxf":
+                continue
+            try:
+                st = f.stat()
+            except OSError:
+                continue
+            used = (used_map.get(os.path.normpath(str(f)))
+                    or used_map.get(os.path.normpath(str(f.resolve())))
+                    or [])
+            files.append({
+                "path": str(f),
+                "relpath": str(f.relative_to(root)),
+                "size_kb": round(st.st_size / 1024, 1),
+                "modified": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+                "used_by": used,
+            })
+
+    return {"root": str(root), "files": files}
 
 
 @frappe.whitelist(allow_guest=False)
