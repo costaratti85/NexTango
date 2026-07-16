@@ -354,26 +354,25 @@ class AdminPatrones {
 						__('guardar crea una versión nueva; las anteriores quedan congeladas (contrato SI Patron Version).') +
 						'</div>',
 				},
-				{ fieldtype: 'Float', fieldname: 'step_x', label: __('Paso X mm'), default: cur.step_x },
+				// Las TRES cosas actualizables (pedido de Constantino 2026-07-14):
+				// archivo DXF + offset X + offset Y — van primero y con su vocabulario.
+				// "Offset" = paso de tileo del patrón (en la base es parametros.step_x/y;
+				// hoy está encodeado en nombres como subte_Offx84_Offy84.dxf).
+				{
+					fieldtype: 'Float',
+					fieldname: 'step_x',
+					label: __('Offset X mm'),
+					default: cur.step_x,
+					description: __('Paso de tileo horizontal (el Offx del nombre del archivo).'),
+				},
 				{ fieldtype: 'Column Break' },
-				{ fieldtype: 'Float', fieldname: 'step_y', label: __('Paso Y mm'), default: cur.step_y },
-				{ fieldtype: 'Section Break' },
 				{
-					fieldtype: 'Select',
-					fieldname: 'visibilidad',
-					label: __('Visibilidad'),
-					options: ['Público', 'Exclusivo'],
-					default: cur.visibilidad === 'Exclusivo' ? 'Exclusivo' : 'Público',
+					fieldtype: 'Float',
+					fieldname: 'step_y',
+					label: __('Offset Y mm'),
+					default: cur.step_y,
+					description: __('Paso de tileo vertical (el Offy del nombre del archivo).'),
 				},
-				{
-					fieldtype: 'Link',
-					fieldname: 'customer',
-					label: __('Cliente'),
-					options: 'Customer',
-					default: cur.cliente,
-					depends_on: "eval:doc.visibilidad=='Exclusivo'",
-				},
-				{ fieldtype: 'Small Text', fieldname: 'descripcion', label: __('Descripción'), default: cur.descripcion },
 				{ fieldtype: 'Section Break', label: __('Archivo DXF') },
 				{
 					fieldtype: 'HTML',
@@ -392,6 +391,23 @@ class AdminPatrones {
 					description: __('Si el archivo en disco tiene otro nombre, corregí acá la ruta. Se valida contra el disco al guardar.'),
 				},
 				{ fieldtype: 'HTML', fieldname: 'upload_zone' },
+				{ fieldtype: 'Section Break', label: __('Definición') },
+				{
+					fieldtype: 'Select',
+					fieldname: 'visibilidad',
+					label: __('Visibilidad'),
+					options: ['Público', 'Exclusivo'],
+					default: cur.visibilidad === 'Exclusivo' ? 'Exclusivo' : 'Público',
+				},
+				{
+					fieldtype: 'Link',
+					fieldname: 'customer',
+					label: __('Cliente'),
+					options: 'Customer',
+					default: cur.cliente,
+					depends_on: "eval:doc.visibilidad=='Exclusivo'",
+				},
+				{ fieldtype: 'Small Text', fieldname: 'descripcion', label: __('Descripción'), default: cur.descripcion },
 			],
 			primary_action_label: __('Guardar cambios'),
 			primary_action: (values) => this.guardar_update(p, cur, values, d),
@@ -426,8 +442,8 @@ class AdminPatrones {
 	}
 
 	guardar_update(p, cur, values, d) {
-		if (!(values.step_x > 0)) return frappe.msgprint(__('Paso X inválido.'));
-		if (!(values.step_y > 0)) return frappe.msgprint(__('Paso Y inválido.'));
+		if (!(values.step_x > 0)) return frappe.msgprint(__('Offset X inválido.'));
+		if (!(values.step_y > 0)) return frappe.msgprint(__('Offset Y inválido.'));
 		if (values.visibilidad === 'Exclusivo' && !values.customer)
 			return frappe.msgprint(__('Elegí el cliente para un patrón exclusivo.'));
 
