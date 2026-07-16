@@ -1,13 +1,14 @@
-{
+﻿{
  "pending": [
   {
    "agent": "Punto",
    "task": "PUNTO_WIRING_TRESBOLILLO_HEX_ENDPOINT",
    "descripcion": "BLOQUEA el hexagono en tresbolillo. Vega ya expuso el selector Circulo/Hexagono en la UI (commit 434421b, erpnext) y manda batch.hole_shape='hexagon' en el batch del tresbolillo. PERO el generador hex de Punto (_generate_tresbolillo_hex_dxf / LegacyPanelAdapter._run_tresbolillo_hex, commit 1463274) vive en legacy_panel_adapter.py, que los endpoints de Panel Decorativo NO usan. Evidencia: paneles.calcular() y paneles.descargar_dxf() -> panel_sales_local_app._run_all_batches() (def en linea 1489) -> motor STANDALONE (find_legacy_panel_dir -> Programas_hechos/Panel Decorativo/main.py), NO el adapter. En _run_all_batches el branch tresbolillo (lineas 1551-1554) ni siquiera setea settings.hole_shape, y el motor standalone solo tiene hole_shape en cuadriculado (circle/square), sin hexagono. Resultado HOY: elegir 'hexagono' produce circulos en silencio. Wiring necesario (Punto elige el camino): (a) en _run_all_batches, derivar tresbolillo+hexagon al generador del adapter igual que se difiere cuad+square (lineas 1537-1540, patron cuad_sq_batches_geo) -- reutiliza el generador ya testeado; o (b) portar _generate_tresbolillo_hex_dxf al motor standalone. Debe cubrir merge DXF + XDATA flycut + contabilidad de recursos/costo. Ver MSG_037 de tu canal.",
    "msg": "coordination/channel/Punto/MSG_037_VEGA_wiring_tresbolillo_hex.md",
-   "status": "pendiente",
+   "status": "completado",
    "sprint": "001-rebanada",
-   "prioridad": "alta"
+   "prioridad": "alta",
+   "nota": "COMPLETADO (MSG_125, e3fcd7b): cerrado el gap de Vega (UI mandaba hexagon pero salian circulos). End-to-end verificado."
   },
   {
    "agent": "Orbit",
@@ -794,10 +795,10 @@
    "task": "PUNTO_FORMULA_SEGUNDOS_LASER_PRECIO",
    "descripcion": "Cerrar el CALCULO DE PRECIO del Panel Decorativo via el MODELO FISICO CALIBRADO T = A*cut + B*travel + C*pierce. Punto prepara: (1) el procedimiento de calibracion (script de minimos cuadrados que ajusta A,B,C comparando tiempo CypCut vs formula en paneles de muestra) y (2) la lista exacta de datos que Constantino debe sacar de CypCut. NO es el modelo nominal segundos=f(largo,velocidad). Punto reporta estado.",
    "msg": "dispatch-directo-constantino-2026-07-11",
-   "status": "espera-bateria2",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "Constantino 2026-07-14: la medicion de Bateria 2 queda PARA DESPUES por decision suya -> coeficientes laser en espera (sin fecha). Codigo/motor listos; UI muestra 'pendiente'. No bloquea otros frentes."
+   "nota": "COMPLETADO (bateria2 R2=1.0000). Modelo definitivo: coefs universales + velocidad corte por tabla. FISICA (Constantino 2026-07-14, MSG_041): 1650 = velocidad MAXIMA de los motores (torcha arriba y acelerada). El coeficiente de desplazamiento corrige rampas acel/decel + subida/bajada de torcha por punto de corte -> por eso es UNIVERSAL (maquina, no material). beta calibrado (~0.00495 s/mm) NO contradice 1650: es el efectivo con rampas. NO usar travel/1650 crudo. Velocidad de CORTE por material = tabla existente."
   },
   {
    "agent": "Vega",
@@ -854,10 +855,10 @@
    "task": "PUNTO_THUMBNAILS_MOTOR_NATIVO_PARAMETROS",
    "descripcion": "Thumbnails de cuadriculado REDONDO y CUADRADO con motor NATIVO. Parametros CORREGIDOS (Constantino 2026-07-14, reemplazan los del brief viejo MSG_032): panel 300x300, margen 20mm, DISTANCIA 18mm (antes decia 15 -> corregido), agujeros 10x10 (cuadrado) / 10mm de diametro (redondo). Punto coordina deploy con Orbit.",
    "msg": "coordination/channel/Punto/MSG_032_nova_thumbnails_motor_nativo.md",
-   "status": "en-curso-dispatch-directo",
+   "status": "completado",
    "sprint": "panel-decorativo",
    "prioridad": "media",
-   "nota": "Reactivada por Constantino 2026-07-14 con params corregidos (18mm). Ojo: el brief MSG_032 decia 15mm y 3 motores; ahora es redondo+cuadrado con 18mm. Va detras del flycut urgente."
+   "nota": "COMPLETADO+DEPLOYADO (MSG_124/126, d51f005): Cuadriculado (O10) y Cuadriculado Square (10x10), motor nativo, paso 18/margen 20/panel 300x300. PNGs en galeria verificados."
   },
   {
    "agent": "Orbit (+Forge apoyo)",
@@ -944,10 +945,10 @@
    "task": "PUNTO_BATERIA2_ARCHIVO_UNICO",
    "descripcion": "Poner los 12 dibujos de la Bateria 2 en UN SOLO archivo DXF, acomodados con la MISMA logica con que el sistema ordena los paneles cuando hay varios en un pedido (layout multi-panel). Objetivo: Constantino abre 1 archivo en vez de 12. IMPORTANTE: Punto debe ACLARAR (para Constantino) si juntarlos cambia la forma de medir para la calibracion -ej. si CypCut daria un TIEMPO TOTAL combinado con el desplazamiento entre paneles incluido en vez de 12 tiempos por panel- y como se maneja eso para el ajuste de a/b/g. Dejar explicado, SIN trabar la entrega. Dejar el archivo en el share planos/calibracion_laser/bateria2/ para abrir por red. NO urgente: es para mañana (Constantino mide la Bateria 2 mañana).",
    "msg": "coordination/channel/Punto/MSG_033_nova_bateria2_archivo_unico.md",
-   "status": "pendiente",
+   "status": "posiblemente-innecesario",
    "sprint": "calibracion-laser",
    "prioridad": "baja",
-   "nota": "DEBAJO del flycut urgente. Sigue siendo para mañana pero el flycut va primero."
+   "nota": "La Bateria 2 YA se midio y calibro (MSG_117). El archivo unico era para facilitar esa medicion -> quizas ya no haga falta para 2.0mm. Confirmar con Constantino si lo quiere igual (util para futuras baterias de otros espesores)."
   },
   {
    "agent": "Constantino",
@@ -974,10 +975,10 @@
    "task": "PUNTO_FLYCUT_LATIN_SQUARE_CUADRICULADO",
    "descripcion": "URGENTE #1 (Constantino tiene pedido para cortar MAÑANA): terminar y deployar el flycut por 'Latin Square' del cuadriculado cuadrado. Problema: al aplicar flycut, el calor entre la pasada de verticales y la de horizontales desfasa las lineas. Solucion (Punto ya casi lista en MAIN): dividir el panel en areas <200x200 y asignar cada una a una capa distinta de CypCut con restriccion tipo sudoku (Latin Square): ninguna area comparte capa con otra de su misma fila/columna. FALTA terminarlo/deployarlo en ERPNEXT (main tiene Latin Square; erpnext usa flycut clasico y le falta -Punto MSG_087: falta XDATA FS_CYPCUT en la version erpnext de _write_cuadriculado_square_to_doc). Trabajar en worktree feat/punto (base ffc462b) -> PR -> Orbit deploya.",
    "msg": "coordination/channel/Punto/MSG_034_nova_urgente_flycut_latin_square.md",
-   "status": "en-curso-dispatch-directo",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "URGENTE-#1",
-   "nota": "URGENTE #1 (para mañana). AJUSTE Constantino 2026-07-14 (pasado directo a Punto): (1) limite de capas = 9 (no 16) -> modulo 9; (2) tamaño de area por lado = min(9, ceil(lado/200)) -> apuntar a <200 pero tope 9 areas por lado; si con <=9 no se baja de 200, el area queda >200; areas iguales salvo ultima fila/columna que ajusta. Punto actualiza tests, pushea y coordina REDEPLOY con Orbit."
+   "nota": "COMPLETADO+DEPLOYADO (MSG_120/121, commit 25dfd0b): flycut cuadrado latino con XDATA FS_CYPCUT (byte-identico al nativo CypCut), canales 1-14. OJO: quedo en MODULO 14 (no 9) -> el equipo confirmo con tests que 14 es el limite real de CypCut. 20/20 tests. En produccion, listo para cortar."
   },
   {
    "agent": "Orbit",
@@ -987,17 +988,77 @@
    "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "URGENTE-#1",
-   "nota": "COMPLETADO y VERIFICADO 2026-07-14 (Orbit MSG_121). Version FINAL en produccion: 25dfd0b (flycut CIERRE — modulo 14, capa=(col+fila)%14+1 canales 1-14, areas min(14,ceil(lado/200)), XDATA FS_CYPCUT por agujero). Evolucion: 17a8a33(mod16) -> 9962ea9(mod9) -> 25dfd0b(mod14+XDATA). Server en 25dfd0b, 7/7 workers. Verificado generando cuadriculado 3000x3000 con codigo deployado: 2401 agujeros TODOS con XDATA FS_CYPCUT, Channel=capa, canales exactamente 1-14, APPID registrado. 20/20 tests. Listo para el corte."
+   "nota": "COMPLETADO (MSG_121): 25dfd0b en produccion, 7/7 workers, XDATA verificado (2401/2401 agujeros, canales 1-14)."
   },
   {
    "agent": "Punto",
    "task": "PUNTO_HEXAGONOS_TRESBOLILLO_LATIN_SQUARE",
    "descripcion": "Hexagonos en tresbolillo con la division por areas / cuadrado latino + XDATA FS_CYPCUT, AHORA GENERICA (el mecanismo del flycut Latin Square se generaliza para aplicarse tambien a tresbolillo, no solo al cuadriculado cuadrado). Punto coordina deploy con Orbit.",
    "msg": "coordination/channel/Punto/MSG_036_nova_hexagonos_y_thumbnails.md",
-   "status": "en-curso-dispatch-directo",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "Activada directo por Constantino 2026-07-14. Reusa/generaliza el motor del flycut Latin Square (URGENTE #1). Va junto/despues del flycut."
+   "nota": "COMPLETADO+DEPLOYADO (MSG_125/126, e3fcd7b + wiring UI + Vega 434421b): 238 hexagonos reales, 0 circulos, XDATA OK, 8/8 tests. En produccion."
+  },
+  {
+   "agent": "Punto",
+   "task": "PUNTO_PRECISION_CAMPOS_LASER",
+   "descripcion": "Alerta 1 (MSG_117): los campos laser_b_s_per_hole decimal(21,4) y laser_c_s_per_m2 decimal(21,2) de SI Material Corte REDONDEAN al guardar (b 0.004946->0.0049, g 1.1852->1.19). Impacto ~0.24% (mayor con muchas perforaciones). Para una calibracion R2=1.0000 conviene subir la precision de esos 2 campos a 6 + migrate. Decision/ejecucion de Punto.",
+   "msg": "MSG_117_ORBIT (alerta 1)",
+   "status": "pendiente",
+   "sprint": "001-rebanada",
+   "prioridad": "baja",
+   "nota": "Cabo suelto fino de la calibracion. El precio ya funciona con ~0.24% de error extra; esto lo elimina."
+  },
+  {
+   "agent": "Punto",
+   "task": "PUNTO_BUG_ERROR_AL_CALCULAR_PRECIO",
+   "descripcion": "BUG produccion: en Panel Decorativo, al 'Calcular presupuesto' tira 'Error al calcular:' (sin detalle en la UI). Caso de Constantino: patron TRESBOLILLO, Chapa doble decapada N18 (1.25mm), diametro agujero 5, separacion 8.5, ancho 222, alto 545, margen 15, cantidad 1, distribucion 'Figuras completas centradas'. OJO CONTEXTO: la calibracion cargada es solo 2.0mm (N14); esto es 1.25mm (N18) sin coeficientes. Ademas Constantino avisa que la pagina donde se anotaban los precios (que existia en el standalone viejo) AHORA NO ESTA. Punto: diagnosticar la causa REAL (traer el traceback del server via Orbit) -> el cálculo deberia manejar precios/coefs faltantes sin tirar error (Vega diseño 'pendiente', no excepcion).",
+   "msg": "coordination/channel/Punto/MSG_039_nova_bug_error_al_calcular.md",
+   "status": "pendiente",
+   "sprint": "001-rebanada",
+   "prioridad": "alta",
+   "nota": "RECONCILIADO (MSG_042): el fix NO es cargar coefs por espesor. Discrepancia detectada: coefs guardados POR material (solo 2.0mm cargado) y alpha=0.013372=1/74.8 -> la velocidad de la N14 quedo ABSORBIDA en el coeficiente (no universal). Fix: reformular la formula al modelo de Constantino (velocidad por tabla como VARIABLE + coeficientes UNIVERSALES de correccion, re-ajustados con los mismos datos de Bateria 2, sin re-medir) + definir storage de coefs universales (no por-material). Confirmar causa con traceback de Orbit. DUDA ABIERTA a Constantino: pierce por espesor (tabla) con correccion universal, o universal puro."
+  },
+  {
+   "agent": "Orbit",
+   "task": "ORBIT_TRAER_LOG_ERROR_CALCULAR",
+   "descripcion": "Traer del server el traceback REAL del error de api.paneles.calcular() para el caso de Constantino (Tresbolillo, Chapa doble decapada 1.25mm, 222x545, ver PUNTO_BUG). Mirar Frappe Error Log / bench logs / web.error. Pasarselo a Punto para que diagnostique. Solo lectura de logs.",
+   "msg": "coordination/channel/Punto/MSG_043_ORBIT_traceback_error_calcular.md",
+   "status": "completado",
+   "sprint": "001-rebanada",
+   "prioridad": "alta",
+   "nota": "COMPLETADO 2026-07-16 (Orbit MSG_043 a Punto + MSG_133 a Nova). El caso descrito (tresbolillo N18/1.25mm) NO reproduce error: calcular() OK (material tiene velocidad=140 -> formula legacy). El error REAL en produccion es del CUADRICULADO: KeyError 'offset_x_mm' en panel_sales_local_app.py:1569 (rama panel_mode==cuadriculado, accede batch['offset_x_mm'] sin default; frontend no siempre manda esa clave). 4 ocurrencias hoy en Error Log, todas descargar_dxf cuadriculado nativo, PERSISTE en 771138d. Traceback completo pasado a Punto. Ademas deploy 771138d (dedup cuadriculados + hex 30 pointy-top) hecho y verificado; galeria nativa=3 (Tresbolillo+2 NATIVE), DXF intactos. Grieta: cuadriculado nativo no genera DXF end-to-end por el mismo offset_x_mm."
+  },
+  {
+   "agent": "Vega+Punto",
+   "task": "RECREAR_PAGINA_PRECIOS",
+   "descripcion": "Recrear la PAGINA DE CARGA DE PRECIOS que existia en el sistema standalone viejo y hoy NO esta en ERPNext (reportado por Constantino). Los precios hoy viven en doctypes (SI Precios Globales.precio_segundo_laser, precio_por_kg por material en SI Material Corte) pero falta una pantalla amigable para anotarlos/editarlos como antes. Punto define donde viven los precios y que falta; Vega arma la UI. Probablemente relacionado con el bug PUNTO_BUG_ERROR_AL_CALCULAR (si faltan precios cargados).",
+   "msg": "coordination/channel/Vega/MSG_036_nova_pagina_precios.md",
+   "status": "pendiente",
+   "sprint": "001-rebanada",
+   "prioridad": "alta",
+   "nota": "Necesidad señalada por Constantino. Ligada al bug de calcular precio."
+  },
+  {
+   "agent": "Atlas",
+   "task": "ATLAS_BACKEND_ACTUALIZAR_PATRON",
+   "descripcion": "FEATURE 'Actualizar patron' (backend): endpoint de UPDATE de un patron existente en api/patrones.py -corregir/mejorar la definicion- y REEMPLAZO/REAPUNTE del archivo DXF desde la pantalla admin-patrones. Respetar el contrato SI Patron / SI Patron Version (child table INMUTABLE: evaluar si reemplazar DXF = nueva version; consultar a Punto SOLO lo puntual del contrato, esta ocupado con el bug de precio). PROHIBIDO tocar datos: NO reconciliar rutas ni modificar patrones existentes (Aconcagua/Cosmos/Hexagonal/subte con nombre de archivo desfasado, Philo sin DXF) - Constantino los corrige EL MISMO con esta herramienta. Publicar el contrato del endpoint temprano para que Vega no espere.",
+   "msg": "coordination/channel/Atlas/MSG_014_nova_backend_actualizar_patron.md",
+   "status": "completado",
+   "sprint": "001-rebanada",
+   "prioridad": "alta",
+   "nota": "PR #2 (feat/atlas b3173c2 -> erpnext). update_pattern (definicion + reemplazo file_url / reapunte dxf_path) + list_dxf_files (picker con used_by). Versionado delegado al before_save de SI Patron (child inmutable, contrato MES intacto, sin consultar a Punto). Cero datos tocados (regla dura OK). 21/21 tests nuevos; 4 fallos preexistentes de suite no relacionados. Contrato para Vega publicado temprano (Atlas/MSG_015, aviso Vega/MSG_038). Deploy: NO requiere bench migrate. Reporte: Nova/MSG_131. AGREGADO Constantino 2026-07-14: offset_x/offset_y (alias de step_x/step_y, canonico en parametros) — DXF + offsets en un solo update = una version nueva. Commit 36a6c5b, 25/25 tests, contrato Vega actualizado (MSG_015 + Vega/MSG_039)."
+  },
+  {
+   "agent": "Vega",
+   "task": "VEGA_UI_ACTUALIZAR_PATRON",
+   "descripcion": "FEATURE 'Actualizar patron' (frontend): en /desk/admin-patrones, boton/flujo para EDITAR un patron ya cargado (corregir definicion) y SUBIR/REAPUNTAR su archivo DXF. Consume el endpoint de Atlas (ATLAS_BACKEND_ACTUALIZAR_PATRON). PROHIBIDO tocar datos: no corregir los patrones 'no disponible' - Constantino los arregla el mismo con la herramienta.",
+   "msg": "coordination/channel/Vega/MSG_037_nova_ui_actualizar_patron.md",
+   "status": "completado-esperando-contrato-atlas",
+   "sprint": "001-rebanada",
+   "prioridad": "alta",
+   "nota": "Vega 2026-07-14: UI completa en PR #1 (feat/vega, commit 9f8e39e). Boton editar en cards de cargados (incluye los No disp.), dialogo con definicion (paso X/Y, visibilidad, cliente, descripcion) + reapuntar ruta DXF + subir DXF nuevo (FileUploader privado, prioridad sobre la ruta). Prefill via get_patron. Llama a update_pattern con contrato PROVISIONAL {name, step_x, step_y, visibilidad, customer, descripcion, archivo_dxf|null, file_url|null} AISLADO en call_update_pattern() con degradacion si el endpoint no existe -> la UI se puede deployar antes que el backend sin romper nada. Cuando Atlas publique el contrato real, ajustar solo esa funcion. Regla dura respetada: cero datos tocados. Deploy: idealmente bundlear PR #1 + PR de Atlas (Orbit: build+bump_page_cache+restart, sin migrate). Ver MSG_129 en canal Nova y MSG_016 en canal Atlas. AGREGADO Constantino 2026-07-14 (commit 22f7350, en el mismo PR): tres cosas actualizables = archivo DXF + offset X + offset Y. Los offsets ya viajaban como step_x/step_y (offset del nombre de archivo = parametros.step_x/y, verificado subte_Offx84_Offy84 = step 84); UI renombrada a Offset X/Y mm y reordenada con el trio primero. Contrato de Atlas sin cambio de firma (MSG_017 de su canal: persistir step_x/y en parametros + version congelada)."
   }
  ],
  "foco_2026-07-02": {
