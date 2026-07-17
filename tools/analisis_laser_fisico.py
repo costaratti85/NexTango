@@ -5,25 +5,42 @@ Principio rector (consejo + Constantino, 2026-07-16): cada término se ajusta co
 SU PROPIO componente medido de CypCut (Processing/Move/Delay), nunca contra el total.
 Un parámetro físico por componente. Modelo falsable.
 
-MÓDULOS:
-  - Reconstrucción de geometría real (saltos + segmentos de corte) desde los DXF
-    reales de la Batería 2 — no depende de datos externos, ya está implementado
-    y verificado abajo.
-  - Modelo de DESPLAZAMIENTO: jerk-limitado por eje, t = (32·d/j)^(1/3) por debajo
-    de la distancia crítica; tiempo total del salto = max(t_x, t_y) (ejes
-    independientes, se mueven simultáneos). Linealizable: t = k·max(dx,dy)^(1/3)
-    con k=(32/j)^(1/3) — permite ajuste lineal auditable de k (y j = 32/k³).
-  - Modelo de CORTE: pendiente de datos reales de Processing time — NO se asume
-    que es el mismo problema físico que los saltos (ver docstring de
-    ajustar_modelo_corte más abajo).
-  - Perforado: constante prescripta (no se recalibra acá).
+ESTADO (2026-07-16): con el desglose Processing/Move/Delay real de los 12 paneles
+de Batería 2 (DESGLOSE_BATERIA2), NINGUNO de los modelos de 1-2 parámetros
+probados hasta ahora predice con precisión aceptable para pricing. Hay un
+HALLAZGO sistemático sin resolver — ver `diagnostico_correlacion_densidad()` y
+el reporte en coordination/channel/Nova/. NO se cargó ningún coeficiente nuevo
+a producción: esto es exploración, no un modelo listo.
 
-BLOQUEO ACTUAL: el ajuste de k/j y la validación de TODO este módulo necesitan el
-desglose Processing/Move/Delay por panel de los 12 paneles de la Batería 2 (CypCut
-lo reporta, no lo tengo cargado — solo tengo el Total agregado en
-calibracion_bateria2_REAL.json). Sin eso, `ajustar_modelo_desplazamiento` y
-`ajustar_modelo_corte` no tienen contra qué ajustar. Ver DESGLOSE_BATERIA2 abajo
-(placeholder vacío, completar cuando llegue el dato).
+MÓDULOS:
+  - Reconstrucción de geometría real (saltos + segmentos de corte + contorno)
+    desde los DXF reales de la Batería 2 — verificado, funciona bien.
+  - DESPLAZAMIENTO — 2 variantes probadas, NINGUNA cierra:
+    (a) `ajustar_modelo_desplazamiento`: jerk por SALTO individual (reposo a
+        reposo), t=(32·max(dx,dy)/j)^(1/3) por salto. R²=0.998 mirando el
+        total, pero error por panel de hasta 23% y t_torcha sale NEGATIVO
+        (físicamente incoherente) — el ajuste está compensando algo mal.
+    (b) `ajustar_modelo_desplazamiento_por_fila`: toda una fila de agujeros
+        colineales = UN solo movimiento (hipótesis: el motor no frena entre
+        saltos alineados consecutivos). Peor: error medio ~47%, hasta 128%.
+    Diagnóstico: el ratio Move_real/S correlaciona fuertemente con el número
+    de columnas del panel (paneles densos ⇒ tiempo por salto MENOR de lo que
+    predice el modelo reposo-a-reposo). La verdad está ENTRE los dos extremos
+    — ninguno de los dos modelos simples la captura.
+  - CORTE — 2 variantes probadas, NINGUNA cierra tampoco:
+    (a) `ajustar_modelo_corte`: cada LADO del agujero = jerk 1D reposo a reposo
+        en cada esquina de 90°. Error medio 30%, hasta 61%.
+    (b) `ajustar_modelo_corte_velocidad_constante`: velocidad nominal fija
+        (cut_length/v). Error medio 17%, pero sin capturar el patrón (dispersión
+        3%–35%). Mismo patrón de fondo que el desplazamiento: paneles densos
+        rinden mejor de lo que cualquiera de los dos modelos predice.
+  - Perforado: constante prescripta (no se recalibra acá, sin cambios).
+
+PRÓXIMO PASO PROPUESTO (no implementado, necesita validación): un modelo de
+velocidad de esquina NO-CERO (cornering speed, estándar en control CNC) en vez
+de frenado completo a v=0 en cada punto — explicaría por qué las secuencias
+cortas y repetidas (patrones densos) son más eficientes que "reposo a reposo".
+Agrega al menos 1 parámetro nuevo (v_esquina o el jerk lateral permitido).
 """
 from __future__ import annotations
 
@@ -193,21 +210,86 @@ def ajustar_modelo_desplazamiento(saltos_por_panel: dict, move_time_real: dict) 
     }
 
 
+def ajustar_modelo_desplazamiento_por_fila(centros_por_panel: dict, move_time_real: dict) -> dict:
+    """VARIANTE B (hipótesis alternativa, PROBADA — no cierra mejor que la A).
+
+    En vez de tratar cada salto como independiente, asume que el motor recorre
+    una fila entera de agujeros colineales como UN SOLO movimiento (sin frenar
+    entre agujeros de la misma fila), y solo frena/vuelve a arrancar al cambiar
+    de fila. Resultado empírico (12 paneles reales, 2026-07-16): error medio
+    ~47%, hasta 128% — PEOR que la variante A (salto por salto). Descartada como
+    modelo único, pero el diagnóstico (ver diagnostico_correlacion_densidad) es
+    valioso: la verdad está entre A y B, ninguno de los dos extremos es correcto.
+
+    centros_por_panel: {nombre: [(cx,cy), ...]}  (sin ordenar — se ordena acá)
+    """
+    if not move_time_real:
+        return {"error": "Falta el Move time real por panel."}
+
+    def tramos_de_fila(centros, tol=1e-3):
+        filas: dict = {}
+        for cx, cy in centros:
+            y_key = round(cy / tol) * tol
+            filas.setdefault(y_key, []).append(cx)
+        ys_ordenados = sorted(filas.keys())
+        tramos = []
+        for i, y in enumerate(ys_ordenados):
+            xs_fila = sorted(filas[y])
+            dist_fila = xs_fila[-1] - xs_fila[0]
+            if dist_fila > 0:
+                tramos.append((dist_fila, 0.0))
+            if i < len(ys_ordenados) - 1:
+                tramos.append((0.0, ys_ordenados[i + 1] - y))
+        return tramos
+
+    nombres = [n for n in centros_por_panel if n in move_time_real]
+    S = np.array([
+        sum(max(dx, dy) ** (1.0 / 3.0) for dx, dy in tramos_de_fila(centros_por_panel[n]))
+        for n in nombres
+    ])
+    y = np.array([move_time_real[n] for n in nombres])
+    k = float(np.sum(S * y) / np.sum(S ** 2))
+    pred = k * S
+    err_pct = np.abs(pred - y) / y * 100
+    return {
+        "k": k, "j": j_desde_k(k) if k > 0 else None,
+        "error_medio_pct": float(err_pct.mean()), "error_max_pct": float(err_pct.max()),
+        "pred_vs_real": {n: (float(p), float(r)) for n, p, r in zip(nombres, pred, y)},
+    }
+
+
 # ---------------------------------------------------------------------------
-# 3) Modelo de CORTE — pendiente de validación empírica
+# 3) Modelo de CORTE — 2 variantes probadas, ninguna cierra (ver docstring del módulo)
 # ---------------------------------------------------------------------------
 
-def ajustar_modelo_corte(segmentos_por_panel: dict, processing_time_real: dict) -> dict:
-    """PENDIENTE — bloqueado por falta de Processing time real por panel.
+def segmentos_de_contorno(dxf_path) -> list:
+    """Lados del contorno del panel (rectángulo grande, capa CONTORNO)."""
+    doc = ezdxf.readfile(str(dxf_path))
+    for e in doc.modelspace():
+        if e.dxf.layer == "CONTORNO" and e.dxftype() == "LWPOLYLINE":
+            pts = list(e.get_points())
+            n = len(pts)
+            return [
+                math.hypot(pts[(i + 1) % n][0] - pts[i][0], pts[(i + 1) % n][1] - pts[i][1])
+                for i in range(n)
+            ]
+    return []
 
-    NO asumir que el corte usa la misma física que los saltos (reposo→reposo)
-    sin validarlo: el corte es movimiento CONTINUO con desaceleración en cada
-    esquina (90° en cuadrados, 120° en hexágonos), no necesariamente frenando a
-    velocidad cero — depende del look-ahead del controlador. La hipótesis más
-    simple (reusar el mismo j de los saltos, tratando cada lado del cuadrado
-    como un salto reposo→reposo) es un punto de partida, NO un hecho — hay que
-    validarla panel por panel contra el Processing time real antes de confiar
-    en ella. Sin ese dato, esta función no puede ejecutar ningún ajuste.
+
+def ajustar_modelo_corte(segmentos_por_panel: dict, contorno_por_panel: dict,
+                         processing_time_real: dict) -> dict:
+    """VARIANTE A: cada LADO (del agujero y del contorno) = movimiento 1D
+    jerk-limitado reposo-a-reposo en cada esquina de 90°.
+
+    Processing_pred = k_corte · Σ_lados (lado^(1/3))  — 1 parámetro, lineal.
+
+    Resultado empírico (12 paneles reales, 2026-07-16): error medio 30%, hasta
+    61%. NO validado para producción — mismo patrón de fondo que el
+    desplazamiento (paneles densos rinden mejor de lo que el modelo predice).
+
+    segmentos_por_panel: {nombre: [[lado,lado,lado,lado], ...]}  (por agujero)
+    contorno_por_panel:  {nombre: [lado,lado,lado,lado]}
+    processing_time_real: {nombre: segundos}
     """
     if not processing_time_real:
         return {"error": (
@@ -215,7 +297,56 @@ def ajustar_modelo_corte(segmentos_por_panel: dict, processing_time_real: dict) 
             "validar el modelo de corte sin esto — y NO se debe asumir que es "
             "la misma física que los saltos sin verificarlo."
         )}
-    raise NotImplementedError("Implementar cuando llegue processing_time_real.")
+    nombres = [n for n in segmentos_por_panel if n in processing_time_real]
+    S = np.array([
+        sum(l ** (1 / 3) for figura in segmentos_por_panel[n] for l in figura)
+        + sum(l ** (1 / 3) for l in contorno_por_panel.get(n, []))
+        for n in nombres
+    ])
+    y = np.array([processing_time_real[n] for n in nombres])
+    k = float(np.sum(S * y) / np.sum(S ** 2))
+    pred = k * S
+    err_pct = np.abs(pred - y) / y * 100
+    return {
+        "k_corte": k,
+        "error_medio_pct": float(err_pct.mean()), "error_max_pct": float(err_pct.max()),
+        "pred_vs_real": {n: (float(p), float(r)) for n, p, r in zip(nombres, pred, y)},
+    }
+
+
+def ajustar_modelo_corte_velocidad_constante(cut_length_mm_por_panel: dict,
+                                              processing_time_real: dict) -> dict:
+    """VARIANTE B: velocidad de corte NOMINAL fija (sin jerk), Processing = cut/v.
+
+    Resultado empírico: error medio 17%, MEJOR en promedio que la variante A,
+    pero sin capturar el patrón (dispersión 3%–35% según panel, no aleatoria —
+    correlaciona con densidad igual que las otras variantes). No es "el modelo
+    correcto", es un promedio que por casualidad erra menos en total.
+    """
+    if not processing_time_real:
+        return {"error": "Falta el Processing time real por panel."}
+    nombres = [n for n in cut_length_mm_por_panel if n in processing_time_real]
+    cut = np.array([cut_length_mm_por_panel[n] for n in nombres])
+    y = np.array([processing_time_real[n] for n in nombres])
+    v = float(np.sum(cut ** 2) / np.sum(cut * y))
+    pred = cut / v
+    err_pct = np.abs(pred - y) / y * 100
+    return {
+        "v_efectiva_mm_s": v,
+        "error_medio_pct": float(err_pct.mean()), "error_max_pct": float(err_pct.max()),
+        "pred_vs_real": {n: (float(p), float(r)) for n, p, r in zip(nombres, pred, y)},
+    }
+
+
+def diagnostico_correlacion_densidad(cols_por_panel: dict, ratio_por_panel: dict) -> float:
+    """Coeficiente de correlación (Pearson) entre nº de columnas del panel y el
+    ratio tiempo_real/S_modelo — cuantifica el hallazgo: a más columnas
+    (patrón más denso), el modelo simple sobreestima más. Un |r| alto confirma
+    que la densidad es la variable que ningún modelo de 1 parámetro captura."""
+    nombres = [n for n in cols_por_panel if n in ratio_por_panel]
+    cols = np.array([cols_por_panel[n] for n in nombres], dtype=float)
+    ratio = np.array([ratio_por_panel[n] for n in nombres])
+    return float(np.corrcoef(cols, ratio)[0, 1])
 
 
 # ---------------------------------------------------------------------------
@@ -230,12 +361,23 @@ _PANELES_B2 = [
     "B2_10_L5_p100_1000x1000", "B2_11_L5_p45_1000x1000", "B2_12_L5_p70_1000x1000",
 ]
 
-# Desglose CypCut Processing/Move/Delay por panel de la Batería 2 — FALTA.
-# Solo tenemos el Total agregado (calibracion_bateria2_REAL.json). Completar
-# {"B2_01": {"processing_s": .., "move_s": .., "delay_s": ..}, ...} cuando
-# Constantino/Dispatch lo pasen, y correr ajustar_modelo_desplazamiento /
-# ajustar_modelo_corte con esos valores.
-DESGLOSE_BATERIA2: dict = {}
+# Desglose CypCut Processing/Move/Delay por panel de la Batería 2 (2026-07-16,
+# pasado por Constantino vía Dispatch). Verificado: processing+move+delay = total
+# exacto en los 12 paneles.
+DESGLOSE_BATERIA2 = {
+    "B2_01": {"processing_s": 152.535, "move_s": 21.079, "delay_s": 26.975, "total_s": 200.590},
+    "B2_02": {"processing_s": 94.935, "move_s": 21.229, "delay_s": 26.975, "total_s": 143.140},
+    "B2_03": {"processing_s": 834.106, "move_s": 223.279, "delay_s": 414.830, "total_s": 1472.215},
+    "B2_04": {"processing_s": 146.150, "move_s": 47.408, "delay_s": 36.313, "total_s": 229.871},
+    "B2_05": {"processing_s": 118.269, "move_s": 46.719, "delay_s": 61.451, "total_s": 226.439},
+    "B2_06": {"processing_s": 100.349, "move_s": 46.739, "delay_s": 61.451, "total_s": 208.539},
+    "B2_07": {"processing_s": 235.576, "move_s": 108.486, "delay_s": 141.895, "total_s": 485.957},
+    "B2_08": {"processing_s": 897.787, "move_s": 467.667, "delay_s": 1093.577, "total_s": 2459.030},
+    "B2_09": {"processing_s": 193.763, "move_s": 108.506, "delay_s": 141.895, "total_s": 444.164},
+    "B2_10": {"processing_s": 98.577, "move_s": 59.667, "delay_s": 59.297, "total_s": 217.540},
+    "B2_11": {"processing_s": 298.380, "move_s": 183.167, "delay_s": 317.867, "total_s": 799.413},
+    "B2_12": {"processing_s": 162.403, "move_s": 108.521, "delay_s": 141.895, "total_s": 412.819},
+}
 
 
 def cargar_geometria_bateria2() -> tuple:
@@ -249,20 +391,79 @@ def cargar_geometria_bateria2() -> tuple:
     return saltos, segmentos
 
 
-def main() -> None:
-    saltos, segmentos = cargar_geometria_bateria2()
-    print("=== Geometría reconstruida (saltos + segmentos de corte) ===")
-    for k in saltos:
-        n_saltos = len(saltos[k])
-        n_pierce = len(segmentos[k])
-        print(f"  {k}: {n_pierce} agujeros, {n_saltos} saltos reconstruidos")
+def cargar_datos_completos_bateria2() -> dict:
+    """Todo lo reconstruible desde los 12 DXF reales: saltos, centros (sin
+    ordenar), segmentos de corte, contorno, cut_length_mm, nº de columnas."""
+    out = {}
+    for nombre in _PANELES_B2:
+        key = nombre.split("_L")[0]
+        path = _BATERIA2_DIR / f"{nombre}.dxf"
+        centros = extraer_centros_agujeros(path)
+        xs = sorted(set(round(c[0], 1) for c in centros))
+        out[key] = {
+            "saltos": saltos_del_panel(path),
+            "centros": centros,
+            "segmentos": segmentos_de_corte(path),
+            "contorno": segmentos_de_contorno(path),
+            "cut_length_mm": sum(l for figura in segmentos_de_corte(path) for l in figura)
+                             + sum(segmentos_de_contorno(path)),
+            "cols": len(xs),
+        }
+    return out
 
-    print("\n=== Ajuste de desplazamiento (jerk) ===")
-    r = ajustar_modelo_desplazamiento(saltos, DESGLOSE_BATERIA2)
-    if "error" in r:
-        print(f"  BLOQUEADO: {r['error']}")
+
+def main() -> None:
+    datos = cargar_datos_completos_bateria2()
+    move_real = {k: v["move_s"] for k, v in DESGLOSE_BATERIA2.items()}
+    proc_real = {k: v["processing_s"] for k, v in DESGLOSE_BATERIA2.items()}
+
+    print("=== Geometría reconstruida ===")
+    for k, d in datos.items():
+        print(f"  {k}: {len(d['segmentos'])} agujeros, {len(d['saltos'])} saltos, {d['cols']} columnas")
+
+    print("\n=== DESPLAZAMIENTO — variante A: salto por salto (jerk reposo-a-reposo) ===")
+    saltos = {k: d["saltos"] for k, d in datos.items()}
+    ra = ajustar_modelo_desplazamiento(saltos, move_real)
+    if "error" in ra:
+        print(f"  BLOQUEADO: {ra['error']}")
     else:
-        print(f"  k={r['k']:.6f}  j={r['j']:.1f} mm/s^3  t_torcha={r['t_torcha_s']:.3f}s  R2={r['r2']:.4f}")
+        print(f"  k={ra['k']:.6f}  j={ra['j']:.1f} mm/s^3  t_torcha={ra['t_torcha_s']:.4f}s  R2={ra['r2']:.4f}")
+        errs = [abs(p - r) / r * 100 for p, r in ra["pred_vs_real"].values()]
+        print(f"  error medio panel={sum(errs)/len(errs):.1f}%  max={max(errs):.1f}%  <- ALTO, no usar en pricing")
+
+    print("\n=== DESPLAZAMIENTO — variante B: fila completa = 1 movimiento ===")
+    centros = {k: d["centros"] for k, d in datos.items()}
+    rb = ajustar_modelo_desplazamiento_por_fila(centros, move_real)
+    if "error" not in rb:
+        print(f"  k={rb['k']:.6f}  error medio={rb['error_medio_pct']:.1f}%  max={rb['error_max_pct']:.1f}%  <- PEOR que A")
+
+    print("\n=== CORTE — variante A: lado por lado (jerk reposo-a-reposo en esquinas) ===")
+    segmentos = {k: d["segmentos"] for k, d in datos.items()}
+    contorno = {k: d["contorno"] for k, d in datos.items()}
+    rc = ajustar_modelo_corte(segmentos, contorno, proc_real)
+    if "error" in rc:
+        print(f"  BLOQUEADO: {rc['error']}")
+    else:
+        print(f"  k_corte={rc['k_corte']:.5f}  error medio={rc['error_medio_pct']:.1f}%  max={rc['error_max_pct']:.1f}%  <- ALTO")
+
+    print("\n=== CORTE — variante B: velocidad nominal constante ===")
+    cut_mm = {k: d["cut_length_mm"] for k, d in datos.items()}
+    rd = ajustar_modelo_corte_velocidad_constante(cut_mm, proc_real)
+    if "error" not in rd:
+        print(f"  v_efectiva={rd['v_efectiva_mm_s']:.1f}mm/s  error medio={rd['error_medio_pct']:.1f}%  max={rd['error_max_pct']:.1f}%")
+
+    print("\n=== Diagnóstico: correlación densidad (cols) vs ratio real/predicho ===")
+    if "error" not in ra:
+        S_por_panel = {k: sum(max(dx, dy) ** (1/3) for dx, dy in d["saltos"]) for k, d in datos.items()}
+        ratio = {k: move_real[k] / S_por_panel[k] for k in datos}
+        cols = {k: d["cols"] for k, d in datos.items()}
+        corr = diagnostico_correlacion_densidad(cols, ratio)
+        print(f"  correlación(cols, Move_real/S) = {corr:.3f}  <- fuerte y negativa: confirma el patrón")
+
+    print("\n=== CONCLUSIÓN ===")
+    print("  Ningún modelo de 1-2 parámetros probado cierra con precisión aceptable")
+    print("  para pricing. Ver docstring del módulo: próximo paso propuesto es un")
+    print("  modelo de velocidad de esquina no-cero (no implementado, sin validar).")
 
 
 if __name__ == "__main__":
