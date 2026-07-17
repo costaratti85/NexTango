@@ -137,21 +137,37 @@ def compute_travel_length_mm(
     return intra + inter
 
 
+# Tiempo de perforación (pierce) — PRESCRIPTO por Constantino (2026-07-14), NO ajustado
+# por regresión. Domina el tiempo de subir/bajar el cabezal (que CypCut desprecia en su
+# estimación); la diferencia entre espesores es insignificante frente a eso y se IGNORA
+# a propósito — nuestra fórmula da tiempos más altos (más reales) que CypCut, intencional.
+# "Apto flycut" (lo elige el vendedor en la UI) baja el tiempo: el cabezal no necesita
+# bajar tanto entre agujeros cuando el panel se corta en flycut.
+PIERCE_SECONDS_SIN_FLYCUT = 3.0
+PIERCE_SECONDS_CON_FLYCUT = 1.0
+
+
 def calculate_consumed_resources(
     cut_length_m: float,
     pierce_count: int,
     sheet_area_m2: float,
     material_entry: dict,
     travel_length_mm: float = 0.0,
+    apto_flycut: bool = False,
 ) -> dict:
     """Convierte outputs del motor a recursos fisicos usando la tabla de materiales.
 
     Si laser_a_s_per_mm > 0 usa la formula calibrada (modelo fisico):
         T = alpha*cut_mm + beta*travel_mm + gamma*pierce_count + delta
-    donde alpha (laser_a_s_per_mm), beta (laser_b_s_per_hole), gamma (laser_c_s_per_m2),
-    delta (laser_d_base_s) son coeficientes de regresion ajustados con calibrar_laser.py.
+    donde alpha (laser_a_s_per_mm) y beta (laser_b_s_per_hole) salen de la calibración
+    (Batería 2, ver tools/calibrar_laser.py) y NO se re-ajustan; delta (laser_d_base_s)
+    también viene de esa calibración. gamma (pierce) NO se lee de material_entry — es
+    universal y prescripto (PIERCE_SECONDS_*), no un coeficiente ajustado.
 
-    De lo contrario usa la formula legacy (velocidad nominal + tiempo_perforacion).
+    De lo contrario usa la formula legacy (velocidad nominal de tabla + pierce prescripto).
+
+    apto_flycut: True → pierce = PIERCE_SECONDS_CON_FLYCUT (1s); False (default) →
+    PIERCE_SECONDS_SIN_FLYCUT (3s). Aplica en ambas ramas por igual.
     """
     densidad = float(material_entry.get("densidad_kg_m2", 0))
     consumible = float(material_entry.get("consumible_por_perforacion", 0))
@@ -160,23 +176,22 @@ def calculate_consumed_resources(
     consumibles_used = pierce_count * consumible
 
     cut_length_mm = cut_length_m * 1000.0
+    gamma = PIERCE_SECONDS_CON_FLYCUT if apto_flycut else PIERCE_SECONDS_SIN_FLYCUT
 
     laser_a = float(material_entry.get("laser_a_s_per_mm", 0))
     if laser_a > 0:
         laser_b = float(material_entry.get("laser_b_s_per_hole", 0))
-        laser_c = float(material_entry.get("laser_c_s_per_m2", 0))
         laser_d = float(material_entry.get("laser_d_base_s", 0))
         machine_seconds = (
             laser_a * cut_length_mm
             + laser_b * travel_length_mm
-            + laser_c * pierce_count
+            + gamma * pierce_count
             + laser_d
         )
     else:
         velocidad = float(material_entry.get("velocidad_corte_mm_s", 0))
-        tiempo_perf = float(material_entry.get("tiempo_perforacion_s", 0))
         cutting_seconds = (cut_length_mm / velocidad) if velocidad > 0 else 0.0
-        pierce_seconds = pierce_count * tiempo_perf
+        pierce_seconds = pierce_count * gamma
         machine_seconds = cutting_seconds + pierce_seconds
 
     return {

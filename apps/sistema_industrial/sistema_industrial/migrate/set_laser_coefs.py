@@ -3,10 +3,10 @@ en un registro «SI Material Corte».
 
 Modelo:  T = α·cut_mm + β·travel_mm + γ·pierce + δ   (segundos)
 
-Los valores de abajo salieron de la calibración por mínimos cuadrados de la
-BATERÍA 2 (ratios travel/cut desacoplados) medida real en CypCut, chapa N°14 /
-2.0 mm, corte 75 mm/s (ver tools/calibracion_bateria2_REAL.json y MSG_110 del
-canal Nova). Ajuste: R²=1.0000, error máx 0.7 %.
+α, β, δ salieron de la calibración por mínimos cuadrados de la BATERÍA 2
+(ratios travel/cut desacoplados) medida real en CypCut, chapa N°14 / 2.0 mm,
+corte 75 mm/s (ver tools/calibracion_bateria2_REAL.json y MSG_110 del canal
+Nova). Ajuste: R²=1.0000, error máx 0.7 %.
 
 Validación física: α=0.01337 s/mm ≈ 1/75 = 0.01333 → coincide con la velocidad
 de corte nominal (74.8 vs 75 mm/s) → modelo validado. β=0.00495 s/mm es la
@@ -14,18 +14,25 @@ velocidad EFECTIVA de desplazamiento (~202 mm/s), menor que el rápido nominal
 (1650 mm/s) porque los saltos entre agujeros son cortos y nunca alcanzan la
 velocidad crucero — esperado y correcto. δ≈0 (sin overhead fijo).
 
-NO editar a mano — regenerar con tools/calibrar_laser.py si llegan nuevos datos.
+γ (pierce) NO viene de acá: Constantino lo PRESCRIBIÓ (2026-07-14) como constante
+universal — 3s sin flycut / 1s con flycut, ver PIERCE_SECONDS_* en
+legacy_panel_adapter.py. El campo `laser_c_s_per_m2` del DocType queda en 0 (no
+se usa; el código ya no lo lee) — no re-ajustar γ contra los tiempos de CypCut,
+eso corrompería α/β (compensarían bajando para absorber el pierce forzado).
+
+NO editar α/β/δ a mano — regenerar con tools/calibrar_laser.py solo si llega una
+calibración nueva (otro material/espesor), y solo para esos dos coeficientes.
 
 Uso:
     bench --site erp.local execute \
         sistema_industrial.migrate.set_laser_coefs.run
 """
 
-# Coeficientes calibrados — chapa N°14 (2.0 mm). Batería 2 real, modelo δ=0.
+# Coeficientes calibrados — chapa N°14 (2.0 mm). Batería 2 real.
 COEFS_N14_2MM = {
     "laser_a_s_per_mm": 0.013372,   # α  s/mm cortando (≈1/75mm/s, validado)
     "laser_b_s_per_hole": 0.004946,  # β  s/mm desplazándose efectivo (fieldname legacy; es travel)
-    "laser_c_s_per_m2": 1.1852,      # γ  s/perforación   (fieldname legacy; es pierce)
+    "laser_c_s_per_m2": 0.0,         # γ  NO USADO — pierce es prescripto en código, no acá
     "laser_d_base_s": 0.0,           # δ  overhead fijo (s) — despreciable
 }
 

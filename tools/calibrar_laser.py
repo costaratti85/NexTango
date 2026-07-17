@@ -21,6 +21,14 @@ Estos son exactamente los campos `laser_a_s_per_mm`, `laser_b_s_per_hole`,
 (Los sufijos `_per_hole`/`_per_m2` de los fieldnames son legacy y NO reflejan el
 uso real: β multiplica travel_mm y γ multiplica pierce. Ver labels del DocType.)
 
+⚠ γ (pierce) YA NO SE CALIBRA (decisión Constantino, 2026-07-14): es prescripto
+—3s sin flycut / 1s con flycut, universal— ver PIERCE_SECONDS_* en
+legacy_panel_adapter.py. Si corrés este script para un material/espesor nuevo,
+NO uses el γ que salga del ajuste conjunto de 4 parámetros: ese γ ajustado
+compensaría el error absorbiéndolo en α/β y los corrompería. Usá α y β del
+ajuste (y δ si aplica), ignorá γ, y cargalos con set_laser_coefs.py dejando
+`laser_c_s_per_m2` en 0.
+
 MÉTODO
 ------
 Regresión lineal por mínimos cuadrados (numpy.linalg.lstsq) sobre un set de

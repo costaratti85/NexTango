@@ -1577,6 +1577,11 @@ def _run_all_batches(
             stdout = StringIO()
             with redirect_stdout(stdout):
                 batch_items = legacy_main.create_cad_result_items_from_batch(settings)
+            # Tagear cada item con apto_flycut del batch ANTES del sort de abajo
+            # (que reordena y pierde la referencia al batch original).
+            apto_flycut = bool(batch.get("apto_flycut", False))
+            for _it in batch_items:
+                _it.apto_flycut = apto_flycut
             all_result_items.extend(batch_items)
 
         # Sort by thickness ASC, then quantity DESC before layout so the DXF
@@ -1695,6 +1700,7 @@ def _run_all_batches(
                 pierce_count=pierce_count,
                 sheet_area_m2=sheet_area_m2,
                 material_entry=_item_mat_entry,
+                apto_flycut=bool(getattr(item, "apto_flycut", False)),
             )
         else:
             consumed = None
@@ -1752,6 +1758,7 @@ def _run_all_batches(
                 sheet_area_m2=sheet_area_m2,
                 material_entry=_item_mat_entry,
                 travel_length_mm=geo.get("travel_length_mm", 0.0),
+                apto_flycut=bool(b.get("apto_flycut", False)),
             )
         else:
             consumed = None
@@ -1803,6 +1810,7 @@ def _run_all_batches(
                 sheet_area_m2=sheet_area_m2,
                 material_entry=_item_mat_entry,
                 travel_length_mm=geo.get("travel_length_mm", 0.0),
+                apto_flycut=bool(b.get("apto_flycut", False)),
             )
         else:
             consumed = None
