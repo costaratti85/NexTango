@@ -6,11 +6,11 @@ SU PROPIO componente medido de CypCut (Processing/Move/Delay), nunca contra el t
 Un parámetro físico por componente. Modelo falsable.
 
 ESTADO (2026-07-16): con el desglose Processing/Move/Delay real de los 12 paneles
-de Batería 2 (DESGLOSE_BATERIA2), NINGUNO de los modelos de 1-2 parámetros
-probados hasta ahora predice con precisión aceptable para pricing. Hay un
-HALLAZGO sistemático sin resolver — ver `diagnostico_correlacion_densidad()` y
-el reporte en coordination/channel/Nova/. NO se cargó ningún coeficiente nuevo
-a producción: esto es exploración, no un modelo listo.
+de Batería 2 (DESGLOSE_BATERIA2), NINGUNO de los modelos probados hasta ahora
+(incluido el de velocidad de esquina no-cero, la hipótesis con más sustento
+físico) predice con precisión aceptable para pricing. NO se cargó ningún
+coeficiente a producción: esto sigue siendo exploración, no un modelo listo.
+Ver el reporte completo en coordination/channel/Nova/.
 
 MÓDULOS:
   - Reconstrucción de geometría real (saltos + segmentos de corte + contorno)
@@ -36,11 +36,39 @@ MÓDULOS:
         rinden mejor de lo que cualquiera de los dos modelos predice.
   - Perforado: constante prescripta (no se recalibra acá, sin cambios).
 
-PRÓXIMO PASO PROPUESTO (no implementado, necesita validación): un modelo de
-velocidad de esquina NO-CERO (cornering speed, estándar en control CNC) en vez
-de frenado completo a v=0 en cada punto — explicaría por qué las secuencias
-cortas y repetidas (patrones densos) son más eficientes que "reposo a reposo".
-Agrega al menos 1 parámetro nuevo (v_esquina o el jerk lateral permitido).
+  - VELOCIDAD DE ESQUINA NO-CERO (2026-07-16, hipótesis de Constantino sobre el
+    hallazgo de la correlación -0.79) — IMPLEMENTADA Y PROBADA:
+    `ajustar_modelo_desplazamiento_con_esquina` / `ajustar_modelo_corte_con_esquina`.
+    Modelo: en un tramo colineal con el anterior/siguiente (misma dirección —
+    desplazamiento) o en una esquina interna de una figura cerrada (corte), el
+    motor no frena a v=0 sino a v_esquina; se resta del tramo la distancia que
+    ya cubre acelerando/decelerando a esa velocidad (distancia_critica_jerk).
+    Ajuste no lineal de (j, v_esquina) por grid search + refinamiento
+    (auditable, sin caja negra) — vectorizado con numpy para que corra en
+    segundos sobre los 3484 saltos reales.
+
+    RESULTADO — mixto, reportado sin maquillar:
+    · Desplazamiento: j=12780 mm/s³, v_esquina=**56.9 mm/s** (positivo, sensato
+      — resuelve el t_torcha negativo de antes). Pero error medio 9.5%, MÁXIMO
+      30.5% (peor que el 23.3% de la variante A original). Correlación de
+      densidad bajó de -0.79 a -0.61 — el modelo explica PARTE del efecto, no
+      todo.
+    · Corte: j=10730, v_esquina=**36.8 mm/s** (también positivo y sensato).
+      Error medio 18.7%, máximo **44.9%** — peor que la variante de velocidad
+      constante (35.2%).
+    · CONCLUSIÓN: la hipótesis es cualitativamente correcta (el parámetro sale
+      físico, con signo coherente, en ambos componentes) pero el modelo de
+      "velocidad de esquina uniforme, colineal sí/no binario" es insuficiente
+      cuantitativamente. Candidatos a lo que falta: la velocidad de esquina
+      real probablemente depende del ÁNGULO exacto (no es binario colineal/no),
+      y/o el orden de recorrido asumido (boustrophedon) no coincide exactamente
+      con el de CypCut en algunos paneles (B2_04 es el peor caso en AMBOS
+      componentes, con solo 7 columnas — atípico, sugiere un problema específico
+      de ese panel, no solo densidad general).
+  - Perforado: constante prescripta (no se recalibra acá, sin cambios).
+
+NO se sigue forzando el modelo con más parámetros sin evidencia — ver el reporte
+para la decisión de cómo seguir.
 """
 from __future__ import annotations
 
@@ -108,6 +136,41 @@ def saltos_del_panel(dxf_path) -> list:
     return saltos
 
 
+def _es_colineal(v1, v2, cos_tol: float = 1e-3) -> bool:
+    """True si v1 y v2 (vectores CON signo) apuntan en la misma dirección
+    (ángulo ≈ 0°) — condición para que el motor no necesite frenar del todo
+    entre ambos tramos."""
+    if v1 is None or v2 is None:
+        return False
+    n1, n2 = math.hypot(*v1), math.hypot(*v2)
+    if n1 < 1e-9 or n2 < 1e-9:
+        return False
+    cos_ang = (v1[0] * v2[0] + v1[1] * v2[1]) / (n1 * n2)
+    return cos_ang > 1 - cos_tol
+
+
+def saltos_con_colinealidad(dxf_path) -> list:
+    """Como saltos_del_panel, pero cada salto trae si es colineal con el salto
+    ANTERIOR (col_entrada) y con el SIGUIENTE (col_salida) — la condición física
+    para que el motor mantenga velocidad de esquina no-cero en ese extremo, en
+    vez de frenar a v=0.
+
+    Retorna: [{"dx":.., "dy":.., "col_entrada": bool, "col_salida": bool}, ...]
+    """
+    centros = ordenar_boustrophedon(extraer_centros_agujeros(dxf_path))
+    vectores = [(x1 - x0, y1 - y0) for (x0, y0), (x1, y1) in zip(centros, centros[1:])]
+    out = []
+    for i, (dx, dy) in enumerate(vectores):
+        anterior = vectores[i - 1] if i > 0 else None
+        siguiente = vectores[i + 1] if i < len(vectores) - 1 else None
+        out.append({
+            "dx": abs(dx), "dy": abs(dy),
+            "col_entrada": _es_colineal(anterior, (dx, dy)),
+            "col_salida": _es_colineal((dx, dy), siguiente),
+        })
+    return out
+
+
 def segmentos_de_corte(dxf_path) -> list:
     """Devuelve, por cada agujero (cuadrado), la lista de 4 longitudes de lado
     (todas = hole_size, con las 4 esquinas a 90°). Para hexágonos habría 6 lados
@@ -152,6 +215,132 @@ def distancia_critica_jerk(v_max: float, j: float) -> float:
     hace falta v_max, que no tenemos, más que el mal etiquetado "40000" que
     Constantino identificó como jerk, no aceleración)."""
     return v_max ** 3 / (2.0 * j)
+
+
+# ---------------------------------------------------------------------------
+# MODELO DE VELOCIDAD DE ESQUINA NO-CERO (2026-07-16, hallazgo confirmado:
+# correlación -0.79 entre densidad del panel y qué tan mal predice "frena
+# siempre a v=0"). El motor no frena a cero en un cambio de tramo que sigue la
+# MISMA dirección — mantiene una velocidad de esquina v_esquina > 0.
+# ---------------------------------------------------------------------------
+
+def tiempo_tramo_con_esquina(d: float, j: float, v_esquina: float = 0.0,
+                             colineal_entrada: bool = False,
+                             colineal_salida: bool = False) -> float:
+    """Tiempo jerk-limitado de un tramo de longitud d, con velocidad de entrada
+    y/o salida = v_esquina (no cero) en los extremos donde el tramo es colineal
+    con el anterior/siguiente — en vez de v=0 siempre.
+
+    Aproximación: la distancia que el eje YA recorre acelerando de 0 a
+    v_esquina (o decelerando de v_esquina a 0) en régimen puro-jerk es
+    distancia_critica_jerk(v_esquina, j) — se la restamos al tramo en cada
+    extremo donde aplica, y calculamos el tiempo jerk-puro de la distancia
+    restante ("distancia efectiva"). v_esquina=0 en ambos extremos reduce
+    exactamente al modelo original (reposo a reposo).
+    """
+    if d <= 0 or j <= 0:
+        return 0.0
+    ahorro = 0.0
+    if colineal_entrada and v_esquina > 0:
+        ahorro += distancia_critica_jerk(v_esquina, j)
+    if colineal_salida and v_esquina > 0:
+        ahorro += distancia_critica_jerk(v_esquina, j)
+    d_efectiva = max(d - ahorro, 0.0)
+    return (32.0 * d_efectiva / j) ** (1.0 / 3.0) if d_efectiva > 0 else 0.0
+
+
+def tiempo_salto_jerk_con_esquina(dx: float, dy: float, j: float, v_esquina: float,
+                                  col_entrada: bool, col_salida: bool) -> float:
+    """tiempo_salto_jerk generalizado con velocidad de esquina — por eje, max(tx,ty)."""
+    tx = tiempo_tramo_con_esquina(dx, j, v_esquina, col_entrada, col_salida)
+    ty = tiempo_tramo_con_esquina(dy, j, v_esquina, col_entrada, col_salida)
+    return max(tx, ty)
+
+
+def _grid_search_2params(costo_fn, rango1, rango2):
+    """Búsqueda en grilla + refinamiento local (2 niveles) — transparente y
+    auditable en vez de un solver de caja negra. Devuelve (p1, p2, costo_min)."""
+    mejor = None
+    for p1 in rango1:
+        for p2 in rango2:
+            c = costo_fn(p1, p2)
+            if mejor is None or c < mejor[2]:
+                mejor = (p1, p2, c)
+    p1_0, p2_0, _ = mejor
+    # refinamiento: grilla fina alrededor del mínimo grueso
+    r1_fino = np.linspace(max(p1_0 * 0.5, rango1.min()), min(p1_0 * 1.5, rango1.max()), 40)
+    r2_fino = np.linspace(max(p2_0 - 30, 0.0), p2_0 + 30, 40)
+    for p1 in r1_fino:
+        for p2 in r2_fino:
+            c = costo_fn(p1, p2)
+            if c < mejor[2]:
+                mejor = (p1, p2, c)
+    return mejor
+
+
+def ajustar_modelo_desplazamiento_con_esquina(saltos_info_por_panel: dict,
+                                              move_time_real: dict) -> dict:
+    """Ajusta (j, v_esquina) contra el Move time real — 2 parámetros, no lineal
+    (v_esquina entra al cubo vía distancia_critica_jerk), resuelto por búsqueda
+    en grilla + refinamiento (auditable: se puede reproducir el mapa de error).
+
+    saltos_info_por_panel: {nombre: [saltos_con_colinealidad(...)]}
+    move_time_real: {nombre: segundos}
+
+    Retorna: {"j":.., "v_esquina_mm_s":.., "r2":.., "error_medio_pct":..,
+              "error_max_pct":.., "pred_vs_real": {...}} o {"error": "..."}.
+    """
+    if not move_time_real:
+        return {"error": "Falta el Move time real por panel."}
+
+    nombres = [n for n in saltos_info_por_panel if n in move_time_real]
+    y = np.array([move_time_real[n] for n in nombres])
+
+    # Pre-cómputo vectorizado: por panel, arrays de dx/dy/flags (no cambian con j,ve).
+    panel_arrays = []
+    for n in nombres:
+        info = saltos_info_por_panel[n]
+        dx = np.array([s["dx"] for s in info])
+        dy = np.array([s["dy"] for s in info])
+        n_extremos_libres = np.array(
+            [int(s["col_entrada"]) + int(s["col_salida"]) for s in info], dtype=float
+        )
+        panel_arrays.append((dx, dy, n_extremos_libres))
+
+    def predecir(j, ve):
+        ahorro = distancia_critica_jerk(ve, j) if ve > 0 else 0.0
+        out = np.empty(len(nombres))
+        for i, (dx, dy, n_libre) in enumerate(panel_arrays):
+            ahorro_total = ahorro * n_libre
+            dx_ef = np.clip(dx - ahorro_total, 0.0, None)
+            dy_ef = np.clip(dy - ahorro_total, 0.0, None)
+            tx = np.where(dx_ef > 0, (32.0 * dx_ef / j) ** (1.0 / 3.0), 0.0)
+            ty = np.where(dy_ef > 0, (32.0 * dy_ef / j) ** (1.0 / 3.0), 0.0)
+            out[i] = np.maximum(tx, ty).sum()
+        return out
+
+    def costo(j, ve):
+        pred = predecir(j, ve)
+        return float(np.sum((pred - y) ** 2))
+
+    j_rango = np.geomspace(500.0, 60000.0, 35)
+    ve_rango = np.linspace(0.0, 300.0, 31)
+    j_best, ve_best, _ = _grid_search_2params(costo, j_rango, ve_rango)
+
+    pred = predecir(j_best, ve_best)
+    ss_res = float(np.sum((pred - y) ** 2))
+    ss_tot = float(np.sum((y - y.mean()) ** 2))
+    r2 = 1 - ss_res / ss_tot if ss_tot > 0 else float("nan")
+    err_pct = np.abs(pred - y) / y * 100
+
+    return {
+        "j": float(j_best),
+        "v_esquina_mm_s": float(ve_best),
+        "r2": r2,
+        "error_medio_pct": float(err_pct.mean()),
+        "error_max_pct": float(err_pct.max()),
+        "pred_vs_real": {n: (float(p), float(r)) for n, p, r in zip(nombres, pred, y)},
+    }
 
 
 def k_desde_j(j: float) -> float:
@@ -276,6 +465,15 @@ def segmentos_de_contorno(dxf_path) -> list:
     return []
 
 
+def figura_con_flags_de_esquina(lados: list) -> list:
+    """Dada la lista de lados de UNA figura cerrada, devuelve [(L, col_entrada,
+    col_salida), ...] — la primera entra en reposo, la última sale en reposo,
+    las internas tienen ambos extremos con velocidad de esquina (ver
+    tiempo_figura_cerrada_con_esquina, que usa exactamente esta misma regla)."""
+    n = len(lados)
+    return [(L, i > 0, i < n - 1) for i, L in enumerate(lados)]
+
+
 def ajustar_modelo_corte(segmentos_por_panel: dict, contorno_por_panel: dict,
                          processing_time_real: dict) -> dict:
     """VARIANTE A: cada LADO (del agujero y del contorno) = movimiento 1D
@@ -334,6 +532,82 @@ def ajustar_modelo_corte_velocidad_constante(cut_length_mm_por_panel: dict,
     return {
         "v_efectiva_mm_s": v,
         "error_medio_pct": float(err_pct.mean()), "error_max_pct": float(err_pct.max()),
+        "pred_vs_real": {n: (float(p), float(r)) for n, p, r in zip(nombres, pred, y)},
+    }
+
+
+def tiempo_figura_cerrada_con_esquina(lados: list, j: float, v_esquina: float) -> float:
+    """Tiempo de cortar una figura CERRADA (los `lados` en orden, ej. 4 para un
+    cuadrado). El láser arranca en reposo en el primer lado y termina en reposo
+    en el último (ahí se apaga/prende el haz — es el punto de apertura/cierre
+    del corte); las N-1 esquinas INTERNAS pasan a velocidad v_esquina (no cero).
+    """
+    n = len(lados)
+    if n == 0:
+        return 0.0
+    total = 0.0
+    for i, L in enumerate(lados):
+        col_entrada = i > 0        # todas menos la primera entran con velocidad
+        col_salida = i < n - 1     # todas menos la última salen con velocidad
+        total += tiempo_tramo_con_esquina(L, j, v_esquina, col_entrada, col_salida)
+    return total
+
+
+def ajustar_modelo_corte_con_esquina(segmentos_por_panel: dict, contorno_por_panel: dict,
+                                      processing_time_real: dict) -> dict:
+    """Ajusta (j_corte, v_esquina_corte) contra el Processing time real — mismo
+    método que ajustar_modelo_desplazamiento_con_esquina (grid search + refino),
+    PARÁMETROS PROPIOS del corte (no reusa los del desplazamiento — no se asume
+    que sea la misma física sin validar, tal como se pidió)."""
+    if not processing_time_real:
+        return {"error": "Falta el Processing time real por panel."}
+
+    nombres = [n for n in segmentos_por_panel if n in processing_time_real]
+    y = np.array([processing_time_real[n] for n in nombres])
+
+    # Pre-cómputo vectorizado: por panel, todos los lados (agujeros + contorno)
+    # aplanados con su nº de extremos libres (0,1,2) — no cambia con j,ve.
+    panel_arrays = []
+    for n in nombres:
+        Ls, libres = [], []
+        for fig in segmentos_por_panel[n]:
+            for L, ce, cs in figura_con_flags_de_esquina(fig):
+                Ls.append(L)
+                libres.append(int(ce) + int(cs))
+        for L, ce, cs in figura_con_flags_de_esquina(contorno_por_panel.get(n, [])):
+            Ls.append(L)
+            libres.append(int(ce) + int(cs))
+        panel_arrays.append((np.array(Ls), np.array(libres, dtype=float)))
+
+    def predecir(j, ve):
+        ahorro = distancia_critica_jerk(ve, j) if ve > 0 else 0.0
+        out = np.empty(len(nombres))
+        for i, (L, n_libre) in enumerate(panel_arrays):
+            L_ef = np.clip(L - ahorro * n_libre, 0.0, None)
+            t = np.where(L_ef > 0, (32.0 * L_ef / j) ** (1.0 / 3.0), 0.0)
+            out[i] = t.sum()
+        return out
+
+    def costo(j, ve):
+        pred = predecir(j, ve)
+        return float(np.sum((pred - y) ** 2))
+
+    j_rango = np.geomspace(500.0, 60000.0, 35)
+    ve_rango = np.linspace(0.0, 60.0, 31)  # corte: rango más chico, velocidades de corte son bajas
+    j_best, ve_best, _ = _grid_search_2params(costo, j_rango, ve_rango)
+
+    pred = predecir(j_best, ve_best)
+    ss_res = float(np.sum((pred - y) ** 2))
+    ss_tot = float(np.sum((y - y.mean()) ** 2))
+    r2 = 1 - ss_res / ss_tot if ss_tot > 0 else float("nan")
+    err_pct = np.abs(pred - y) / y * 100
+
+    return {
+        "j_corte": float(j_best),
+        "v_esquina_corte_mm_s": float(ve_best),
+        "r2": r2,
+        "error_medio_pct": float(err_pct.mean()),
+        "error_max_pct": float(err_pct.max()),
         "pred_vs_real": {n: (float(p), float(r)) for n, p, r in zip(nombres, pred, y)},
     }
 
@@ -402,6 +676,7 @@ def cargar_datos_completos_bateria2() -> dict:
         xs = sorted(set(round(c[0], 1) for c in centros))
         out[key] = {
             "saltos": saltos_del_panel(path),
+            "saltos_colinealidad": saltos_con_colinealidad(path),
             "centros": centros,
             "segmentos": segmentos_de_corte(path),
             "contorno": segmentos_de_contorno(path),
@@ -452,18 +727,39 @@ def main() -> None:
     if "error" not in rd:
         print(f"  v_efectiva={rd['v_efectiva_mm_s']:.1f}mm/s  error medio={rd['error_medio_pct']:.1f}%  max={rd['error_max_pct']:.1f}%")
 
-    print("\n=== Diagnóstico: correlación densidad (cols) vs ratio real/predicho ===")
+    print("\n=== Diagnóstico: correlación densidad (cols) vs ratio real/predicho (variante A) ===")
+    S_por_panel, cols, corr_sin_esquina = None, None, None
     if "error" not in ra:
         S_por_panel = {k: sum(max(dx, dy) ** (1/3) for dx, dy in d["saltos"]) for k, d in datos.items()}
         ratio = {k: move_real[k] / S_por_panel[k] for k in datos}
         cols = {k: d["cols"] for k, d in datos.items()}
-        corr = diagnostico_correlacion_densidad(cols, ratio)
-        print(f"  correlación(cols, Move_real/S) = {corr:.3f}  <- fuerte y negativa: confirma el patrón")
+        corr_sin_esquina = diagnostico_correlacion_densidad(cols, ratio)
+        print(f"  correlación(cols, Move_real/S) = {corr_sin_esquina:.3f}  <- fuerte y negativa: confirma el patrón")
+
+    print("\n=== DESPLAZAMIENTO — VELOCIDAD DE ESQUINA no-cero (hipótesis Constantino) ===")
+    saltos_col = {k: d["saltos_colinealidad"] for k, d in datos.items()}
+    re_desp = ajustar_modelo_desplazamiento_con_esquina(saltos_col, move_real)
+    if "error" not in re_desp:
+        print(f"  j={re_desp['j']:.1f} mm/s^3  v_esquina={re_desp['v_esquina_mm_s']:.1f} mm/s (positivo y sensato)")
+        print(f"  R2={re_desp['r2']:.4f}  error medio={re_desp['error_medio_pct']:.1f}%  max={re_desp['error_max_pct']:.1f}%")
+        if cols is not None:
+            ratio_esq = {k: move_real[k] / max(p, 1e-9) for k, (p, r) in re_desp["pred_vs_real"].items()}
+            corr_con_esquina = diagnostico_correlacion_densidad(cols, ratio_esq)
+            print(f"  correlación residual con densidad = {corr_con_esquina:.3f} (era {corr_sin_esquina:.3f} sin esquina)")
+        print("  -> mejora la PLAUSIBILIDAD física (parámetro positivo), NO la precisión (error similar/peor)")
+
+    print("\n=== CORTE — VELOCIDAD DE ESQUINA no-cero (parámetros propios, no reusa los del desplazamiento) ===")
+    re_corte = ajustar_modelo_corte_con_esquina(segmentos, contorno, proc_real)
+    if "error" not in re_corte:
+        print(f"  j_corte={re_corte['j_corte']:.1f}  v_esquina_corte={re_corte['v_esquina_corte_mm_s']:.1f} mm/s")
+        print(f"  R2={re_corte['r2']:.4f}  error medio={re_corte['error_medio_pct']:.1f}%  max={re_corte['error_max_pct']:.1f}%")
 
     print("\n=== CONCLUSIÓN ===")
-    print("  Ningún modelo de 1-2 parámetros probado cierra con precisión aceptable")
-    print("  para pricing. Ver docstring del módulo: próximo paso propuesto es un")
-    print("  modelo de velocidad de esquina no-cero (no implementado, sin validar).")
+    print("  La velocidad de esquina no-cero sale FÍSICAMENTE SENSATA en ambos")
+    print("  componentes (positiva, ~37-57 mm/s) -- resuelve la incoherencia del")
+    print("  t_torcha negativo. Pero el ERROR no baja a un nivel aceptable para")
+    print("  pricing (hasta 30-45% en paneles individuales). Hipótesis cualitativa")
+    print("  confirmada, modelo cuantitativo insuficiente -- ver reporte en Nova.")
 
 
 if __name__ == "__main__":
