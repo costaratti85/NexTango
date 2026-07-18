@@ -249,6 +249,16 @@ class AdminPatrones {
 				);
 			}
 
+			// Actualizar (editar definición / subir o reapuntar DXF) — solo cargados
+			// (Archivo/Vectorizado). Incluye los "No disp.": el caso de uso principal
+			// es justamente corregir la ruta de esos (VEGA_UI_ACTUALIZAR_PATRON).
+			if (activo && p.tipo !== 'Paramétrico') {
+				card.append(
+					$('<button class="btn btn-xs btn-default ap-edit" title="Actualizar patrón">✎</button>')
+						.on('click', () => this.open_edit_dialog(p))
+				);
+			}
+
 			return card;
 		};
 
@@ -293,6 +303,203 @@ class AdminPatrones {
 				});
 			}
 		);
+	}
+
+	// ------------------------------------------------------------------
+	// Actualizar patrón — editar definición y subir/reapuntar el DXF
+	// (VEGA_UI_ACTUALIZAR_PATRON; backend de Atlas: update_pattern.
+	// El contrato exacto puede ajustarse cuando Atlas lo publique — la llamada
+	// está aislada en call_update_pattern()).
+	// ------------------------------------------------------------------
+
+	open_edit_dialog(p) {
+		// Datos frescos: descripcion no viene en list_admin; get_patron sí la trae
+		// (más archivo_dxf_url y parametros vigentes). Fallback: datos de la fila.
+		frappe.call({
+			method: 'sistema_industrial.api.patrones.get_patron',
+			args: { name: p.name },
+			callback: (r) => this.show_edit_dialog(p, r.message || {}),
+			error: () => this.show_edit_dialog(p, {}),
+		});
+	}
+
+	show_edit_dialog(p, det) {
+		const params = det.parametros || p.parametros || {};
+		const cur = {
+			version: det.version != null ? det.version : p.version,
+			step_x: params.step_x != null ? params.step_x : p.step_x,
+			step_y: params.step_y != null ? params.step_y : p.step_y,
+			visibilidad: det.visibilidad || p.visibilidad || 'Público',
+			cliente: p.cliente || '',
+			descripcion: det.descripcion || '',
+			file_path: det.archivo_dxf_url || p.file_path || '',
+			file_available: det.file_available != null ? det.file_available : p.file_available,
+		};
+		this._edit_file_url = null;
+		this._edit_file_label = null;
+
+		const disp = cur.file_available
+			? '<span style="color:var(--si-green);font-weight:600">' + __('disponible') + '</span>'
+			: '<span style="color:var(--si-red);font-weight:600">' + __('NO disponible') + '</span>';
+
+		const d = new frappe.ui.Dialog({
+			title: __('Actualizar patrón: {0}', [p.name]),
+			fields: [
+				{
+					fieldtype: 'HTML',
+					fieldname: 'info',
+					options:
+						'<div style="font-size:12px;color:var(--si-muted);margin-bottom:4px">' +
+						__('Versión actual') + ': <b>v' + (cur.version || 1) + '</b> — ' +
+						__('guardar crea una versión nueva; las anteriores quedan congeladas (contrato SI Patron Version).') +
+						'</div>',
+				},
+				// Las TRES cosas actualizables (pedido de Constantino 2026-07-14):
+				// archivo DXF + offset X + offset Y — van primero y con su vocabulario.
+				// "Offset" = paso de tileo del patrón (en la base es parametros.step_x/y;
+				// hoy está encodeado en nombres como subte_Offx84_Offy84.dxf).
+				{
+					fieldtype: 'Float',
+					fieldname: 'step_x',
+					label: __('Offset X mm'),
+					default: cur.step_x,
+					description: __('Paso de tileo horizontal (el Offx del nombre del archivo).'),
+				},
+				{ fieldtype: 'Column Break' },
+				{
+					fieldtype: 'Float',
+					fieldname: 'step_y',
+					label: __('Offset Y mm'),
+					default: cur.step_y,
+					description: __('Paso de tileo vertical (el Offy del nombre del archivo).'),
+				},
+				{ fieldtype: 'Section Break', label: __('Archivo DXF') },
+				{
+					fieldtype: 'HTML',
+					fieldname: 'file_actual',
+					options:
+						'<div style="font-size:12px;margin-bottom:6px">' + __('Actual') + ': ' +
+						'<code style="word-break:break-all">' +
+						frappe.utils.escape_html(cur.file_path || __('(sin archivo)')) +
+						'</code> — ' + disp + '</div>',
+				},
+				{
+					fieldtype: 'Data',
+					fieldname: 'archivo_dxf',
+					label: __('Ruta en el servidor (reapuntar)'),
+					default: cur.file_path,
+					description: __('Si el archivo en disco tiene otro nombre, corregí acá la ruta. Se valida contra el disco al guardar.'),
+				},
+				{ fieldtype: 'HTML', fieldname: 'upload_zone' },
+				{ fieldtype: 'Section Break', label: __('Definición') },
+				{
+					fieldtype: 'Select',
+					fieldname: 'visibilidad',
+					label: __('Visibilidad'),
+					options: ['Público', 'Exclusivo'],
+					default: cur.visibilidad === 'Exclusivo' ? 'Exclusivo' : 'Público',
+				},
+				{
+					fieldtype: 'Link',
+					fieldname: 'customer',
+					label: __('Cliente'),
+					options: 'Customer',
+					default: cur.cliente,
+					depends_on: "eval:doc.visibilidad=='Exclusivo'",
+				},
+				{ fieldtype: 'Small Text', fieldname: 'descripcion', label: __('Descripción'), default: cur.descripcion },
+			],
+			primary_action_label: __('Guardar cambios'),
+			primary_action: (values) => this.guardar_update(p, cur, values, d),
+		});
+
+		// Subir un DXF nuevo desde el diálogo (FileUploader nativo, privado) —
+		// alternativa al reapuntado: si se sube archivo, reemplaza a la ruta.
+		const $zone = $(
+			'<div style="margin-top:4px">' +
+				'<button class="btn btn-sm btn-default" type="button">⤒ ' + __('Subir DXF nuevo…') + '</button>' +
+				'<span class="ap-file-name" style="margin-left:8px"></span>' +
+				'<div style="font-size:11px;color:var(--si-muted);margin-top:4px">' +
+				__('Si subís un archivo nuevo, tiene prioridad sobre la ruta de arriba.') +
+				'</div>' +
+			'</div>'
+		);
+		$zone.find('button').on('click', () => {
+			new frappe.ui.FileUploader({
+				as_dataurl: false,
+				allow_multiple: false,
+				restrictions: { allowed_file_types: ['.dxf'] },
+				make_attachments_public: false,
+				on_success: (file_doc) => {
+					this._edit_file_url = file_doc.file_url;
+					this._edit_file_label = file_doc.file_name || file_doc.file_url;
+					$zone.find('.ap-file-name').text('✓ ' + this._edit_file_label);
+				},
+			});
+		});
+		d.get_field('upload_zone').$wrapper.append($zone);
+		d.show();
+	}
+
+	guardar_update(p, cur, values, d) {
+		if (!(values.step_x > 0)) return frappe.msgprint(__('Offset X inválido.'));
+		if (!(values.step_y > 0)) return frappe.msgprint(__('Offset Y inválido.'));
+		if (values.visibilidad === 'Exclusivo' && !values.customer)
+			return frappe.msgprint(__('Elegí el cliente para un patrón exclusivo.'));
+
+		const nueva_ruta = (values.archivo_dxf || '').trim();
+		const args = {
+			name: p.name,
+			step_x: values.step_x,
+			step_y: values.step_y,
+			visibilidad: values.visibilidad,
+			customer: values.visibilidad === 'Exclusivo' ? values.customer : null,
+			descripcion: values.descripcion || '',
+			// Reapuntar: solo se manda si la ruta cambió (vacío = sin cambio).
+			archivo_dxf: nueva_ruta && nueva_ruta !== (cur.file_path || '') ? nueva_ruta : null,
+			// DXF nuevo subido: tiene prioridad sobre la ruta.
+			file_url: this._edit_file_url || null,
+		};
+		this.call_update_pattern(args, d);
+	}
+
+	// Llamada al endpoint de Atlas, AISLADA: si el contrato final difiere
+	// (nombre del método o de los args), este es el único lugar a tocar.
+	call_update_pattern(args, d) {
+		frappe.call({
+			method: 'sistema_industrial.api.patrones.update_pattern',
+			args: args,
+			freeze: true,
+			freeze_message: __('Guardando cambios…'),
+			callback: (r) => {
+				const m = r.message || {};
+				if (m.ok) {
+					d.hide();
+					frappe.show_alert({
+						message: __('✓ Patrón actualizado: ') + (m.name || args.name) + ' (v' + (m.version || '?') + ')',
+						indicator: 'green',
+					});
+					this.load_list();
+					// Si el DXF nuevo trae splines, ofrecer conversión (mismo flujo que subir).
+					if (m.has_splines) this.offer_convert(m.name || args.name, m.spline_count || 0);
+				} else {
+					frappe.msgprint(__('No se pudo actualizar: ') + (m.error || __('desconocido')));
+				}
+			},
+			error: (e) => {
+				// Degradación: update_pattern todavía no publicado (backend de Atlas
+				// en curso, ATLAS_BACKEND_ACTUALIZAR_PATRON) — mismo idiom que
+				// upload_pattern/convert_splines pre-publicación.
+				const blob = JSON.stringify(e || {});
+				if (/does not exist|not found|AttributeError|404/i.test(blob)) {
+					frappe.msgprint(
+						__('El backend de actualización (update_pattern) todavía no está publicado — Atlas lo está construyendo. La UI queda lista para cuando esté.')
+					);
+				} else {
+					frappe.msgprint(__('Error al actualizar. Revisá la consola.'));
+				}
+			},
+		});
 	}
 
 	// ------------------------------------------------------------------
