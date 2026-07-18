@@ -723,12 +723,12 @@
   {
    "agent": "Tango",
    "task": "TANGO_CLEANUP_16_CLIENTES_NEWLINE",
-   "descripcion": "Renombrar los 15 clientes con '\\n' en el nombre (Tango recuento: 15, no 16). El job diario no los puede actualizar. Script listo. BLOQUEADO por decision de Constantino.",
+   "descripcion": "POSPUESTO por Constantino (2026-07-14, sin fecha). Los 15 clientes con \\r\\n en el docname quedan COMO ESTAN: el sync diario no los puede actualizar, pero no rompen nada mas. Reversible/retomable. Los 18 casos 'patch' YA estan arreglados y verificados. HALLAZGO DE FONDO: la duplicacion de nombres viene del MAESTRO DE TANGO, no del sync -> si se retoma, la correccion correcta es EN TANGO y el sync la propaga.",
    "msg": "coordination/channel/Nova/MSG_087_TANGO_dudas_migracion.md",
-   "status": "bloqueado-decision-constantino",
+   "status": "pospuesto-decision-constantino",
    "sprint": "tango-crm",
-   "prioridad": "media",
-   "nota": "BLOQUEADO (canal MSG_095_TANGO): Tango espera 2 definiciones de Constantino: (1) nombre destino opcion 1 vs 2; (2) OK para correr rename_doc con cascada a transacciones. Status corregido de 'aprobado-en-curso' -> bloqueado (estaba mal etiquetado)."
+   "prioridad": "baja",
+   "nota": "POSPUESTO sin fecha (como Bateria 2). Tango LIBERADO, ya no es pendiente suyo. No re-despachar."
   },
   {
    "agent": "Tango",
@@ -1048,17 +1048,17 @@
    "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "PR #2 (feat/atlas b3173c2 -> erpnext). update_pattern (definicion + reemplazo file_url / reapunte dxf_path) + list_dxf_files (picker con used_by). Versionado delegado al before_save de SI Patron (child inmutable, contrato MES intacto, sin consultar a Punto). Cero datos tocados (regla dura OK). 21/21 tests nuevos; 4 fallos preexistentes de suite no relacionados. Contrato para Vega publicado temprano (Atlas/MSG_015, aviso Vega/MSG_038). Deploy: NO requiere bench migrate. Reporte: Nova/MSG_131. AGREGADO Constantino 2026-07-14: offset_x/offset_y (alias de step_x/step_y, canonico en parametros) — DXF + offsets en un solo update = una version nueva. Commit 36a6c5b, 25/25 tests, contrato Vega actualizado (MSG_015 + Vega/MSG_039)."
+   "nota": "PR #2 (feat/atlas b3173c2 -> erpnext). update_pattern (definicion + reemplazo file_url / reapunte dxf_path) + list_dxf_files (picker con used_by). Versionado delegado al before_save de SI Patron (child inmutable, contrato MES intacto, sin consultar a Punto). Cero datos tocados (regla dura OK). 21/21 tests nuevos; 4 fallos preexistentes de suite no relacionados. Contrato para Vega publicado temprano (Atlas/MSG_015, aviso Vega/MSG_038). Deploy: NO requiere bench migrate. Reporte: Nova/MSG_131. AGREGADO Constantino 2026-07-14: offset_x/offset_y (alias de step_x/step_y, canonico en parametros) — DXF + offsets en un solo update = una version nueva. Commit 36a6c5b, 25/25 tests, contrato Vega actualizado (MSG_015 + Vega/MSG_039). DEPLOYADO por Orbit 2026-07-18 (MSG_140): PR#2 mergeado a erpnext 7da8809, 25/25 tests, endpoint verificado (404 DoesNotExist controlado), PR#2 MERGED."
   },
   {
    "agent": "Vega",
    "task": "VEGA_UI_ACTUALIZAR_PATRON",
    "descripcion": "FEATURE 'Actualizar patron' (frontend): en /desk/admin-patrones, boton/flujo para EDITAR un patron ya cargado (corregir definicion) y SUBIR/REAPUNTAR su archivo DXF. Consume el endpoint de Atlas (ATLAS_BACKEND_ACTUALIZAR_PATRON). PROHIBIDO tocar datos: no corregir los patrones 'no disponible' - Constantino los arregla el mismo con la herramienta.",
    "msg": "coordination/channel/Vega/MSG_037_nova_ui_actualizar_patron.md",
-   "status": "completado-esperando-contrato-atlas",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "Vega 2026-07-14: UI completa en PR #1 (feat/vega, commit 9f8e39e). Boton editar en cards de cargados (incluye los No disp.), dialogo con definicion (paso X/Y, visibilidad, cliente, descripcion) + reapuntar ruta DXF + subir DXF nuevo (FileUploader privado, prioridad sobre la ruta). Prefill via get_patron. Llama a update_pattern con contrato PROVISIONAL {name, step_x, step_y, visibilidad, customer, descripcion, archivo_dxf|null, file_url|null} AISLADO en call_update_pattern() con degradacion si el endpoint no existe -> la UI se puede deployar antes que el backend sin romper nada. Cuando Atlas publique el contrato real, ajustar solo esa funcion. Regla dura respetada: cero datos tocados. Deploy: idealmente bundlear PR #1 + PR de Atlas (Orbit: build+bump_page_cache+restart, sin migrate). Ver MSG_129 en canal Nova y MSG_016 en canal Atlas. AGREGADO Constantino 2026-07-14 (commit 22f7350, en el mismo PR): tres cosas actualizables = archivo DXF + offset X + offset Y. Los offsets ya viajaban como step_x/step_y (offset del nombre de archivo = parametros.step_x/y, verificado subte_Offx84_Offy84 = step 84); UI renombrada a Offset X/Y mm y reordenada con el trio primero. Contrato de Atlas sin cambio de firma (MSG_017 de su canal: persistir step_x/y en parametros + version congelada)."
+   "nota": "Vega 2026-07-14: UI completa en PR #1 (feat/vega, commit 9f8e39e). Boton editar en cards de cargados (incluye los No disp.), dialogo con definicion (paso X/Y, visibilidad, cliente, descripcion) + reapuntar ruta DXF + subir DXF nuevo (FileUploader privado, prioridad sobre la ruta). Prefill via get_patron. Llama a update_pattern con contrato PROVISIONAL {name, step_x, step_y, visibilidad, customer, descripcion, archivo_dxf|null, file_url|null} AISLADO en call_update_pattern() con degradacion si el endpoint no existe -> la UI se puede deployar antes que el backend sin romper nada. Cuando Atlas publique el contrato real, ajustar solo esa funcion. Regla dura respetada: cero datos tocados. Deploy: idealmente bundlear PR #1 + PR de Atlas (Orbit: build+bump_page_cache+restart, sin migrate). Ver MSG_129 en canal Nova y MSG_016 en canal Atlas. AGREGADO Constantino 2026-07-14 (commit 22f7350, en el mismo PR): tres cosas actualizables = archivo DXF + offset X + offset Y. Los offsets ya viajaban como step_x/step_y (offset del nombre de archivo = parametros.step_x/y, verificado subte_Offx84_Offy84 = step 84); UI renombrada a Offset X/Y mm y reordenada con el trio primero. Contrato de Atlas sin cambio de firma (MSG_017 de su canal: persistir step_x/y en parametros + version congelada). DEPLOYADO por Orbit 2026-07-18 (MSG_140): PR#1+PR#2 mergeados a erpnext 7da8809, bench build (JS Vega), 7/7 workers; JS con Actualizar patron + trio Offset X/Y + Archivo DXF en el bundle. PR#1 MERGED. Verificacion visual final -> Constantino logueado."
   }
  ],
  "foco_2026-07-02": {
