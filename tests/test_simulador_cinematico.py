@@ -170,6 +170,23 @@ def test_tiempo_corte_cuadrado_cerrado_apenas_mayor_al_ideal_sin_esquinas():
     assert t < t_ideal * 1.1    # pero no deberían más que ~10% extra para un cuadrado grande
 
 
+def test_tiempo_corte_circulo_completo_sin_frenar():
+    """Un círculo completo es una figura cerrada de UN solo tramo — la unión
+    consigo mismo es perfectamente tangente (0° de giro real), no debería
+    frenar en ningún punto. Caso borde encontrado al probar contra Cosmos
+    (918 círculos reales): sin este caso especial, se frenaba a reposo en la
+    costura de cada círculo, igual que el bug original de las figuras
+    cerradas de Batería 2."""
+    radio = 10.0
+    v_tabla, delta, a_max = 74.8, 0.02, 5000.0
+    v_techo_curva = math.sqrt(a_max * radio)
+    circunferencia = 2 * math.pi * radio
+    tramo_circulo = type("T", (), {"longitud_mm": circunferencia, "tipo": "arco", "radio_mm": radio})()
+    t = tiempo_corte_figura([tramo_circulo], [], True, v_tabla, delta, a_max)
+    t_ideal = circunferencia / min(v_tabla, v_techo_curva)
+    assert t == pytest.approx(t_ideal)
+
+
 def test_tiempo_corte_figura_abierta_arranca_y_termina_en_reposo():
     lados = [60.0, 60.0]
     angulos = [90.0]

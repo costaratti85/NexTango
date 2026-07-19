@@ -200,8 +200,10 @@ def look_ahead_ciclico(distancias: list, v_techo: list, v_esquina: list, a_max: 
     n = len(distancias)
     if n == 0:
         return []
-    if n == 1:
-        return [(0.0, 0.0)]
+    # NO hay atajo para n==1: una figura cerrada de UN solo tramo (ej. un
+    # círculo completo) SÍ tiene una unión real consigo misma (v_esquina[0]) —
+    # el desenrollado general de abajo la resuelve correctamente (a diferencia
+    # de look_ahead() lineal, donde n==1 SÍ es genuinamente reposo-a-reposo).
 
     d_larga = distancias * repeticiones
     vt_larga = v_techo * repeticiones
@@ -237,7 +239,15 @@ def tiempo_corte_figura(tramos: list, angulos_vertice_grados: list, cerrada: boo
         for t in tramos
     ]
 
-    if cerrada and len(angulos_vertice_grados) == n:
+    if cerrada and n == 1:
+        # figura cerrada de UN solo tramo (ej. un círculo completo): la unión
+        # consigo misma es perfectamente tangente (0° de giro real) -> sin
+        # freno alguno, cruza a v_techo todo el recorrido. parsear_figuras no
+        # emite un ángulo de cierre para n==1 (lista vacía), así que se
+        # construye acá explícitamente en vez de asumir reposo.
+        v_esquina = [velocidad_esquina_junction_deviation(0.0, delta_mm, a_max)]
+        pares = look_ahead_ciclico(distancias, v_techo, v_esquina, a_max)
+    elif cerrada and len(angulos_vertice_grados) == n:
         # cerrada: n esquinas (incluida la de cierre entre el último tramo y el
         # primero, que en parsear_figuras queda al final de la lista)
         v_esquina = [velocidad_esquina_junction_deviation(a, delta_mm, a_max)
