@@ -1,0 +1,19 @@
+{
+ "content": null,
+ "doctype": "Page",
+ "icon": "money",
+ "idx": 0,
+ "module": "Sistema Industrial",
+ "name": "precios",
+ "owner": "Administrator",
+ "page_name": "precios",
+ "roles": [
+  {"role": "SI Admin Produccion"},
+  {"role": "System Manager"}
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Precios"
+}

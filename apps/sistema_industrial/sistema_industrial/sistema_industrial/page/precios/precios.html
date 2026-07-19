@@ -1,0 +1,56 @@
+<div class="si-page">
+  <div class="page-wrapper">
+
+    <div class="pr-intro dimmed">
+      Precios de venta que usa el presupuesto. Los parámetros de tiempo del láser
+      (segundos) no se cargan acá — son de calibración, no de precio.
+    </div>
+
+    <!-- Precios globales -->
+    <div class="card">
+      <div class="card-title">Precios globales</div>
+      <div class="form-row">
+        <div class="form-group" style="max-width:260px">
+          <label for="pr-segundo-laser">Precio por segundo de láser</label>
+          <input type="number" id="pr-segundo-laser" min="0" step="0.0001" placeholder="ej. 60">
+          <div class="dimmed pr-hint">$ por segundo de máquina</div>
+        </div>
+        <div class="form-group" style="max-width:260px">
+          <label for="pr-por-plegado">Precio por plegado</label>
+          <input type="number" id="pr-por-plegado" min="0" step="0.01" placeholder="ej. 500">
+          <div class="dimmed pr-hint">$ por cada doblez de la plegadora</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Precios por familia -->
+    <div class="card">
+      <div class="card-title">Precios por familia de material</div>
+      <div class="dimmed" style="margin-bottom:10px">
+        Cada precio se aplica a todos los espesores de esa familia.
+      </div>
+      <div style="overflow-x:auto">
+        <table class="table table-bordered" style="font-size:13px" id="pr-familias-table">
+          <thead>
+            <tr>
+              <th>Familia</th>
+              <th style="text-align:right">Precio por kg</th>
+              <th style="text-align:right">Precio de plegado por kg</th>
+            </tr>
+          </thead>
+          <tbody id="pr-familias-tbody">
+            <tr><td colspan="3" class="dimmed">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="pr-divergencia"></div>
+    </div>
+
+    <div style="display:flex; gap:12px; align-items:center; margin-bottom:20px">
+      <button class="btn btn-primary" id="pr-btn-guardar" style="padding:9px 28px;font-weight:700">Guardar precios</button>
+      <button class="btn btn-default" id="pr-btn-recargar" style="padding:9px 18px">Descartar cambios</button>
+      <span class="pr-status" id="pr-status"></span>
+    </div>
+
+  </div>
+</div>
