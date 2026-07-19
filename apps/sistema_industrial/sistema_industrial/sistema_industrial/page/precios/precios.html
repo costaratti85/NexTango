@@ -2,18 +2,14 @@
   <div class="page-wrapper">
 
     <div class="pr-intro dimmed">
-      Los precios de venta se cargan en Excel y se publican en Tango; ERPNext guarda una copia.
-      Por eso acá se ven pero no se editan. Lo que sí se edita son los parámetros de costeo,
-      que son propios del sistema.
+      Precios diarios que usa el presupuesto. El pricing se hace en Excel y por ahora se
+      pasa a mano a esta pantalla cada mañana. Los parámetros de tiempo del láser
+      (segundos) no se cargan acá — son de calibración, no de precio.
     </div>
 
-    <!-- ================= COSTEO (editable) ================= -->
+    <!-- Precios globales -->
     <div class="card">
-      <div class="card-title">Parámetros de costeo</div>
-      <div class="dimmed" style="margin-bottom:12px">
-        Definen cómo el sistema calcula el costo. Son propios (no vienen de Tango) y se editan acá.
-      </div>
-
+      <div class="card-title">Precios globales</div>
       <div class="form-row">
         <div class="form-group" style="max-width:260px">
           <label for="pr-segundo-laser">Precio por segundo de láser</label>
@@ -26,59 +22,35 @@
           <div class="dimmed pr-hint">$ por cada doblez de la plegadora</div>
         </div>
       </div>
-
-      <label style="margin-top:6px">Precio de plegado por kg</label>
-      <div class="dimmed" style="margin-bottom:8px">
-        Por familia de material: se aplica a todos sus espesores.
-      </div>
-      <div style="overflow-x:auto">
-        <table class="table table-bordered" style="font-size:13px">
-          <thead>
-            <tr>
-              <th>Familia</th>
-              <th style="text-align:right">Precio de plegado por kg</th>
-            </tr>
-          </thead>
-          <tbody id="pr-costeo-tbody">
-            <tr><td colspan="2" class="dimmed">Cargando…</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div style="display:flex; gap:12px; align-items:center; margin-top:12px">
-        <button class="btn btn-primary" id="pr-btn-guardar" style="padding:9px 28px;font-weight:700">Guardar parámetros de costeo</button>
-        <button class="btn btn-default" id="pr-btn-recargar" style="padding:9px 18px">Descartar cambios</button>
-        <span class="pr-status" id="pr-status"></span>
-      </div>
     </div>
 
-    <!-- ================= VENTA (solo lectura) ================= -->
+    <!-- Precios por familia -->
     <div class="card">
-      <div class="card-title">Precios de venta — solo lectura</div>
-
-      <div class="pr-maestro">
-        <b>Maestro: Tango.</b>
-        Cadena: costos en Excel → pricing en Excel → precios publicados en Tango → copia en ERPNext.
-        Se muestran acá para consultarlos; se corrigen en Excel/Tango, no en esta pantalla.
+      <div class="card-title">Precios por familia de material</div>
+      <div class="dimmed" style="margin-bottom:10px">
+        Cada precio se aplica a todos los espesores de esa familia.
       </div>
-
-      <div id="pr-sync-info" class="pr-sync"></div>
-
       <div style="overflow-x:auto">
-        <table class="table table-bordered" style="font-size:13px">
+        <table class="table table-bordered" style="font-size:13px" id="pr-familias-table">
           <thead>
             <tr>
               <th>Familia</th>
               <th style="text-align:right">Precio por kg</th>
+              <th style="text-align:right">Precio de plegado por kg</th>
             </tr>
           </thead>
-          <tbody id="pr-venta-tbody">
-            <tr><td colspan="2" class="dimmed">Cargando…</td></tr>
+          <tbody id="pr-familias-tbody">
+            <tr><td colspan="3" class="dimmed">Cargando…</td></tr>
           </tbody>
         </table>
       </div>
+      <div id="pr-divergencia"></div>
+    </div>
 
-      <div id="pr-avisos"></div>
+    <div style="display:flex; gap:12px; align-items:center; margin-bottom:20px">
+      <button class="btn btn-primary" id="pr-btn-guardar" style="padding:9px 28px;font-weight:700">Guardar precios</button>
+      <button class="btn btn-default" id="pr-btn-recargar" style="padding:9px 18px">Descartar cambios</button>
+      <span class="pr-status" id="pr-status"></span>
     </div>
 
   </div>
