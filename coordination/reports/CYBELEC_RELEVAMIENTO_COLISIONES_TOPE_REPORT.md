@@ -131,3 +131,18 @@ Son cambios acotados y localizados (`clearCheck` + constantes de geometría), pe
 **No toqué código.** Espero definición de Constantino sobre la Opción A/B y, si elige B, la medida del dedo real.
 
 — Cybelec
+
+---
+
+## CIERRE (2026-07-19)
+
+Constantino confirmó que **nunca** una secuencia dada como buena terminó pegándole al tope en la máquina real.
+
+**Ambos frentes CERRADOS, sin cambios de código:**
+
+1. **Bug de colisiones** — ya cubierto por el fix #8 (fin de carrera) restaurado en la re-sincronización. Verifica entrando y ya plegada. Sin acción pendiente.
+2. **Tope retráctil** — sin falsos negativos observados → no se toca nada. El motor ya se comporta como tope retráctil, que es lo que hace la ADIRA.
+
+**Hueco anotado — CONOCIDO, SIN ACCIÓN:** el tope no se evalúa como obstáculo geométrico. **Reevaluar solo si algún día se da un choque real contra el dedo**; ahí se pide la medida real del dedo de la ADIRA (altura, largo de apoyo, niveles) y se agrega como obstáculo, con el retract en el mismo trabajo. **No reabrir por iniciativa propia.**
+
+Cierre reportado en `Nova/MSG_158`.
