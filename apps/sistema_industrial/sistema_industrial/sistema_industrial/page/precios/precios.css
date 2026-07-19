@@ -11,12 +11,4 @@
 .si-page .pr-input { width:150px; text-align:right; }
 .si-page .pr-input:disabled { background:#f1f3f5; color:var(--si-muted); }
 
-.si-page .card table td { vertical-align:middle; }
-
-/* Precio de venta: solo lectura (maestro Tango). Se muestra como dato, no como
- * campo — que no invite a editarlo. */
-.si-page .pr-readonly { font-weight:600; color:var(--si-ink); }
-.si-page .pr-maestro { font-size:12.5px; background:#f3ecf9; border-left:3px solid #7b4bb0;
-                       padding:8px 12px; border-radius:4px; margin-bottom:10px; }
-.si-page .pr-sync { font-size:12px; background:#fff3d4; border-left:3px solid #8a6516;
-                    padding:8px 12px; border-radius:4px; margin-bottom:12px; }
+.si-page #pr-familias-table td { vertical-align:middle; }
