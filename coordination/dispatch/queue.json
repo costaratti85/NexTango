@@ -5,10 +5,10 @@
    "task": "ORBIT_DEPLOY_PAGINA_PRECIOS",
    "descripcion": "Deploy de PR #3 (Vega, feat/vega commit 7ca3900): page nueva /app/precios (recrea la pantalla de precios diarios del standalone viejo) + shortcut Precios en el workspace. ATENCION: este deploy SI NECESITA MIGRATE, a diferencia de los deploys de frontend anteriores de Vega -- agrega una Page nueva (precios.json) y modifica el workspace, que son DOCUMENTOS y no assets; sin migrate /app/precios da 404. Pasos: (1) git pull; (2) bench --site <site> migrate --app sistema_industrial; (3) bench build --app sistema_industrial; (4) bump_page_cache; (5) supervisorctl restart all. Verificar: /app/precios carga sin errores de consola; el shortcut Precios aparece en el workspace (seccion Herramientas, despues de Vectorizar Imagen); la tabla muestra las 4 familias con '7 espesores' y sus precios actuales; PRUEBA DE GUARDADO: cambiar un precio -> Guardar precios -> debe decir 'Precios guardados (N materiales actualizados)' -> recargar y confirmar que quedo. Si aparece un cartel rojo de divergencia NO es bug (es informativo: los espesores de esa familia no tenian el mismo precio y guardar los unifica) -- mandar captura. Ver MSG_037 en canal Orbit.",
    "msg": "coordination/channel/Nova/MSG_157_ORBIT_deploy_pagina_precios.md",
-   "status": "completado",
+   "status": "bloqueado-esperando-version-editable",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "BLOQUEADO por Vega 2026-07-14 (ver MSG_155 canal Nova). Se aplico la decision VEGA_PAGINA_PRECIOS_SOLO_LECTURA (commit 24f0625): la pagina ya NO escribe precios de venta; quedo partida en 'Parametros de costeo' (editables: precio_segundo_laser, precio_por_plegado, precio_plegar_por_kg) y 'Precios de venta - solo lectura' (precio_por_kg, maestro Tango). Garantia estructural verificada: el update manda SOLO precio_plegar_por_kg. PERO se escalo a Nova un hallazgo que activa la salvedad del brief: HOY NO EXISTE ningun sync Tango -> SI Material Corte.precio_por_kg (pricing_sync escribe un PriceCache por item_code y su README dice 'pendiente de implementacion'; el unico escritor del campo es migrate_materiales.py). Con la pagina en solo lectura, precio_por_kg queda CONGELADO sin actualizador, y eso choca con el pedido original de Constantino (MSG_036: la necesita para cargar/editar precios; los 4 precios por kg eran el corazon de la pantalla vieja). NO deployar hasta que Nova defina: (a) solo lectura + priorizar la tarea del sync Tango->SI Material Corte [recomendado por Vega, es lo ya implementado], (b) solo lectura + boton de refrescar desde Tango cuando el sync exista, (c) permitir edicion como interino declarado (rompe canon). El commit ya esta listo y verificado; si la respuesta es (a) se desbloquea y sale tal cual. DEPLOYADO por Orbit 2026-07-19 (MSG_157): opcion (a) solo-lectura -> merge PR#3 24f0625 a erpnext 47b08f7 + bench MIGRATE (necesario: Page nueva, sin migrate no se registra) + build + restart. Page 'precios' registrada, /app/precios 301, 7/7 workers. precios.js: agrupa por familia, solo-lectura, nota del sync precio_por_kg inexistente. Los 502 iniciales eran transitorios (gunicorn reiniciando). Verificacion visual (4 familias, shortcut, guardar parametro de costeo) pendiente de Constantino logueado. precio_por_kg congelado hasta el sync Tango (tarea aparte)."
+   "nota": "NO deployar 24f0625 (read-only). Esperar version editable de Vega. Bloqueo a proposito, no es olvido. ACLARACION Orbit 2026-07-19 (MSG_159): OJO -- la read-only 24f0625 YA fue deployada ANTES de que llegara el freno (server en 47b08f7, Page 'precios' registrada via migrate, /app/precios 301, 7/7 workers). NO la revierto a proposito: es inofensiva (solo-lectura, no escribe, no pisa Tango) y revertir dejaria /app/precios rota (Page registrada sin JS). Queda INTERINA hasta la version editable de Vega; el re-deploy sera pull+build+bump+restart (migrate ya hecho). Freno respetado: no hago mas deploys de precios hasta la editable."
   },
   {
    "agent": "Punto",
@@ -1093,13 +1093,13 @@
   },
   {
    "agent": "Vega",
-   "task": "VEGA_PAGINA_PRECIOS_SOLO_LECTURA",
-   "descripcion": "Aplicar DECISION_011 a la pagina de precios EN CONSTRUCCION: solo lectura, por familia, con fecha de ultima sincronizacion. NO editar precios de venta, NO escribir hacia Tango. Parametros de costeo van en su DocType, no aca.",
-   "msg": "coordination/channel/Vega/MSG_040_nova_decision011_pagina_precios_solo_lectura.md",
+   "task": "VEGA_PAGINA_PRECIOS_EDITABLE",
+   "descripcion": "REVERSION de DECISION_011: la pagina de precios diarios vuelve a ser EDITABLE/ESCRIBIBLE. El vendedor carga a mano cada manana precio por kg por familia, por segundo de laser y por plegado. Guardado real + feedback. Sacar solo-lectura y la leyenda de sync con Tango (no aplica). Revertir la restriccion del payload: precio_por_kg SI se guarda.",
+   "msg": "coordination/channel/Vega/MSG_042_nova_revierte_decision011_pagina_editable.md",
    "status": "pendiente",
    "sprint": "2026-07",
    "prioridad": "urgente",
-   "nota": "Urgente: la esta construyendo AHORA. Si Constantino necesita editar precios ahi, Vega para y escala a Nova (cambio de criterio de negocio)."
+   "nota": "Error de Nova corregido por Constantino: los precios vienen de EXCEL (hoy carga manual), no de Tango. Uso diario del vendedor a la manana -> UX agil."
   },
   {
    "agent": "TODOS",
@@ -1130,6 +1130,16 @@
    "sprint": "2026-07",
    "prioridad": "alta",
    "nota": "Entregado 2026-07-19 (MSG_156). Confirmo las 5 hipotesis de Nova + 4 huecos. Propuesta de arreglos en coordination/decisions/PROPUESTA_ARREGLOS_DE_ROLES.md"
+  },
+  {
+   "agent": "(sin asignar)",
+   "task": "IMPORTAR_PRECIOS_DESDE_EXCEL",
+   "descripcion": "Importar los precios de pricing diarios desde Excel, reemplazando la carga manual del vendedor. Inputs: precio por kg por familia, por segundo de laser, por plegado.",
+   "msg": "coordination/decisions/DECISION_011_PAGINA_PRECIOS_SOLO_LECTURA.md",
+   "status": "futuro-sin-fecha",
+   "sprint": "",
+   "prioridad": "baja",
+   "nota": "Confirmado por Constantino 2026-07-19 como desarrollo futuro. Hasta entonces la carga manual es el mecanismo OFICIAL, no un parche."
   }
  ],
  "foco_2026-07-02": {
