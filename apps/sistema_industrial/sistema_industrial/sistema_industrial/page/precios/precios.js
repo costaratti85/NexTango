@@ -13,14 +13,20 @@ frappe.pages['precios'].on_page_load = function (wrapper) {
 
 // Familias de material: valor real en SI Material Corte.familia -> etiqueta que
 // usaba la pantalla vieja de precios diarios (render_precios del standalone).
-// El precio se carga POR FAMILIA y se propaga a todos sus espesores
-// (definición de Constantino 2026-07-14).
 const PR_FAMILIAS = [
 	{ key: 'hierro', label: 'Doble decapada' },
 	{ key: 'galvanizada', label: 'Galvanizado' },
 	{ key: 'inox430', label: 'Inoxidable 430' },
 	{ key: 'inox304', label: 'Inoxidable 304' },
 ];
+
+// Canon (Brújula / docs/04_PRICING_EXCEL_TANGO.md): TANGO ES EL MAESTRO DE
+// PRECIOS PUBLICADOS; ERPNext guarda una copia. Por eso esta página NO escribe
+// precios de venta (precio_por_kg): hacerlo crearía una segunda fuente de verdad
+// y desincronizaría el sistema de la facturación real en silencio.
+// Sí edita los parámetros de COSTEO, que son propios del sistema.
+const PR_CAMPO_VENTA = 'precio_por_kg';           // solo lectura (maestro: Tango)
+const PR_CAMPO_COSTEO = 'precio_plegar_por_kg';   // editable (nuestro)
 
 class Precios {
 	constructor(page) {
@@ -57,8 +63,9 @@ class Precios {
 		return Promise.all([
 			this.call('sistema_industrial.api.materiales.get_precios'),
 			this.call('sistema_industrial.api.materiales.get_all'),
+			this.ultima_actualizacion(),
 		])
-			.then(([precios, mats]) => {
+			.then(([precios, mats, ultima]) => {
 				precios = precios || {};
 				mats = mats || {};
 				this.rows = (mats.rows || []).filter((r) => r && r.familia);
@@ -67,16 +74,31 @@ class Precios {
 				$('#pr-segundo-laser').val(precios.precio_segundo_laser || 0);
 				$('#pr-por-plegado').val(precios.precio_por_plegado || 0);
 
-				this.render_familias();
+				this.render_costeo();
+				this.render_venta();
+				this.render_sync(ultima);
+				this.render_avisos();
 				this.snapshot();
 				this.status('', '');
 			})
 			.catch(() => this.status(__('No se pudieron cargar los precios. Revisá la consola.'), 'var(--si-red)'));
 	}
 
+	// Fecha del último cambio del dato en ERPNext. NO es una fecha de
+	// sincronización con Tango — hoy no existe ese sync (ver render_sync).
+	ultima_actualizacion() {
+		return this.call('frappe.client.get_list', {
+			doctype: 'SI Material Corte',
+			filters: { activo: 1 },
+			fields: ['modified'],
+			order_by: 'modified desc',
+			limit_page_length: 1,
+		})
+			.then((r) => (r && r.length ? r[0].modified : null))
+			.catch(() => null);
+	}
+
 	// Valor representativo de una familia + si sus filas divergen entre sí.
-	// (La migración les puso el mismo precio a todas; si alguien editó una fila
-	// suelta por el Desk, avisamos que guardar las va a unificar.)
 	familia_info(key, field) {
 		const rows = this.rows.filter((r) => r.familia === key);
 		const vals = rows.map((r) => Number(r[field] || 0));
@@ -84,73 +106,111 @@ class Precios {
 		return { rows: rows, count: rows.length, valor: vals.length ? vals[0] : 0, diverge: uniq.length > 1, valores: uniq };
 	}
 
-	render_familias() {
-		const tbody = $('#pr-familias-tbody').empty();
-		const avisos = [];
-
+	// --- Costeo: editable ---
+	render_costeo() {
+		const tbody = $('#pr-costeo-tbody').empty();
 		PR_FAMILIAS.forEach((fam) => {
-			const kg = this.familia_info(fam.key, 'precio_por_kg');
-			const pkg = this.familia_info(fam.key, 'precio_plegar_por_kg');
-
+			const info = this.familia_info(fam.key, PR_CAMPO_COSTEO);
 			const tr = $('<tr>');
 			const $lbl = $('<td>').text(fam.label);
 			$lbl.append(
 				$('<div class="dimmed pr-hint">').text(
-					kg.count
-						? __('{0} espesores', [kg.count])
-						: __('sin materiales cargados')
+					info.count ? __('{0} espesores', [info.count]) : __('sin materiales cargados')
 				)
 			);
 			tr.append($lbl);
 
-			[['precio_por_kg', kg], ['precio_plegar_por_kg', pkg]].forEach(([field, info]) => {
-				const inp = $('<input type="number" min="0" step="0.01" class="pr-input">')
-					.attr('data-familia', fam.key)
-					.attr('data-field', field)
-					.val(info.valor);
-				if (!info.count) inp.prop('disabled', true);
-				tr.append($('<td style="text-align:right">').append(inp));
-				if (info.diverge) {
-					avisos.push(
-						__('{0} — "{1}": los espesores no tienen todos el mismo valor ({2}). Al guardar se unifican.', [
-							fam.label,
-							field === 'precio_por_kg' ? __('Precio por kg') : __('Precio de plegado por kg'),
-							info.valores.join(' / '),
-						])
-					);
-				}
-			});
-
+			const inp = $('<input type="number" min="0" step="0.01" class="pr-input">')
+				.attr('data-familia', fam.key)
+				.val(info.valor);
+			if (!info.count) inp.prop('disabled', true);
+			tr.append($('<td style="text-align:right">').append(inp));
 			tbody.append(tr);
 		});
+	}
 
-		// Familias presentes en la base que no están en la lista de arriba: se
-		// avisan en vez de quedar invisibles (no se editan desde acá).
+	// --- Venta: SOLO LECTURA (maestro Tango) ---
+	render_venta() {
+		const tbody = $('#pr-venta-tbody').empty();
+		PR_FAMILIAS.forEach((fam) => {
+			const info = this.familia_info(fam.key, PR_CAMPO_VENTA);
+			const tr = $('<tr>');
+			const $lbl = $('<td>').text(fam.label);
+			$lbl.append(
+				$('<div class="dimmed pr-hint">').text(
+					info.count ? __('{0} espesores', [info.count]) : __('sin materiales cargados')
+				)
+			);
+			tr.append($lbl);
+			tr.append(
+				$('<td style="text-align:right" class="pr-readonly">').text(
+					info.count ? format_currency(info.valor, 'ARS') : '—'
+				)
+			);
+			tbody.append(tr);
+		});
+	}
+
+	// Procedencia del precio de venta. Un precio en pantalla sin fecha engaña
+	// al que lo lee, así que se dice explícitamente qué se sabe y qué no.
+	render_sync(ultima) {
+		const $d = $('#pr-sync-info').empty();
+		const fecha = ultima
+			? frappe.datetime.str_to_user(ultima)
+			: null;
+		$d.append(
+			$('<div>').html(
+				'<b>' + __('Sincronización desde Tango') + ':</b> ' +
+					__('no implementada todavía — estos valores son los de la carga inicial y no se actualizan solos.')
+			)
+		);
+		$d.append(
+			$('<div class="dimmed">').text(
+				fecha
+					? __('Último cambio del dato en ERPNext: {0}', [fecha])
+					: __('Sin fecha de última actualización disponible.')
+			)
+		);
+	}
+
+	render_avisos() {
+		const avisos = [];
+		PR_FAMILIAS.forEach((fam) => {
+			[[PR_CAMPO_VENTA, __('Precio por kg')], [PR_CAMPO_COSTEO, __('Precio de plegado por kg')]].forEach(
+				([field, label]) => {
+					const info = this.familia_info(fam.key, field);
+					if (info.diverge)
+						avisos.push(
+							__('{0} — "{1}": los espesores no tienen todos el mismo valor ({2}).', [
+								fam.label,
+								label,
+								info.valores.join(' / '),
+							])
+						);
+				}
+			);
+		});
+
 		const conocidas = PR_FAMILIAS.map((f) => f.key);
 		const otras = Array.from(new Set(this.rows.map((r) => r.familia).filter((f) => conocidas.indexOf(f) === -1)));
 		if (otras.length)
-			avisos.push(__('Hay materiales de otras familias que no se editan desde esta pantalla: {0}', [otras.join(', ')]));
+			avisos.push(__('Hay materiales de otras familias que no se muestran en esta pantalla: {0}', [otras.join(', ')]));
 
 		if (this.source && this.source !== 'frappe')
-			avisos.push(
-				__('Los materiales se están leyendo del archivo legacy, no de la base — los precios por familia no se pueden guardar hasta migrarlos.')
-			);
+			avisos.push(__('Los materiales se están leyendo del archivo legacy, no de la base.'));
 
-		const $div = $('#pr-divergencia').empty();
+		const $div = $('#pr-avisos').empty();
 		avisos.forEach((a) => $div.append($('<div class="error-box" style="margin-top:8px">').text(a)));
 	}
 
 	// ------------------------------------------------------------------
-	// Guardar
+	// Guardar — SOLO parámetros de costeo
 	// ------------------------------------------------------------------
 
 	snapshot() {
 		const fam = {};
 		PR_FAMILIAS.forEach((f) => {
-			fam[f.key] = {
-				precio_por_kg: this.input_val(f.key, 'precio_por_kg'),
-				precio_plegar_por_kg: this.input_val(f.key, 'precio_plegar_por_kg'),
-			};
+			fam[f.key] = this.input_val(f.key);
 		});
 		this.loaded = {
 			precio_segundo_laser: parseFloat($('#pr-segundo-laser').val()) || 0,
@@ -159,8 +219,8 @@ class Precios {
 		};
 	}
 
-	input_val(famKey, field) {
-		const $i = $('.pr-input[data-familia="' + famKey + '"][data-field="' + field + '"]');
+	input_val(famKey) {
+		const $i = $('.pr-input[data-familia="' + famKey + '"]');
 		return $i.length ? parseFloat($i.val()) || 0 : 0;
 	}
 
@@ -178,21 +238,19 @@ class Precios {
 		// como éxito (ej. familia 1 grabada y familia 2 inválida).
 		const cambios_familia = [];
 		for (const fam of PR_FAMILIAS) {
-			const kg = this.input_val(fam.key, 'precio_por_kg');
-			const pkg = this.input_val(fam.key, 'precio_plegar_por_kg');
-			const prev = this.loaded.fam[fam.key] || {};
-			if (kg === prev.precio_por_kg && pkg === prev.precio_plegar_por_kg) continue;
-			if (!(kg >= 0) || !(pkg >= 0))
-				return this.status(__('Precio inválido en {0}.', [fam.label]), 'var(--si-red)');
+			const val = this.input_val(fam.key);
+			if (val === this.loaded.fam[fam.key]) continue;
+			if (!(val >= 0))
+				return this.status(__('Precio de plegado por kg inválido en {0}.', [fam.label]), 'var(--si-red)');
 			const filas = this.rows.filter((r) => r.familia === fam.key && r.name);
 			if (!filas.length)
 				return this.status(__('No hay materiales en la base para {0}.', [fam.label]), 'var(--si-red)');
-			cambios_familia.push({ fam: fam, kg: kg, pkg: pkg, filas: filas });
+			cambios_familia.push({ fam: fam, val: val, filas: filas });
 		}
 
 		if (cambios_familia.length && this.source !== 'frappe')
 			return this.status(
-				__('Los precios por familia no se pueden guardar: los materiales no están en la base todavía.'),
+				__('No se puede guardar: los materiales no están en la base todavía.'),
 				'var(--si-red)'
 			);
 
@@ -213,15 +271,17 @@ class Precios {
 			);
 		}
 
-		// Por familia: el precio se propaga a todas sus filas activas. Solo se
-		// tocan las familias cuyo valor cambió (evita 28 llamadas al pedo).
 		cambios_familia.forEach((c) => {
 			c.filas.forEach((r) => {
 				n_filas++;
+				// SOLO el campo de costeo. Nunca se manda precio_por_kg: es el
+				// precio de venta y su maestro es Tango (mandarlo lo pisaría).
+				const data = {};
+				data[PR_CAMPO_COSTEO] = c.val;
 				ops.push(
 					this.call('sistema_industrial.api.materiales.update', {
 						name: r.name,
-						data: JSON.stringify({ precio_por_kg: c.kg, precio_plegar_por_kg: c.pkg }),
+						data: JSON.stringify(data),
 					})
 				);
 			});
@@ -231,7 +291,7 @@ class Precios {
 		this.status(__('Guardando…'), '');
 		Promise.all(ops)
 			.then(() => {
-				frappe.show_alert({ message: __('Precios guardados'), indicator: 'green' });
+				frappe.show_alert({ message: __('Parámetros de costeo guardados'), indicator: 'green' });
 				// Releer de la base ANTES de confirmar: lo que se muestra es lo que
 				// realmente quedó grabado (load() reescribe el status, por eso el
 				// mensaje de éxito va después).
@@ -239,7 +299,7 @@ class Precios {
 			})
 			.then(() => {
 				const detalle = n_filas ? __(' ({0} materiales actualizados)', [n_filas]) : '';
-				this.status('✓ ' + __('Precios guardados') + detalle, 'var(--si-green)');
+				this.status('✓ ' + __('Parámetros de costeo guardados') + detalle, 'var(--si-green)');
 			})
 			.catch(() => this.status(__('Error al guardar. Revisá la consola.'), 'var(--si-red)'))
 			.then(() => btn.prop('disabled', false));
