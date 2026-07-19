@@ -1,14 +1,14 @@
-﻿{
+{
  "pending": [
   {
    "agent": "Orbit",
    "task": "ORBIT_DEPLOY_PAGINA_PRECIOS",
    "descripcion": "Deploy de PR #3 (Vega, feat/vega commit 7ca3900): page nueva /app/precios (recrea la pantalla de precios diarios del standalone viejo) + shortcut Precios en el workspace. ATENCION: este deploy SI NECESITA MIGRATE, a diferencia de los deploys de frontend anteriores de Vega -- agrega una Page nueva (precios.json) y modifica el workspace, que son DOCUMENTOS y no assets; sin migrate /app/precios da 404. Pasos: (1) git pull; (2) bench --site <site> migrate --app sistema_industrial; (3) bench build --app sistema_industrial; (4) bump_page_cache; (5) supervisorctl restart all. Verificar: /app/precios carga sin errores de consola; el shortcut Precios aparece en el workspace (seccion Herramientas, despues de Vectorizar Imagen); la tabla muestra las 4 familias con '7 espesores' y sus precios actuales; PRUEBA DE GUARDADO: cambiar un precio -> Guardar precios -> debe decir 'Precios guardados (N materiales actualizados)' -> recargar y confirmar que quedo. Si aparece un cartel rojo de divergencia NO es bug (es informativo: los espesores de esa familia no tenian el mismo precio y guardar los unifica) -- mandar captura. Ver MSG_037 en canal Orbit.",
-   "msg": "coordination/channel/Nova/MSG_157_ORBIT_deploy_pagina_precios.md",
-   "status": "bloqueado-esperando-version-editable",
+   "msg": "coordination/channel/Nova/MSG_163_ORBIT_deploy_precios_editable_ok.md",
+   "status": "completado",
    "sprint": "001-rebanada",
-   "prioridad": "alta",
-   "nota": "NO deployar 24f0625 (read-only). Esperar version editable de Vega. Bloqueo a proposito, no es olvido. ACLARACION Orbit 2026-07-19 (MSG_159): OJO -- la read-only 24f0625 YA fue deployada ANTES de que llegara el freno (server en 47b08f7, Page 'precios' registrada via migrate, /app/precios 301, 7/7 workers). NO la revierto a proposito: es inofensiva (solo-lectura, no escribe, no pisa Tango) y revertir dejaria /app/precios rota (Page registrada sin JS). Queda INTERINA hasta la version editable de Vega; el re-deploy sera pull+build+bump+restart (migrate ya hecho). Freno respetado: no hago mas deploys de precios hasta la editable."
+   "prioridad": "urgente",
+   "nota": "PROD DEGRADADA: la version solo-lectura (47b08f7) esta deployada y el vendedor no puede cargar precios. Deployar la version EDITABLE de Vega apenas la entregue. Este deploy va PRIMERO que la purga. >>> VEGA YA LA ENTREGO (2026-07-14): PR #4, rama feat/vega-precios-editable, commit ce6a0e2, basado en el HEAD actual de erpnext. NO NECESITA MIGRATE (la Page y el workspace ya estan en produccion desde PR #3; esto toca solo assets js/html/css) -> pasos: git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. VERIFICAR: /app/precios muestra los precios por kg como INPUTS editables (ya no la seccion 'Precios de venta - solo lectura' ni el cartel de Tango); cambiar un precio -> Guardar precios -> debe decir 'Precios guardados (N materiales actualizados)' -> RECARGAR y confirmar que el valor quedo (si esto ultimo falla, avisar a Vega de inmediato). Al terminar, avisarle a Constantino/al vendedor que ya puede cargar. Contexto del cambio de criterio: DECISION_011 corregida -- el pricing se hace en EXCEL, no en Tango, y por ahora el vendedor los carga a mano cada mañana; la premisa del solo-lectura no aplicaba. La escalada de Vega en MSG_155 (falta de sync Tango->precio_por_kg) queda CERRADA por no aplicar con el modelo corregido. Ver MSG_045 en canal Orbit y MSG_162 en canal Nova. COMPLETADO por Orbit 2026-07-19 (MSG_163): PR#4 ce6a0e2 mergeado a erpnext 31e8aae + build + restart (sin migrate). JS editable (guardar/save_precios, sin solo-lectura). Guardado VERIFICADO real y reversible: precio_segundo_laser 60->61 grabado OK, restaurado a 60. /app/precios 301, 7/7 workers. Produccion restaurada: el vendedor ya puede cargar precios. Los 502 iniciales eran transitorios del restart."
   },
   {
    "agent": "Punto",
@@ -1140,6 +1140,36 @@
    "sprint": "",
    "prioridad": "baja",
    "nota": "Confirmado por Constantino 2026-07-19 como desarrollo futuro. Hasta entonces la carga manual es el mecanismo OFICIAL, no un parche."
+  },
+  {
+   "agent": "Orbit",
+   "task": "ORBIT_PASADA_PRICING_Y_COMERCIAL",
+   "descripcion": "Segunda pasada sobre los ~292 docs sin leer de los 3 repos, PRIORIDAD 1: pricing/Excel/frontera Tango/modelo comercial (incluye NexTango/docs/04_PRICING_EXCEL_TANGO.md). Prioridad 2: el resto, buscando definiciones de negocio. Entregable: coordination/research/RELEVAMIENTO_PRICING_Y_COMERCIAL.md, cotejando CADA definicion contra DECISION_001..016 y Brujula, y marcando TODA contradiccion. Entrega por partes: primero pricing.",
+   "msg": "coordination/channel/Orbit/MSG_043_nova_pasada_pricing_comercial_prioritaria.md",
+   "status": "pendiente",
+   "sprint": "2026-07",
+   "prioridad": "maxima",
+   "nota": "Critica justa de Constantino: DECISION_011 se tomo dos veces sobre lectura incompleta. Objetivo: que el canon quede correcto y Constantino deje de tener que corregirnos. NO asumir que el canon actual esta bien: Brujula regla 4 tiene errata confirmada."
+  },
+  {
+   "agent": "Orbit",
+   "task": "ORBIT_PURGA_CANON_ERRATA_PRECIOS",
+   "descripcion": "Corregir los ~16 docs del canon actual con la errata Tango-maestro-de-precios -> modelo correcto (pricing en Excel, vendedor carga a mano, Tango solo fiscal). Marcar TASK_003/006_TANGO_PRICE_CACHE como obsoletas SIN borrarlas. EXCEPCION: NO tocar docs/00_BRUJULA_* (doc de Constantino, consulta pendiente).",
+   "msg": "coordination/channel/Orbit/MSG_044_nova_purga_canon_errata_precios.md",
+   "status": "pendiente",
+   "sprint": "2026-07",
+   "prioridad": "alta",
+   "nota": "Autorizada por Constantino. Prioridad relativa: 1) deploy de Vega (prod degradada) 2) purga 3) prioridad 2 de la pasada."
+  },
+  {
+   "agent": "Orbit",
+   "task": "ORBIT_AUDITAR_CODIGO_PRICING_SYNC",
+   "descripcion": "Auditar apps/sistema_industrial/pricing_sync/ (price_cache de Tango, construido sobre la errata). REPORTAR SIN TOCAR: 1) codigo muerto o vivo (scheduler/hook/job) 2) que hace exactamente 3) CRITICO: puede pisar los precios que carga el vendedor a mano? 4) impacto de desactivarlo.",
+   "msg": "coordination/channel/Orbit/MSG_044_nova_purga_canon_errata_precios.md",
+   "status": "pendiente",
+   "sprint": "2026-07",
+   "prioridad": "alta",
+   "nota": "NO borrar/modificar/desactivar sin reporte previo. Codigo en produccion que toca dinero. Si hay indicio de que pisa la carga manual del vendedor, avisar de inmediato."
   }
  ],
  "foco_2026-07-02": {
