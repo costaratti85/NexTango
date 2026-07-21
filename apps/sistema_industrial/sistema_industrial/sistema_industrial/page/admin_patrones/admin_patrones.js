@@ -342,43 +342,23 @@ class AdminPatrones {
 			? '<span style="color:var(--si-green);font-weight:600">' + __('disponible') + '</span>'
 			: '<span style="color:var(--si-red);font-weight:600">' + __('NO disponible') + '</span>';
 
+		// Diálogo compacto (pedido de Constantino 2026-07-14): mínimo texto de
+		// ayuda, mismo comportamiento. La versión va en el título (v2), sin la
+		// explicación del versionado. Offsets sin hints. Archivo en una línea.
 		const d = new frappe.ui.Dialog({
-			title: __('Actualizar patrón: {0}', [p.name]),
+			title: __('Actualizar {0} · v{1}', [p.name, cur.version || 1]),
 			fields: [
-				{
-					fieldtype: 'HTML',
-					fieldname: 'info',
-					options:
-						'<div style="font-size:12px;color:var(--si-muted);margin-bottom:4px">' +
-						__('Versión actual') + ': <b>v' + (cur.version || 1) + '</b> — ' +
-						__('guardar crea una versión nueva; las anteriores quedan congeladas (contrato SI Patron Version).') +
-						'</div>',
-				},
-				// Las TRES cosas actualizables (pedido de Constantino 2026-07-14):
-				// archivo DXF + offset X + offset Y — van primero y con su vocabulario.
-				// "Offset" = paso de tileo del patrón (en la base es parametros.step_x/y;
-				// hoy está encodeado en nombres como subte_Offx84_Offy84.dxf).
-				{
-					fieldtype: 'Float',
-					fieldname: 'step_x',
-					label: __('Offset X mm'),
-					default: cur.step_x,
-					description: __('Paso de tileo horizontal (el Offx del nombre del archivo).'),
-				},
+				// Las TRES cosas actualizables: offset X + offset Y + archivo DXF.
+				// "Offset" = paso de tileo (en la base es parametros.step_x/y).
+				{ fieldtype: 'Float', fieldname: 'step_x', label: __('Offset X (mm)'), default: cur.step_x },
 				{ fieldtype: 'Column Break' },
-				{
-					fieldtype: 'Float',
-					fieldname: 'step_y',
-					label: __('Offset Y mm'),
-					default: cur.step_y,
-					description: __('Paso de tileo vertical (el Offy del nombre del archivo).'),
-				},
+				{ fieldtype: 'Float', fieldname: 'step_y', label: __('Offset Y (mm)'), default: cur.step_y },
 				{ fieldtype: 'Section Break', label: __('Archivo DXF') },
 				{
 					fieldtype: 'HTML',
 					fieldname: 'file_actual',
 					options:
-						'<div style="font-size:12px;margin-bottom:6px">' + __('Actual') + ': ' +
+						'<div style="font-size:12px;margin-bottom:6px">' + __('Real') + ': ' +
 						'<code style="word-break:break-all">' +
 						frappe.utils.escape_html(cur.file_path || __('(sin archivo)')) +
 						'</code> — ' + disp + '</div>',
@@ -388,7 +368,6 @@ class AdminPatrones {
 					fieldname: 'archivo_dxf',
 					label: __('Ruta en el servidor (reapuntar)'),
 					default: cur.file_path,
-					description: __('Si el archivo en disco tiene otro nombre, corregí acá la ruta. Se valida contra el disco al guardar.'),
 				},
 				{ fieldtype: 'HTML', fieldname: 'upload_zone' },
 				{ fieldtype: 'Section Break', label: __('Definición') },
@@ -399,6 +378,7 @@ class AdminPatrones {
 					options: ['Público', 'Exclusivo'],
 					default: cur.visibilidad === 'Exclusivo' ? 'Exclusivo' : 'Público',
 				},
+				{ fieldtype: 'Column Break' },
 				{
 					fieldtype: 'Link',
 					fieldname: 'customer',
@@ -407,21 +387,24 @@ class AdminPatrones {
 					default: cur.cliente,
 					depends_on: "eval:doc.visibilidad=='Exclusivo'",
 				},
-				{ fieldtype: 'Small Text', fieldname: 'descripcion', label: __('Descripción'), default: cur.descripcion },
+				{ fieldtype: 'Section Break' },
+				{
+					fieldtype: 'Small Text',
+					fieldname: 'descripcion',
+					label: __('Descripción'),
+					default: cur.descripcion,
+				},
 			],
 			primary_action_label: __('Guardar cambios'),
 			primary_action: (values) => this.guardar_update(p, cur, values, d),
 		});
 
-		// Subir un DXF nuevo desde el diálogo (FileUploader nativo, privado) —
-		// alternativa al reapuntado: si se sube archivo, reemplaza a la ruta.
+		// Subir un DXF nuevo (FileUploader nativo, privado). Si se sube archivo,
+		// reemplaza a la ruta de arriba (sin párrafo de ayuda: comportamiento obvio).
 		const $zone = $(
-			'<div style="margin-top:4px">' +
+			'<div style="margin-top:2px">' +
 				'<button class="btn btn-sm btn-default" type="button">⤒ ' + __('Subir DXF nuevo…') + '</button>' +
 				'<span class="ap-file-name" style="margin-left:8px"></span>' +
-				'<div style="font-size:11px;color:var(--si-muted);margin-top:4px">' +
-				__('Si subís un archivo nuevo, tiene prioridad sobre la ruta de arriba.') +
-				'</div>' +
 			'</div>'
 		);
 		$zone.find('button').on('click', () => {
@@ -438,6 +421,9 @@ class AdminPatrones {
 			});
 		});
 		d.get_field('upload_zone').$wrapper.append($zone);
+		// Descripción compacta: 2 filas (Small Text por defecto ocupa de más).
+		const $desc = d.get_field('descripcion');
+		if ($desc && $desc.$input) $desc.$input.attr('rows', 2);
 		d.show();
 	}
 
