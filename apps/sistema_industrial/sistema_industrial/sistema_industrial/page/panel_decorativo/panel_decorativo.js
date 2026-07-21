@@ -189,6 +189,8 @@ class PanelDecorativo {
 
 	load_patterns() {
 		fetch('/api/method/sistema_industrial.api.patrones.get_all', {
+			cache: 'no-store',   // galería siempre fresca: tras actualizar un patrón,
+			                     // el navegador no debe servir la lista vieja cacheada
 			headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token },
 		})
 			.then((r) => (r.ok ? r.json() : null))
