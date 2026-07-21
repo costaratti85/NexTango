@@ -22,9 +22,23 @@ from calibrar_cinematico import cargar_geometria_precomputada, error_medio_max_t
 # Parámetros de CORTE vigentes (Etapa 3, sin cambios -- ver más abajo por qué)
 V_TABLA, A_MAX_CUT, DELTA_CUT = 74.0, 625.0, 0.2
 
-# Parámetros de TRAVEL: viejos (de Batería 2) vs el reajuste de este experimento
+# Parámetros de TRAVEL: viejos (de Batería 2) vs el reajuste de este experimento.
+# TRAVEL_NUEVO es el resultado del refit conjunto con los 5 puntos (MSG_172:
+# se agregaron travel_muylejos_1/2, 1000mm y 3000mm, que resuelven la duda de
+# si hay meseta de crucero -- SÍ la hay, cerca de 200-205mm/s, lejísimos del
+# nominal de 1650mm/s).
 TRAVEL_VIEJO = dict(v_rapido=129.5, a_max=750.0, delta=0.005)
-TRAVEL_NUEVO = dict(v_rapido=199.0, a_max=385.0, delta=0.005)  # delta sin testear (todo angulo=0 acá)
+TRAVEL_NUEVO = dict(v_rapido=204.9, a_max=382.0, delta=0.005)  # delta sin testear (todo angulo=0 acá)
+
+# (xs, altura_mm) de cada archivo de Bloque 2/3 -- fuente única, reusada por
+# las predicciones de corte/travel y por el refit.
+LAYOUT_BLOQUE23 = {
+    "travel_cerca":   ([0, 20, 40, 60], 10.0),
+    "travel_lejos":   ([0, 200, 400, 600], 10.0),
+    "tamano_grande":  ([0, 20, 40, 60], 40.0),
+    "travel_muylejos_1": ([0, 1000], 10.0),
+    "travel_muylejos_2": ([0, 3000], 10.0),
+}
 
 
 class _TramoFalso:
@@ -51,9 +65,11 @@ MEDIDO_BLOQUE1 = {
 
 MEDIDO_BLOQUE23 = {
     # nombre: (processing_s, move_s, delay_s)
-    "tamano_grande": (2.658, 1.137, 3.043),
-    "travel_cerca":  (1.058, 0.800, 3.043),
-    "travel_lejos":  (1.058, 3.538, 3.043),
+    "tamano_grande":     (2.658, 1.137, 3.043),
+    "travel_cerca":      (1.058, 0.800, 3.043),
+    "travel_lejos":      (1.058, 3.538, 3.043),
+    "travel_muylejos_1": (0.529, 5.179, 1.607),  # 2 figuras (1 salto), no 4
+    "travel_muylejos_2": (0.529, 15.179, 1.607),
 }
 
 
@@ -100,19 +116,16 @@ def _saltos_y_angulos(xs, h):
 
 
 def pred_bloque23(xs, h, travel_params):
-    corte = 4 * tiempo_corte_figura([_TramoFalso(h)], [], False, V_TABLA, DELTA_CUT, A_MAX_CUT)
+    corte = len(xs) * tiempo_corte_figura([_TramoFalso(h)], [], False, V_TABLA, DELTA_CUT, A_MAX_CUT)
     saltos, angs = _saltos_y_angulos(xs, h)
     travel = tiempo_desplazamiento_saltos(saltos, angs, travel_params["v_rapido"],
                                           travel_params["delta"], travel_params["a_max"])
     return corte, travel
 
 
-def refit_travel(rango_v, rango_a, delta=0.005):
-    casos = {
-        "tamano_grande": ([0, 20, 40, 60], 40.0, MEDIDO_BLOQUE23["tamano_grande"][1]),
-        "travel_cerca":  ([0, 20, 40, 60], 10.0, MEDIDO_BLOQUE23["travel_cerca"][1]),
-        "travel_lejos":  ([0, 200, 400, 600], 10.0, MEDIDO_BLOQUE23["travel_lejos"][1]),
-    }
+def refit_travel(rango_v, rango_a, delta=0.005, nombres=None):
+    nombres = nombres or list(LAYOUT_BLOQUE23)
+    casos = {n: (*LAYOUT_BLOQUE23[n], MEDIDO_BLOQUE23[n][1]) for n in nombres}
     mejor = None
     for v in rango_v:
         for a in rango_a:
@@ -138,40 +151,41 @@ if __name__ == "__main__":
         print(f"  {nombre:16s} pred={pred:.4f}s  real={real:.4f}s  err={e:5.2f}%")
     print(f"  -> error medio={sum(errs1)/len(errs1):.2f}%  max={max(errs1):.2f}%")
 
-    print("\n=== BLOQUE 2/3 — CORTE de los 4 segmentos (sin cambios) ===")
-    for nombre, (xs, h) in [("travel_cerca", ([0, 20, 40, 60], 10.0)),
-                             ("travel_lejos", ([0, 200, 400, 600], 10.0)),
-                             ("tamano_grande", ([0, 20, 40, 60], 40.0))]:
+    print("\n=== BLOQUE 2/3 — CORTE de los segmentos (sin cambios) ===")
+    for nombre, (xs, h) in LAYOUT_BLOQUE23.items():
         corte_pred, _ = pred_bloque23(xs, h, TRAVEL_VIEJO)
         real = MEDIDO_BLOQUE23[nombre][0]
         e = abs(corte_pred - real) / real * 100
-        print(f"  {nombre:16s} pred={corte_pred:.4f}s  real={real:.4f}s  err={e:5.2f}%")
+        print(f"  {nombre:20s} pred={corte_pred:.4f}s  real={real:.4f}s  err={e:5.2f}%")
 
     print("\n=== BLOQUE 2/3 — TRAVEL, parámetros VIEJOS (de Batería 2: v_rapido=129.5, a_max=750) ===")
-    for nombre, (xs, h) in [("travel_cerca", ([0, 20, 40, 60], 10.0)),
-                             ("travel_lejos", ([0, 200, 400, 600], 10.0)),
-                             ("tamano_grande", ([0, 20, 40, 60], 40.0))]:
+    for nombre, (xs, h) in LAYOUT_BLOQUE23.items():
         _, travel_pred = pred_bloque23(xs, h, TRAVEL_VIEJO)
         real = MEDIDO_BLOQUE23[nombre][1]
         e = abs(travel_pred - real) / real * 100
-        print(f"  {nombre:16s} pred={travel_pred:.4f}s  real={real:.4f}s  err={e:5.2f}%")
+        print(f"  {nombre:20s} pred={travel_pred:.4f}s  real={real:.4f}s  err={e:5.2f}%")
 
-    print("\n=== Reajuste fino de TRAVEL SOLO con estos 3 datos (grid grueso + fino) ===")
+    print("\n=== Medición directa de v_max (tasa marginal entre los 2 saltos largos) ===")
+    d1, d2 = 1000.05, 3000.02
+    t1, t2 = MEDIDO_BLOQUE23["travel_muylejos_1"][1], MEDIDO_BLOQUE23["travel_muylejos_2"][1]
+    v_marginal = (d2 - d1) / (t2 - t1)
+    print(f"  (d2-d1)/(t2-t1) = ({d2}-{d1})/({t2}-{t1}) = {v_marginal:.2f} mm/s")
+    print(f"  -> independiente de a_max (ambos puntos ya en crucero) -- MUY lejos del nominal 1650mm/s")
+
+    print("\n=== Reajuste conjunto de TRAVEL con los 5 puntos (grid grueso + fino) ===")
     grueso = refit_travel(range(100, 260, 5), range(100, 2000, 25))
     print("  mejor grueso (err_medio,err_max,v_rapido,a_max):", grueso)
-    fino = refit_travel([x / 2 for x in range(int(grueso[2] * 2 - 30), int(grueso[2] * 2 + 30))],
-                        range(max(grueso[3] - 75, 25), grueso[3] + 75, 5))
+    fino = refit_travel([x / 10 for x in range(int(grueso[2] * 10 - 100), int(grueso[2] * 10 + 100))],
+                        range(max(grueso[3] - 75, 25), grueso[3] + 75, 2))
     print("  mejor fino:", fino)
     TRAVEL_NUEVO_CALC = dict(v_rapido=fino[2], a_max=fino[3], delta=0.005)
 
-    print("\n=== BLOQUE 2/3 — TRAVEL con el reajuste nuevo ===")
-    for nombre, (xs, h) in [("travel_cerca", ([0, 20, 40, 60], 10.0)),
-                             ("travel_lejos", ([0, 200, 400, 600], 10.0)),
-                             ("tamano_grande", ([0, 20, 40, 60], 40.0))]:
+    print("\n=== BLOQUE 2/3 — TRAVEL con el reajuste conjunto (5 puntos) ===")
+    for nombre, (xs, h) in LAYOUT_BLOQUE23.items():
         _, travel_pred = pred_bloque23(xs, h, TRAVEL_NUEVO_CALC)
         real = MEDIDO_BLOQUE23[nombre][1]
         e = abs(travel_pred - real) / real * 100
-        print(f"  {nombre:16s} pred={travel_pred:.4f}s  real={real:.4f}s  err={e:5.2f}%")
+        print(f"  {nombre:20s} pred={travel_pred:.4f}s  real={real:.4f}s  err={e:5.2f}%")
 
     print("\n=== Cruce honesto: ¿el reajuste nuevo sigue siendo consistente con Batería 2? ===")
     datos_b2 = cargar_geometria_precomputada()
