@@ -400,7 +400,9 @@ def upload_pattern(nombre, step_x, step_y, visibilidad, file_url, customer=None,
         customer:    Nombre del Customer ERPNext (requerido si visibilidad="Exclusivo")
         descripcion: Descripción libre
 
-    r.message: {ok: true, name, version}
+    r.message: {ok: true, name, version, has_splines, spline_count, thumbnail_url}
+    (thumbnail_url puede venir None si el render falló — no bloquea el alta,
+    ver generate_thumbnail)
     """
     if visibilidad == "Exclusivo" and not customer:
         frappe.throw("customer es requerido para visibilidad Exclusivo")
@@ -458,12 +460,23 @@ def upload_pattern(nombre, step_x, step_y, visibilidad, file_url, customer=None,
 
     frappe.db.commit()
 
+    # thumbnail: best-effort, igual criterio que update_pattern (contrato con
+    # Atlas) — nunca bloquea el alta/actualización del patrón si el render falla.
+    thumb_url = None
+    try:
+        result = generate_thumbnail(nombre)
+        thumb_url = result.get("url")
+    except Exception as exc:
+        frappe.log_error(f"upload_pattern thumbnail {nombre}: {exc}",
+                         "upload_pattern_thumbnail")
+
     return {
         "ok": True,
         "name": nombre,
         "version": int(doc.version or 1),
         "has_splines": sc > 0,
         "spline_count": sc,
+        "thumbnail_url": thumb_url,
     }
 
 

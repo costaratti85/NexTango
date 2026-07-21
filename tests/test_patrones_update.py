@@ -66,6 +66,20 @@ def _make_fake_frappe():
     )
 
     def get_doc(doctype, name=None):
+        if isinstance(doctype, dict):
+            # frappe.get_doc({"doctype": "SI Patron", ...}) -> doc nuevo, sin
+            # guardar todavía (lo guarda el .insert() de quien lo llama).
+            payload = dict(doctype)
+            assert payload.pop("doctype") == "SI Patron"
+            doc = FakePatron(**payload)
+
+            def _insert(ignore_permissions=False):
+                si_patron_mod.SIPatron._handle_versioning(doc)
+                fake._docs[doc.name] = doc
+                return doc
+
+            doc.insert = _insert
+            return doc
         if doctype == "SI Patron":
             if name not in fake._docs:
                 raise DoesNotExistError(name)
@@ -363,6 +377,98 @@ def test_dxf_nuevo_mas_offsets_en_un_solo_update(env):
     v2 = next(v for v in env.doc.versiones if v.version_num == 2)
     assert v2.archivo_dxf_frozen == str(env.real)
     assert json.loads(v2.parametros_frozen) == {"step_x": 85.0, "step_y": 85.0}
+
+
+# ------------------------------------------ hook de thumbnail (contrato con Atlas)
+#
+# El fixture `env` pisa generate_thumbnail con un stub fijo ({"ok": False, "url":
+# None}) para que el resto de los tests no intenten renderizar de verdad. Estos
+# tests reemplazan ESE stub por uno que registra llamadas, para verificar el
+# contrato real: cuándo se llama, cuándo no, y que una excepción del render
+# nunca bloquea el alta/update del patrón (criterio pedido por Nova en MSG_020).
+
+def _stub_thumbnail_tracker(monkeypatch, resultado=None, excepcion=None):
+    llamadas = []
+
+    def _fake(name):
+        llamadas.append(name)
+        if excepcion is not None:
+            raise excepcion
+        return resultado if resultado is not None else {"ok": True, "url": f"/assets/{name}.png"}
+
+    monkeypatch.setattr(patrones, "generate_thumbnail", _fake)
+    return llamadas
+
+
+def test_update_pattern_llama_thumbnail_si_cambia_dxf(env, monkeypatch):
+    llamadas = _stub_thumbnail_tracker(monkeypatch)
+    r = patrones.update_pattern(name="Aconcagua", dxf_path=str(env.real))
+    assert llamadas == ["Aconcagua"]
+    assert r["thumbnail_url"] == "/assets/Aconcagua.png"
+
+
+def test_update_pattern_llama_thumbnail_si_cambian_parametros(env, monkeypatch):
+    llamadas = _stub_thumbnail_tracker(monkeypatch)
+    patrones.update_pattern(name="Aconcagua", step_x=85.0)
+    assert llamadas == ["Aconcagua"]
+
+
+def test_update_pattern_no_llama_thumbnail_si_no_cambia_dxf_ni_parametros(env, monkeypatch):
+    llamadas = _stub_thumbnail_tracker(monkeypatch)
+    patrones.update_pattern(name="Aconcagua", descripcion="solo texto")
+    assert llamadas == []
+
+
+def test_update_pattern_thumbnail_que_falla_no_bloquea_el_update(env, monkeypatch):
+    """El caso que importa: si el render explota (ej. DXF con basura de
+    vectorización, como pasó con Philo), update_pattern tiene que devolver
+    ok=True igual -- el patrón queda disponible sin miniatura, nunca sin
+    actualizar."""
+    # nombre sin PNG real en el repo (a diferencia de "Aconcagua", que tiene
+    # un thumbnail viejo comiteado -- _thumb_url mira el disco real, no el
+    # frappe fake) para poder afirmar "sin thumbnail" sin ambigüedad.
+    doc = FakePatron(name="PatronDeTestSinThumbnail",
+                     archivo_dxf=str(env.planos / "generico" / "patrones" / "x.dxf"),
+                     parametros=json.dumps({"step_x": 10.0, "step_y": 10.0}))
+    doc.save()
+    _stub_thumbnail_tracker(monkeypatch, excepcion=RuntimeError("bbox gigante"))
+    r = patrones.update_pattern(name="PatronDeTestSinThumbnail", dxf_path=str(env.real))
+    assert r["ok"] is True
+    assert r["version"] == 2  # el update igual se aplicó
+    assert r["thumbnail_url"] is None  # sin thumbnail viejo tampoco había
+
+
+# ---------------------------------------------------------------- upload_pattern
+
+def test_upload_pattern_nuevo_genera_thumbnail(env, monkeypatch, tmp_path):
+    llamadas = _stub_thumbnail_tracker(monkeypatch)
+    src = tmp_path / "upload" / "philo.dxf"
+    src.parent.mkdir()
+    src.write_text("0\nEOF\n", encoding="utf-8")
+    FAKE_FRAPPE._files["/private/files/philo.dxf"] = src
+
+    r = patrones.upload_pattern(nombre="Philo", step_x=360.0, step_y=623.0,
+                                visibilidad="Público", file_url="/private/files/philo.dxf")
+
+    assert r["ok"] is True
+    assert llamadas == ["Philo"]
+    assert r["thumbnail_url"] == "/assets/Philo.png"
+    assert "Philo" in FAKE_FRAPPE._docs
+
+
+def test_upload_pattern_thumbnail_que_falla_no_bloquea_el_alta(env, monkeypatch, tmp_path):
+    _stub_thumbnail_tracker(monkeypatch, excepcion=RuntimeError("render roto"))
+    src = tmp_path / "upload" / "gotas.dxf"
+    src.parent.mkdir()
+    src.write_text("0\nEOF\n", encoding="utf-8")
+    FAKE_FRAPPE._files["/private/files/gotas.dxf"] = src
+
+    r = patrones.upload_pattern(nombre="Gotas", step_x=100.0, step_y=100.0,
+                                visibilidad="Público", file_url="/private/files/gotas.dxf")
+
+    assert r["ok"] is True
+    assert r["thumbnail_url"] is None
+    assert "Gotas" in FAKE_FRAPPE._docs
 
 
 # ---------------------------------------------------------------- list_dxf_files
