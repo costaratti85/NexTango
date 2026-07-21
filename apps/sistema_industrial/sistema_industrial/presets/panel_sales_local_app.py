@@ -1493,12 +1493,18 @@ def _run_all_batches(
     job_name: str,
     observations: str,
     output_dir: Path,
-    price_file: Path,
+    price_file: Path | None = None,
 ) -> SalesRunResult:
     """Run all batches through the engine and produce a single merged DXF output."""
     all_batches = batches
 
-    price_cache = PriceCache.load(price_file) if price_file.exists() else None
+    # FUENTE ÚNICA DE PRECIOS: daily_prices.json (carga manual del vendedor) +
+    # doctype «SI Precios Globales», que el motor lee para calcular `cost`
+    # (calculate_cost / _precio_segundo_laser). El PriceCache NO se usa en el
+    # camino de producción: quedaba VACÍO por un choque de esquemas y solo
+    # alimentaba un quotation_payload que la UI descarta -> por eso rate=0 ahí.
+    # Ver DECISION_011 / MSG_165 / MSG_019. `price_file` queda ignorado.
+    price_cache = None
     order_id = f"VENTA-{_slug(customer)}-{_slug(job_name)}"
 
     legacy_dir = find_legacy_panel_dir()
