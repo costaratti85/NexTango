@@ -365,6 +365,71 @@ def test_dxf_nuevo_mas_offsets_en_un_solo_update(env):
     assert json.loads(v2.parametros_frozen) == {"step_x": 85.0, "step_y": 85.0}
 
 
+# -------------------------------------------------- autogen thumbnail (MSG_020)
+
+def test_update_dxf_genera_thumbnail(env, monkeypatch):
+    """DXF nuevo aceptado -> se invoca el motor de thumbnail y su url va en la respuesta."""
+    llamado = {}
+    def fake_gen(name):
+        llamado["name"] = name
+        return {"ok": True, "url": f"/assets/sistema_industrial/pattern_thumbnails/{name}.png"}
+    monkeypatch.setattr(patrones, "generate_thumbnail", fake_gen)
+    r = patrones.update_pattern(name="Aconcagua", dxf_path=str(env.real))
+    assert llamado["name"] == "Aconcagua"        # se llamó al motor de Punto
+    assert r["thumbnail_url"] == "/assets/sistema_industrial/pattern_thumbnails/Aconcagua.png"
+
+
+def test_thumbnail_que_falla_no_rompe_el_update(env, monkeypatch):
+    """Si el render explota, el patrón queda DISPONIBLE igual — el update no rompe."""
+    def boom(name):
+        raise RuntimeError("el motor no sabe renderizar este DXF")
+    monkeypatch.setattr(patrones, "generate_thumbnail", boom)
+    r = patrones.update_pattern(name="Aconcagua", dxf_path=str(env.real))
+    assert r["ok"] is True                        # no propaga la excepción
+    assert r["file_available"] is True            # patrón disponible
+    assert r["version"] == 2                       # el update se persistió
+
+
+def test_thumbnail_okfalse_disponible_sin_miniatura(env, monkeypatch):
+    """Motor devuelve ok=False y no hay miniatura previa -> disponible SIN miniatura, sin excepción."""
+    monkeypatch.setattr(patrones, "generate_thumbnail", lambda name: {"ok": False, "url": None})
+    monkeypatch.setattr(patrones, "_thumb_url", lambda name: None)   # patrón nuevo, sin thumbnail previo
+    r = patrones.update_pattern(name="Aconcagua", dxf_path=str(env.real))
+    assert r["ok"] is True
+    assert r["file_available"] is True
+    assert r["thumbnail_url"] is None             # sin miniatura (estado aceptable)
+
+
+def test_thumbnail_falla_conserva_miniatura_previa(env, monkeypatch):
+    """Si la regeneración falla pero había una miniatura previa, se conserva la vieja."""
+    monkeypatch.setattr(patrones, "generate_thumbnail", lambda name: {"ok": False, "url": None})
+    monkeypatch.setattr(patrones, "_thumb_url", lambda name: "/assets/.../Aconcagua_vieja.png")
+    r = patrones.update_pattern(name="Aconcagua", dxf_path=str(env.real))
+    assert r["ok"] is True
+    assert r["thumbnail_url"] == "/assets/.../Aconcagua_vieja.png"
+
+
+def test_update_solo_metadata_no_regenera_thumbnail(env, monkeypatch):
+    """Cambiar solo descripción (sin tocar DXF ni parámetros) no dispara el thumbnail."""
+    llamado = {"n": 0}
+    def counting_gen(name):
+        llamado["n"] += 1
+        return {"ok": True, "url": "/x.png"}
+    monkeypatch.setattr(patrones, "generate_thumbnail", counting_gen)
+    patrones.update_pattern(name="Aconcagua", descripcion="solo texto")
+    assert llamado["n"] == 0                       # no se regeneró el thumbnail
+
+
+def test_reapunte_dxf_regenera_thumbnail(env, monkeypatch):
+    """Reapuntar a otro DXF (dxf_path) cuenta como DXF nuevo -> regenera thumbnail."""
+    llamado = {"n": 0}
+    monkeypatch.setattr(patrones, "generate_thumbnail",
+                        lambda name: (llamado.__setitem__("n", llamado["n"] + 1),
+                                      {"ok": True, "url": "/x.png"})[1])
+    patrones.update_pattern(name="Aconcagua", dxf_path=str(env.real))
+    assert llamado["n"] == 1
+
+
 # ---------------------------------------------------------------- list_dxf_files
 
 def test_list_dxf_files_marca_used_by_y_huerfanos(env):

@@ -615,14 +615,26 @@ def update_pattern(name, descripcion=None, visibilidad=None, customer=None,
 
     new_version = int(doc.version or 1)
 
-    # thumbnail: regenerar best-effort si cambió el DXF o los parámetros
+    # Autogeneración del thumbnail (motor de Punto: generate_thumbnail -> {ok, url}).
+    # MODO DE FALLA FIRME (MSG_020): si el render falla o el motor no sabe
+    # renderizar este DXF, el patrón queda DISPONIBLE igual (con la miniatura
+    # previa si había, o sin miniatura) y el update NUNCA rompe. Se loguea el
+    # fallo — por excepción o por ok=False — para poder backfillear después.
     thumb_url = _thumb_url(name)
     if dxf_changed or params_changed:
         try:
             result = generate_thumbnail(name)
-            thumb_url = result.get("url") or thumb_url
+            if result.get("ok"):
+                thumb_url = result.get("url") or thumb_url
+            else:
+                frappe.log_error(
+                    f"update_pattern: thumbnail NO generado para '{name}' "
+                    f"(motor ok=False: {result.get('reason', 's/d')}). "
+                    f"Patrón disponible sin miniatura; backfilleable.",
+                    "update_pattern_thumbnail")
         except Exception as exc:
-            frappe.log_error(f"update_pattern thumbnail {name}: {exc}",
+            frappe.log_error(f"update_pattern thumbnail '{name}': {exc}. "
+                             f"Patrón disponible sin miniatura; backfilleable.",
                              "update_pattern_thumbnail")
 
     file_path = str(doc.archivo_dxf or "")
