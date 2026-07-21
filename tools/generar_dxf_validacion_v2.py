@@ -123,10 +123,11 @@ def gen_recta(largo_mm: float) -> str:
 # ---------------------------------------------------------------------------
 
 def gen_travel(nombre: str, xs: list, alto_mm: float) -> dict:
-    """xs: posiciones X de las 4 figuras. Cada figura es un segmento vertical
-    centrado en y=0, de `alto_mm` de alto. Entrada = punto de ABAJO, salida =
-    punto de ARRIBA (convención fija, igual en las 4). Devuelve los puntos
-    de entrada/salida reales para la hoja de instrucciones."""
+    """xs: posiciones X de las figuras (2 o 4, según el archivo). Cada figura
+    es un segmento vertical centrado en y=0, de `alto_mm` de alto. Entrada =
+    punto de ABAJO, salida = punto de ARRIBA (convención fija, igual en
+    todas). Devuelve los puntos de entrada/salida reales para la hoja de
+    instrucciones."""
     doc = _doc_base()
     msp = doc.modelspace()
     h = alto_mm / 2.0
@@ -159,12 +160,20 @@ def gen_travel(nombre: str, xs: list, alto_mm: float) -> dict:
         f"salir por ARRIBA {p['salida']}"
         for i, (x, p) in enumerate(zip(xs, puntos))
     )
+    ancho_total = xs[-1] - xs[0]
+    nota_chapa = (
+        f"\nOJO CON EL TAMAÑO DE CHAPA: este archivo necesita ~{ancho_total:.0f}mm de ancho "
+        f"libre para el salto — confirmá que la chapa/mesa de corte disponible alcanza antes "
+        f"de mandarlo. Si no alcanza, avisá en vez de recortar la distancia (necesitamos esta "
+        f"distancia específica para el experimento).\n"
+        if ancho_total >= 900 else ""
+    )
     hoja = f"""INSTRUCCIONES — {nombre}
 Bloque 2/3: DESPLAZAMIENTO y TAMAÑO (acá la entrada/salida SÍ importa)
 
 Qué es: {len(xs)} segmentos verticales de {alto_mm:.0f}mm de alto, en fila horizontal,
 separados {xs[1]-xs[0]:g}mm entre sí (mismo alto Y en los {len(xs)}).
-
+{nota_chapa}
 CAPAS — MUY IMPORTANTE:
   - "CORTE": los {len(xs)} segmentos verticales — esto es lo único que hay que cortar.
   - "REFERENCIA_NO_CORTAR": las líneas finas + círculos + X + números que muestran el
@@ -199,6 +208,17 @@ if __name__ == "__main__":
     info_travel.append(gen_travel("travel_cerca.dxf", [0, 20, 40, 60], 10.0))
     info_travel.append(gen_travel("travel_lejos.dxf", [0, 200, 400, 600], 10.0))
     info_travel.append(gen_travel("tamano_grande.dxf", [0, 20, 40, 60], 40.0))
+
+    # Ronda 2 (MSG_171): 1 solo salto largo por archivo, para caracterizar si
+    # hay meseta de velocidad de crucero o si la máquina sigue acelerando
+    # mucho más allá de los 600mm de travel_lejos. Nominal de fábrica:
+    # 1650mm/s -- con a_max_travel~385mm/s² (ya bien determinado por
+    # travel_cerca/tamano_grande, INSENSIBLE a este debate) necesitaría
+    # ~3535mm para llegar a esa velocidad -- estas 2 distancias alcanzan para
+    # distinguir con claridad "meseta cerca de ~199mm/s" de "sigue subiendo
+    # hacia el nominal" (ver el cálculo en MSG_171).
+    info_travel.append(gen_travel("travel_muylejos_1.dxf", [0, 1000], 10.0))
+    info_travel.append(gen_travel("travel_muylejos_2.dxf", [0, 3000], 10.0))
 
     print("Generados en", OUT_DIR)
     for g in generados:
