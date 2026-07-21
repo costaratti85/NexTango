@@ -6,6 +6,15 @@ Endpoints:
 
     descargar_dxf(batches_json, customer, job_name)
         → binario .dxf para descarga directa (frappe.response.type = "download")
+
+FUENTE ÚNICA DE PRECIOS (explícita, no deducida):
+    Los precios salen de dos lugares, ambos leídos por el motor al calcular `cost`:
+      1. `daily_prices.json` — precios por kg de material + plegado (carga manual
+         del vendedor en la página de Precios).
+      2. Doctype «SI Precios Globales» — precio por segundo de láser / por plegado.
+    NO hay PriceCache ni pull de Tango en este camino (ver DECISION_011 / MSG_165).
+    El motor lee esas dos fuentes por su cuenta (calculate_cost /
+    _precio_segundo_laser); por eso `calcular` no le pasa ninguna ruta de precios.
 """
 import json
 import shutil
@@ -16,15 +25,6 @@ try:
     import frappe
 except ImportError:  # pragma: no cover
     frappe = None
-
-
-def _get_price_file() -> Path:
-    """Devuelve la ruta al daily_prices.json legacy (opcional — precios vienen del doctype)."""
-    try:
-        from sistema_industrial.presets.legacy_panel_adapter import find_legacy_panel_dir
-        return find_legacy_panel_dir() / "daily_prices.json"
-    except Exception:
-        return Path("/nonexistent/daily_prices.json")
 
 
 @frappe.whitelist(allow_guest=False)
@@ -83,7 +83,6 @@ def calcular(batches_json, customer="", job_name="", observations=""):
             job_name=job_name or "panel",
             observations=observations or "",
             output_dir=Path(tmp) / "output",
-            price_file=_get_price_file(),
         )
 
     svc = result.service_result
@@ -168,7 +167,6 @@ def descargar_dxf(batches_json, customer="", job_name=""):
             job_name=job_name or "panel",
             observations="",
             output_dir=output_dir,
-            price_file=_get_price_file(),
         )
         dxf_path = result.service_result.dxf_path
         if not Path(dxf_path).exists():

@@ -41,7 +41,18 @@ class PriceCache:
     @classmethod
     def load(cls, path: Path) -> "PriceCache":
         data = json.loads(path.read_text(encoding="utf-8"))
-        return cls({row["item_code"]: PriceRecord(**row) for row in data.get("prices", [])})
+        # FALLA RUIDOSA (MSG_165 / MSG_019): un JSON sin la clave "prices" NO es
+        # un PriceCache. Antes se hacía data.get("prices", []) -> cache VACÍO en
+        # silencio; ese fue el bug del $0 (daily_prices.json, dict plano, se
+        # cargaba como PriceCache y devolvía 0 sin un solo error). Si el esquema
+        # no es el esperado, gritamos en vez de tragárnoslo.
+        if not isinstance(data, dict) or "prices" not in data:
+            claves = sorted(data.keys()) if isinstance(data, dict) else type(data).__name__
+            raise ValueError(
+                f"PriceCache.load: {path} no es un PriceCache válido. "
+                f"Se esperaba {{'prices': [...]}}; se recibió: {claves}"
+            )
+        return cls({row["item_code"]: PriceRecord(**row) for row in data["prices"]})
 
     def save(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

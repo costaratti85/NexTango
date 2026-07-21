@@ -471,6 +471,29 @@ def test_upload_pattern_thumbnail_que_falla_no_bloquea_el_alta(env, monkeypatch,
     assert "Gotas" in FAKE_FRAPPE._docs
 
 
+# -- casos borde adicionales de Atlas (complementan el bloque de arriba) --
+
+def test_update_thumbnail_okfalse_sin_miniatura_previa(env, monkeypatch):
+    """Motor devuelve ok=False (no supo renderizar) y no había miniatura previa
+    -> patrón disponible SIN miniatura, sin excepción."""
+    monkeypatch.setattr(patrones, "generate_thumbnail", lambda name: {"ok": False, "url": None})
+    monkeypatch.setattr(patrones, "_thumb_url", lambda name: None)
+    r = patrones.update_pattern(name="Aconcagua", dxf_path=str(env.real))
+    assert r["ok"] is True
+    assert r["file_available"] is True
+    assert r["thumbnail_url"] is None
+
+
+def test_update_thumbnail_falla_conserva_miniatura_previa(env, monkeypatch):
+    """Si la regeneración falla pero había una miniatura previa, se conserva la vieja
+    (mejor la vieja que ninguna)."""
+    monkeypatch.setattr(patrones, "generate_thumbnail", lambda name: {"ok": False, "url": None})
+    monkeypatch.setattr(patrones, "_thumb_url", lambda name: "/assets/Aconcagua_vieja.png")
+    r = patrones.update_pattern(name="Aconcagua", dxf_path=str(env.real))
+    assert r["ok"] is True
+    assert r["thumbnail_url"] == "/assets/Aconcagua_vieja.png"
+
+
 # ---------------------------------------------------------------- list_dxf_files
 
 def test_list_dxf_files_marca_used_by_y_huerfanos(env):

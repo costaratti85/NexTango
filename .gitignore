@@ -39,3 +39,4 @@ apps/sistema_industrial/sistema_industrial/public/js/version_stamp.js
 *.log
 Programas_hechos/OCR Proveedores/Token.txt
 *.bak
+Programas_hechos/Panel Decorativo/last_generate.json
