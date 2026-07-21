@@ -142,15 +142,13 @@ def load_pattern(settings):
             settings.input_file
         )
 
-        # Normalize bbox center to origin so tiling is symmetric on all 4 edges.
-        # Without this, a pattern whose bbox is off-center tiles asymmetrically
-        # (e.g. full figures on right/top, clipped figures on left/bottom).
-        bbox = piece.bbox()
-        if bbox is not None:
-            cx = (bbox.min_x + bbox.max_x) / 2.0
-            cy = (bbox.min_y + bbox.max_y) / 2.0
-            if abs(cx) > 1e-6 or abs(cy) > 1e-6:
-                piece = piece.translated(-cx, -cy)
+        # El motor NO centra al abrir. Los patrones deben venir ya centrados
+        # DESDE EL ARCHIVO: el vectorizador los guarda centrados, y los hechos a
+        # mano los posiciona el usuario respecto a la coordenada (0,0) = esquina
+        # inferior izquierda. Centrar acá centraba sobre el bbox del DXF, que con
+        # entidades sueltas de basura (caso Philo) queda inflado y corre el tile
+        # real ~1100 mm -> franja sin llenar. El centrado se mueve al guardado.
+        # Ver coordination/research/DIAGNOSTICO_PHILO_CENTRADO_TILEO.md
 
         return (
             piece,
