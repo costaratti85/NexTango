@@ -431,11 +431,26 @@ function perfiles_plegados_init() {
 	  var sc=Math.min((W-2*pad)/Math.max(1,maxx-minx),(H-2*pad)/Math.max(1,maxy-miny));
 	  function TX(x){return pad+(x-minx)*sc;} function TY(y){return H-(pad+(y-miny)*sc);}
 	  var svg='';
-	  for(var i=0;i<segs.length;i++){ var d=segs[i]; svg+='<line x1="'+TX(d.x1).toFixed(1)+'" y1="'+TY(d.y1).toFixed(1)+'" x2="'+TX(d.x2).toFixed(1)+'" y2="'+TY(d.y2).toFixed(1)+'" stroke="#5b7a9e" stroke-width="5" stroke-linecap="round"/>'; if(labelFn){ var mx=(d.x1+d.x2)/2,my=(d.y1+d.y2)/2; svg+='<text x="'+TX(mx).toFixed(1)+'" y="'+(TY(my)+16).toFixed(1)+'" fill="#8aa0bd" font-size="12" text-anchor="middle">'+labelFn(i)+'</text>'; } }
+	  // trazos de la pieza primero (así las cotas quedan por encima)
+	  for(var i=0;i<segs.length;i++){ var d=segs[i]; svg+='<line x1="'+TX(d.x1).toFixed(1)+'" y1="'+TY(d.y1).toFixed(1)+'" x2="'+TX(d.x2).toFixed(1)+'" y2="'+TY(d.y2).toFixed(1)+'" stroke="#5b7a9e" stroke-width="5" stroke-linecap="round"/>'; }
+	  // cotas (medida entre pliegues): HACIA AFUERA de la pieza, perpendiculares al
+	  // segmento, con halo blanco para que NO se solapen con los trazos. El "afuera"
+	  // se define respecto al centroide de la pieza (en coords de pantalla).
+	  if(labelFn){
+	    var ccx=0,ccy=0; for(var c=0;c<pts.length;c++){ ccx+=TX(pts[c].x); ccy+=TY(pts[c].y); } ccx/=Math.max(1,pts.length); ccy/=Math.max(1,pts.length);
+	    for(var k=0;k<segs.length;k++){ var sk=segs[k];
+	      var ax=TX(sk.x1),ay=TY(sk.y1),bx=TX(sk.x2),by=TY(sk.y2);
+	      var mx=(ax+bx)/2,my=(ay+by)/2, ddx=bx-ax,ddy=by-ay, LL=Math.hypot(ddx,ddy)||1;
+	      var nx=-ddy/LL,ny=ddx/LL;                                  // normal al segmento
+	      if((mx-ccx)*nx+(my-ccy)*ny<0){ nx=-nx; ny=-ny; }            // orientar hacia afuera
+	      var OFF=18, lx=mx+nx*OFF, ly=my+ny*OFF;
+	      svg+='<text x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" fill="#2f4763" font-size="14" font-weight="700" text-anchor="middle" dominant-baseline="central" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">'+labelFn(k)+'</text>';
+	    }
+	  }
 	  if(nodeFn) svg+=nodeFn(TX,TY,pts);
 	  document.getElementById(svgId).innerHTML=svg;
 	}
-	function drawFinished(svgId,fl,an,dr){
+	function drawFinished(svgId,fl,an,dr,showLetters){
 	  var g=partPoints(fl,an,dr);
 	  // orientar APAISADO: si la pieza es más alta que ancha, la roto 90°
 	  var bx0=1e9,by0=1e9,bx1=-1e9,by1=-1e9;
@@ -446,15 +461,17 @@ function perfiles_plegados_init() {
 	  var segs2=g.segs.map(function(sg){ var a=tr(sg.x1,sg.y1),b=tr(sg.x2,sg.y2); return {x1:a.x,y1:a.y,x2:b.x,y2:b.y}; });
 	  fitDraw(svgId,segs2,P2,function(i){return (fl[i]||0);},function(TX,TY,pts){
 	    var s='';
-	    // ángulo (con signo), gris, al costado del pliegue
+	    // ángulo (con signo), gris, al costado del pliegue — el de 90° NO se etiqueta
 	    for(var b=0;b<an.length;b++){ var vp=pts[b+1];
+	      if(Math.abs((an[b]||0)-90)<0.5) continue;
 	      s+='<text x="'+(TX(vp.x)+15).toFixed(1)+'" y="'+(TY(vp.y)+4).toFixed(1)+'" fill="#9fb3cf" font-size="11" text-anchor="middle">'+(an[b]*(dr[b]<0?-1:1))+'°</text>';
 	    }
-	    // letras de nodo SIN círculo, naranja furioso, apenas separadas del nodo
-	    for(var i=0;i<pts.length;i++){ var vp=pts[i];
+	    // letras de nodo — SOLO en modo "editar a mano" (identifican qué nodo es qué
+	    // pliegue al editar la secuencia); en la vista normal son ruido.
+	    if(showLetters){ for(var i=0;i<pts.length;i++){ var vp=pts[i];
 	      s+='<text x="'+(TX(vp.x)-9).toFixed(1)+'" y="'+(TY(vp.y)-7).toFixed(1)+'" fill="#ff5a00" font-size="16" font-weight="800" text-anchor="middle">'+nodeLetter(i)+'</text>';
-	    }
-	    return s; },460,190,26);
+	    } }
+	    return s; },460,190,40);
 	}
 	function nodeLetter(i){ return String.fromCharCode(65+(i%26)); }
 
@@ -561,7 +578,7 @@ function perfiles_plegados_init() {
 	function previewSetup(){
 	  var fl=state.segs.map(function(x){return x.len;}); var an=[],dr=[];
 	  for(var i=0;i<state.segs.length-1;i++){ var a=(state.segs[i].ang==null?90:state.segs[i].ang); an.push(Math.abs(a)); dr.push(a<0?-1:1); }
-	  drawFinished('pp-previewPart',fl,an,dr);
+	  drawFinished('pp-previewPart',fl,an,dr,state.manual);
 	  // largo a cortar en vivo
 	  var ut=curUtil(); var flv=fl.map(function(x){return x||0;}); var anv=an;
 	  var ang2=[]; for(var k=0;k<state.segs.length-1;k++) ang2.push(state.segs[k].ang||90);
@@ -645,7 +662,7 @@ function perfiles_plegados_init() {
 	  if(p.cal.xg) res+=line('Corrección X global',(p.cal.xg>0?'+':'')+p.cal.xg.toFixed(2)+' mm');
 	  if(state.xCorr){ for(var xc in state.xCorr){ if(state.xCorr.hasOwnProperty(xc)) res+=line('Corrección X pliegue b'+(+xc+1),(state.xCorr[xc]>0?'+':'')+state.xCorr[xc].toFixed(2)+' mm'); } }
 	  document.getElementById('pp-resumen').innerHTML=res;
-	  drawFinished('pp-resultPart',p.flanges,p.angles,p.dirs);
+	  drawFinished('pp-resultPart',p.flanges,p.angles,p.dirs,man);
 	  var useW=!!(state.useW&&p.wPlan);
 	  document.getElementById('pp-seqTitle').textContent = useW?(p.wTipo==='escalon'?'Secuencia (técnica de escalón)':'Secuencia (técnica W)'):(man?'Secuencia (manual)':(cb.keepOrder?'Secuencia (orden mantenido)':'Secuencia (automática)'));
 	  document.getElementById('pp-btnManual').textContent = man?'↩︎ Volver a automático':'✏️ Editar a mano';
