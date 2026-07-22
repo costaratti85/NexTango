@@ -433,16 +433,27 @@ function perfiles_plegados_init() {
 	  var svg='';
 	  // trazos de la pieza primero (así las cotas quedan por encima)
 	  for(var i=0;i<segs.length;i++){ var d=segs[i]; svg+='<line x1="'+TX(d.x1).toFixed(1)+'" y1="'+TY(d.y1).toFixed(1)+'" x2="'+TX(d.x2).toFixed(1)+'" y2="'+TY(d.y2).toFixed(1)+'" stroke="#5b7a9e" stroke-width="5" stroke-linecap="round"/>'; }
-	  // cotas (medida entre pliegues): HACIA AFUERA de la pieza, perpendiculares al
-	  // segmento, con halo blanco para que NO se solapen con los trazos. El "afuera"
-	  // se define respecto al centroide de la pieza (en coords de pantalla).
+	  // cotas (medida entre pliegues): del lado EXTERIOR del perfil, porque la cota
+	  // ES la medida exterior de la pieza (aclaración de Constantino). El exterior de
+	  // un tramo es el lado OPUESTO al tramo vecino en el pliegue: el vecino se dobla
+	  // hacia el interior, así que "afuera" = lejos de ese vecino. Se deriva de la
+	  // propia polilínea (pts en orden), no del centroide. Perpendicular al segmento
+	  // + halo blanco para que NO se solapen con los trazos. El centroide queda solo
+	  // como desempate para un tramo casi recto (sin giro claro).
 	  if(labelFn){
 	    var ccx=0,ccy=0; for(var c=0;c<pts.length;c++){ ccx+=TX(pts[c].x); ccy+=TY(pts[c].y); } ccx/=Math.max(1,pts.length); ccy/=Math.max(1,pts.length);
 	    for(var k=0;k<segs.length;k++){ var sk=segs[k];
 	      var ax=TX(sk.x1),ay=TY(sk.y1),bx=TX(sk.x2),by=TY(sk.y2);
 	      var mx=(ax+bx)/2,my=(ay+by)/2, ddx=bx-ax,ddy=by-ay, LL=Math.hypot(ddx,ddy)||1;
 	      var nx=-ddy/LL,ny=ddx/LL;                                  // normal al segmento
-	      if((mx-ccx)*nx+(my-ccy)*ny<0){ nx=-nx; ny=-ny; }            // orientar hacia afuera
+	      // vector hacia el tramo vecino en el pliegue (apunta al INTERIOR):
+	      // el del extremo final si hay pliegue ahí; si es el último tramo, el del inicio.
+	      var ux=0,uy=0,have=false;
+	      if(k+1<segs.length){ ux=TX(pts[k+2].x)-bx; uy=TY(pts[k+2].y)-by; have=true; }
+	      else if(k>0){ ux=TX(pts[k-1].x)-ax; uy=TY(pts[k-1].y)-ay; have=true; }
+	      var dotv=nx*ux+ny*uy;
+	      if(have && Math.abs(dotv)>0.5){ if(dotv>0){ nx=-nx; ny=-ny; } }   // N·vecino<0 => N mira al exterior
+	      else if((mx-ccx)*nx+(my-ccy)*ny<0){ nx=-nx; ny=-ny; }             // desempate por centroide (tramo recto)
 	      var OFF=18, lx=mx+nx*OFF, ly=my+ny*OFF;
 	      svg+='<text x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" fill="#2f4763" font-size="14" font-weight="700" text-anchor="middle" dominant-baseline="central" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">'+labelFn(k)+'</text>';
 	    }
