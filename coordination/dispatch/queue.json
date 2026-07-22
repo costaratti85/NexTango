@@ -2,6 +2,16 @@
  "pending": [
   {
    "agent": "Orbit",
+   "task": "ORBIT_DEPLOY_PERFILES_RENDER",
+   "descripcion": "Deploy de PR #9 (Vega, rama feat/vega-perfiles-render, commit 4ba3d41 (HEAD, incluye aaee3fb)): 3 ajustes de render en el dibujo del perfil de /app/perfiles-plegados (Constantino). Solo perfiles_plegados.js, cero logica de plegado. (1) Letras de nodo A/B/C solo en modo 'editar a mano', ocultas en vista normal. (2) Etiqueta de angulo oculta cuando el pliegue es 90; los distintos de 90 se etiquetan. (3) Cotas (medida entre pliegues) reubicadas hacia AFUERA de la pieza, tamano 14 + halo blanco, sin solaparse con los trazos. SIN MIGRATE. Pasos: git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Verificar (visual, Constantino) en /app/perfiles-plegados: letras aparecen solo al apretar 'Editar a mano'; pliegues de 90 sin etiqueta; medidas por fuera y sin tocar los trazos. Vega ya verifico el SVG generado con un harness (cotas a 18px de la linea). Ver MSG_053 en canal Orbit y MSG_188 en canal Nova. ACTUALIZADO: sumado commit 4ba3d41 — las cotas van del lado EXTERIOR del perfil (medida exterior; opuesto al tramo vecino en el pliegue), no del lado por centroide. Verificado en canal/omega/Z. Sigue siendo solo JS, sin migrate.",
+   "msg": "coordination/channel/Orbit/MSG_053_VEGA_deploy_perfiles_render.md",
+   "status": "completado",
+   "sprint": "001-rebanada",
+   "prioridad": "media",
+   "nota": "DEPLOYADO 2026-07-22: PR #9 mergeado a erpnext (merge 488f5f4, incluye 4ba3d41 de Vega, HEAD 4ba3d41). Solo JS (perfiles_plegados.js, +37/-9) -> git pull ff-only + version stamp + bench build + bump_page_cache + clear-cache + restart all (7/7 RUNNING). SIN migrate. 3 cambios verificados en el archivo servido (getpage lee del disco, HEAD 488f5f4, working tree limpio): (1) letras de nodo solo en 'editar a mano'; (2) angulos 90 sin etiqueta (continue si |ang-90|<0.5); (3) cotas del lado exterior con halo blanco (paint-order stroke #ffffff w3). version_stamp servido=488f5f4, HTTP 301 estable. Reporte Nova/MSG_188."
+  },
+  {
+   "agent": "Orbit",
    "task": "ORBIT_DEPLOY_DIALOGO_PATRON_Y_CACHE",
    "descripcion": "Deploy de PR #5 (Vega, rama feat/vega-dialogo-patron, HEAD df87543) -- DOS commits en un solo deploy: (1) 093aaa6: dialogo 'Actualizar patron' compacto en admin-patrones (Constantino: estaba embarullado). Solo presentacion, guardar_update lee los mismos fieldnames. (2) df87543: fix de cache -- agrega cache:'no-store' al fetch de load_patterns() en panel_decorativo.js; sin esto, tras actualizar un patron el navegador servia la galeria vieja cacheada. Solo JS (admin_patrones.js + panel_decorativo.js) -> SIN MIGRATE. Pasos: git pull + bench build --app sistema_industrial + bump_page_cache + supervisorctl restart all. Verificar: (a) /app/admin-patrones -> boton editar de un patron cargado -> el dialogo se ve notoriamente mas chico y guardar sigue andando (cambiar offset -> Guardar -> la version sube); (b) /app/panel-decorativo carga la galeria de patrones OK. Ver MSG_049 en canal Orbit y MSG_172 en canal Nova.",
    "msg": "coordination/channel/Orbit/MSG_049_VEGA_deploy_dialogo_y_cache.md",
