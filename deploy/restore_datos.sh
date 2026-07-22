@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
-# Restaura un backup de NexTango (hecho con backup.sh) en un site.
+# ═══════════════════════════════════════════════════════════════════════════
+# RESTORE DE DATOS — NexTango  (NO instala el código/programa)
+# ═══════════════════════════════════════════════════════════════════════════
+# Repone SOLO los DATOS (hechos con backup_datos.sh) DENTRO de un programa ya
+# instalado: base del site + archivos + planos + encryption_key + token Tango.
+# PRE-REQUISITO: el PROGRAMA ya tiene que estar instalado (ver install_programa.sh).
+#
 # ⚠️ DESTRUCTIVO sobre el site destino: PISA su base. NO correr contra un site
 #    de producción sin querer. Para probar, usá un site aislado (ej. test.local).
-# Uso:  ./restore.sh <dir-backup> [site]
+# Uso:  ./restore_datos.sh <dir-backup> [site]
+# ═══════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
-BACKUP_DIR=${1:?"Uso: restore.sh <dir-backup> [site]"}
+BACKUP_DIR=${1:?"Uso: restore_datos.sh <dir-backup> [site]"}
 SITE=${2:-erp.local}
 BENCH=${BENCH:-/home/costa/.local/bin/bench}
 BENCH_DIR=${BENCH_DIR:-/home/costa/frappe-bench}

@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
-# Backup COMPLETO de NexTango. Solo lectura de producción — seguro de correr.
-# Genera un punto de restauración: base del site + archivos + config + planos.
-# Uso:  ./backup.sh            (corre en el server, guarda en /home/costa/backups/nextango-<ts>)
-#       DEST=/ruta ./backup.sh (destino custom)
+# ═══════════════════════════════════════════════════════════════════════════
+# BACKUP DE DATOS — NexTango  (NO toca el código/programa)
+# ═══════════════════════════════════════════════════════════════════════════
+# Preserva SOLO los DATOS: base del site (patrones, precios, coefs, clientes),
+# /home/costa/planos, archivos del site, y credenciales/encryption_key.
+# Solo lectura de producción — seguro de correr. Corre de forma RECURRENTE,
+# independiente del código. Genera un punto de restauración autoverificado.
+#
+# Destino de almacenamiento propio (separado del código):
+#   por defecto  /home/costa/backups/nextango-<timestamp>/
+#   -> RECOMENDADO: copiar cada backup TAMBIÉN fuera del server (otra máquina/disco).
+#
+# Uso:  ./backup_datos.sh              (server; guarda en /home/costa/backups/nextango-<ts>)
+#       DEST=/ruta ./backup_datos.sh   (destino custom)
+# ═══════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
 SITE=${SITE:-erp.local}
