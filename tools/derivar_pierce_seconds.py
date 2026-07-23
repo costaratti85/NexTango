@@ -13,6 +13,13 @@ de un contorno rectangular, y el contorno también necesita su propio pierce
 para empezar a cortar). Se prueba con y sin el +1 del contorno para confirmar
 cuál da un ajuste más consistente entre los 12 paneles (la razón Delay/pierce
 casi constante entre paneles es la evidencia de que el conteo es correcto).
+
+ACTUALIZACIÓN 2026-07-23: Constantino confirmó "agujeros + contorno" como la
+convención correcta (coincide con la que da el ajuste más ajustado acá) y
+`calculate_pierce_count()` en legacy_panel_adapter.py ya cuenta el contorno.
+La rama "CON contorno" de este script es ahora la que corresponde a
+producción -- gamma=0.7187, redondeado a 0.72 por Constantino (0.18% de
+diferencia contra el valor exacto de la regresión).
 """
 import sys
 from pathlib import Path

@@ -14,9 +14,27 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "apps" / "sistema_i
 
 from sistema_industrial.presets.legacy_panel_adapter import (
     calculate_consumed_resources,
+    calculate_pierce_count,
     PIERCE_SECONDS_SIN_FLYCUT,
     PIERCE_SECONDS_CON_FLYCUT,
 )
+
+
+class _FakeFigure:
+    """Agujero: tiene .entities (como Figure/Piece del motor legacy)."""
+    def __init__(self):
+        self.entities = []
+
+
+class Polyline:
+    """Contorno/borde: SIN .entities -- se detecta por nombre de clase 'Polyline'."""
+    pass
+
+
+class _OtraClaseSinEntities:
+    """Cualquier otra cosa sin .entities y que NO se llame Polyline -- no debe
+    contarse como pierce (para no inflar el conteo con basura inesperada)."""
+    pass
 
 # Coeficientes reales de la Batería 2 (α, β, δ calibrados; γ ya no se lee de acá).
 MATERIAL_CALIBRADO = {
@@ -37,7 +55,7 @@ MATERIAL_LEGACY = {
 
 
 def test_valores_pierce():
-    assert PIERCE_SECONDS_SIN_FLYCUT == pytest.approx(0.7196)
+    assert PIERCE_SECONDS_SIN_FLYCUT == 0.72
     assert PIERCE_SECONDS_CON_FLYCUT == 0.2
 
 
@@ -114,3 +132,36 @@ def test_pierce_zero_no_suma_tiempo():
     )
     esperado = 0.013372 * 1000.0
     assert r["machine_seconds"] == pytest.approx(round(esperado, 1))
+
+
+# ------------------------------------------ calculate_pierce_count (contorno incluido)
+#
+# Constantino confirmó (2026-07-23): el contorno de cada pieza TAMBIÉN necesita su
+# propio pierce -- es la convención que dio el ajuste más ajustado (spread 1.5% vs
+# 4.2%) contra los 12 paneles reales de Batería 2 (ver derivar_pierce_seconds.py).
+
+def test_pierce_count_agujeros_mas_un_contorno():
+    items = [_FakeFigure(), _FakeFigure(), _FakeFigure(), Polyline()]
+    assert calculate_pierce_count(items) == 4  # 3 agujeros + 1 contorno
+
+
+def test_pierce_count_sin_agujeros_solo_contorno():
+    items = [Polyline()]
+    assert calculate_pierce_count(items) == 1
+
+
+def test_pierce_count_sin_geometria_da_cero():
+    assert calculate_pierce_count([]) == 0
+
+
+def test_pierce_count_multiples_polylines_cuentan_cada_una():
+    """Si el motor emite más de un Polyline (ej. un border path aparte del
+    contorno), cada uno necesita su propio pierce -- no se hardcodea un +1
+    fijo, se cuenta lo que realmente hay."""
+    items = [_FakeFigure(), Polyline(), Polyline()]
+    assert calculate_pierce_count(items) == 3
+
+
+def test_pierce_count_ignora_objetos_sin_entities_que_no_son_polyline():
+    items = [_FakeFigure(), _OtraClaseSinEntities()]
+    assert calculate_pierce_count(items) == 1
