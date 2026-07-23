@@ -335,6 +335,9 @@ class PanelDecorativo {
 				pattern_dxf_path: null,
 				step_x_mm: null,
 				step_y_mm: null,
+				// Flycut: pierce mucho más corto (backend usa PIERCE_SECONDS_CON_FLYCUT).
+				// Default false; se tilda por lote en la Lista de lotes.
+				apto_flycut: false,
 			};
 
 			if (is_dxf) {
@@ -394,6 +397,12 @@ class PanelDecorativo {
 			tr.append($('<td>').text(b.material + ' ' + b.thickness_mm + 'mm'));
 			tr.append($('<td>').text(sz[0] + ' × ' + sz[1] + ' mm'));
 			tr.append($('<td style="text-align:center">').text(sz[2]));
+
+			// Flycut por lote: al tildar, el backend usa un pierce mucho menor.
+			const $chk = $('<input type="checkbox" title="Flycut: pierce más corto">').prop('checked', !!b.apto_flycut);
+			$chk.on('change', () => { b.apto_flycut = $chk.prop('checked'); });
+			tr.append($('<td style="text-align:center">').append($chk));
+
 			tr.append(
 				$('<td style="text-align:center">').append(
 					$('<button class="btn btn-xs btn-default">✕</button>').on('click', () =>
