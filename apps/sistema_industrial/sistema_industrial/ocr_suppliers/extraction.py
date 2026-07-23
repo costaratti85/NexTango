@@ -69,6 +69,9 @@ def extract_invoice(file_path, options=None):
             "descripcion": it.get("descripcion", "") or "",
             "cantidad": _f(reader.parse_decimal(it.get("cantidad"))),
             "precio_unitario": _f(reader.parse_decimal(it.get("precio"))),
+            "iva_pct": it.get("iva_pct"),            # 21.0 | 10.5 | 27.0 | None
+            "needs_review": bool(it.get("needs_review", False)),
+            "iva_fuente": it.get("iva_fuente", ""),  # linea | alicuota_unica | agrupado | indeterminado
             "raw_text": it.get("linea_detectada", "") or "",
         })
 
@@ -92,6 +95,11 @@ def extract_invoice(file_path, options=None):
     if not cuit:
         warnings.append("No se pudo determinar el CUIT del proveedor (¿sin QR AFIP legible?).")
 
+    ivas_detectadas = sorted({ln["iva_pct"] for ln in lineas if ln["iva_pct"] is not None})
+    n_iva_review = sum(1 for ln in lineas if ln["needs_review"])
+    if n_iva_review:
+        warnings.append(f"{n_iva_review} renglón(es) con IVA a confirmar por el humano (needs_review).")
+
     return {
         "proveedor": {"cuit": cuit, "nombre": datos.get("proveedor", "") or ""},
         "lineas": lineas,
@@ -101,6 +109,7 @@ def extract_invoice(file_path, options=None):
             "page_ref": page_ref,
             "warnings": warnings,
             "fuente_encabezado": "qr" if datos.get("_datos_qr") else "texto",
+            "iva": {"alicuotas_detectadas": ivas_detectadas, "renglones_a_revisar": n_iva_review},
             "layout_learned": store.learned,   # {cuit: {zonas...}} para persistir en Supplier.si_ocr_layout
             "clave_factura": datos.get("clave", ""),
             "tipo": datos.get("tipo", ""),

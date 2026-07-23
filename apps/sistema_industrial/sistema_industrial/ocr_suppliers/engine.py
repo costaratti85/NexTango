@@ -586,6 +586,7 @@ class FacturaTableReader:
             "cantidad": cantidad, "precio": precio, "importe": importe,
             "iva": iva, "advertencia": advertencia, "tipo": "Simple", "escala": "No usa",
             "linea_detectada": linea.text, "score": linea.score, "coincidencia": "", "match_score": 0,
+            "_y0": linea.y0,
         }
 
     def validar_calculo(self, cantidad, precio, importe):
@@ -841,9 +842,81 @@ class FacturaTableReader:
             "numero_completo": completo, "fecha": fecha,
             "total": total, "etiqueta": etiqueta,
             "_layout": layout, "_datos_qr": datos_qr,
+            "_texto": texto,
         }
         datos["clave"] = self.clave_factura(datos)
         return datos
+
+    # ---- IVA por renglón (alícuota) --------------------------------------------
+    # Alícuotas de IVA argentinas que reconocemos.
+    _IVA_RATES = (21.0, 10.5, 27.0)
+
+    def _match_rate(self, v):
+        """Devuelve la alícuota (21.0/10.5/27.0) si v matchea una, si no None."""
+        if v is None:
+            return None
+        for r in self._IVA_RATES:
+            if abs(v - r) < 0.05:
+                return r
+        return None
+
+    def _rates_en_texto(self, texto):
+        """Alícuotas mencionadas en el texto del comprobante (contexto IVA/%/gravado)."""
+        up = (texto or "").upper()
+        rates = set()
+        if re.search(r"10[.,]5\s*%", up) or re.search(r"(IVA|AL[IÍ]C|GRAVAD)[^\n]{0,25}10[.,]5", up):
+            rates.add(10.5)
+        if re.search(r"\b21([.,]0+)?\s*%", up) or re.search(r"(IVA|AL[IÍ]C|GRAVAD)[^\n]{0,25}\b21\b", up):
+            rates.add(21.0)
+        if re.search(r"\b27([.,]0+)?\s*%", up) or re.search(r"(IVA|AL[IÍ]C|GRAVAD)[^\n]{0,25}\b27\b", up):
+            rates.add(27.0)
+        return rates
+
+    def _marcadores_alicuota(self, lineas):
+        """Líneas que parecen encabezado/subtotal de una alícuota (formato agrupado).
+        Devuelve [(y0, rate)] ordenado por y0."""
+        out = []
+        for l in lineas:
+            t = l.text.upper()
+            if not (("IVA" in t) or ("ALIC" in t) or ("GRAVAD" in t) or ("%" in t)):
+                continue
+            for r, pat in ((10.5, r"10[.,]5"), (27.0, r"\b27\b|27[.,]0"), (21.0, r"\b21\b|21[.,]0")):
+                if re.search(pat, t):
+                    out.append((l.y0, r))
+                    break
+        return sorted(out, key=lambda x: x[0])
+
+    def _rate_por_bloque(self, y, markers):
+        """Alícuota del bloque en el que cae el renglón (asume encabezado arriba)."""
+        if y is None or not markers:
+            return None
+        arriba = [(my, r) for my, r in markers if my <= y]
+        if arriba:
+            return arriba[-1][1]
+        return markers[0][1]
+
+    def _asignar_iva(self, items, lineas, texto):
+        """Asigna `iva_pct` + `needs_review` a cada item.
+        (a) columna por línea → confiable. (b) alícuota única en el doc → confiable.
+        (c) multi-alícuota agrupada → best-guess por bloque + needs_review.
+        (d) indeterminado → iva_pct=None + needs_review."""
+        rates_doc = self._rates_en_texto(texto)
+        markers = self._marcadores_alicuota(lineas)
+        rates_marker = {r for _, r in markers}
+        solo = (rates_doc | rates_marker) & set(self._IVA_RATES)
+        unica = next(iter(solo)) if len(solo) == 1 else None
+        for item in items:
+            y = item.pop("_y0", None)
+            per = self._match_rate(self.parse_decimal(item.get("iva", ""))) if item.get("iva") else None
+            if per in self._IVA_RATES:
+                item["iva_pct"], item["iva_fuente"], item["needs_review"] = per, "linea", False
+            elif unica is not None:
+                item["iva_pct"], item["iva_fuente"], item["needs_review"] = unica, "alicuota_unica", False
+            elif len(rates_marker) >= 2:
+                item["iva_pct"] = self._rate_por_bloque(y, markers)
+                item["iva_fuente"], item["needs_review"] = "agrupado", True
+            else:
+                item["iva_pct"], item["iva_fuente"], item["needs_review"] = None, "indeterminado", True
 
     def analizar(self, ruta, aprender=True):
         """Analiza una factura y extrae los renglones. Devuelve (items, zonas_debug, datos).
@@ -859,19 +932,23 @@ class FacturaTableReader:
 
         for img, palabras in paginas:
             page_w, page_h = img.size
+            # Líneas de TODA la página: necesarias para detectar marcadores de alícuota
+            # (subtotales/encabezados por IVA) aunque estemos en modo dirigido (zona).
+            lineas_full = self.agrupar_lineas(palabras)
             if layout and layout.get("veces_procesado", 0) >= 2:
                 palabras_zona = self._filtrar_zona(
                     palabras, page_w, page_h,
                     layout["y0_pct"], layout["y1_pct"], layout["x0_pct"], layout["x1_pct"])
-                lineas = self.agrupar_lineas(palabras_zona)
-                items_pag, zonas = self.detectar_items(lineas)
+                items_pag, zonas = self.detectar_items(self.agrupar_lineas(palabras_zona))
             else:
-                lineas = self.agrupar_lineas(palabras)
-                items_pag, zonas = self.detectar_items(lineas)
+                items_pag, zonas = self.detectar_items(lineas_full)
                 if aprender and zonas and cuit and self._base is not None:
                     self._aprender_layout(cuit, datos.get("proveedor", ""),
                                           page_w, page_h, zonas,
                                           not layout or not layout.get("necesita_ocr"))
+
+            # IVA por renglón (formato columna-por-línea o agrupado-por-alícuota)
+            self._asignar_iva(items_pag, lineas_full, datos.get("_texto", ""))
 
             for item in items_pag:
                 item.update({
