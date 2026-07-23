@@ -27,6 +27,7 @@ from sistema_industrial.ocr_suppliers.extraction import extract_invoice
 from sistema_industrial.ocr_suppliers.catalog import load_catalog
 from sistema_industrial.ocr_suppliers.item_matcher import match_lines
 from sistema_industrial.ocr_suppliers.item_builder import item_payload_nuevo
+from sistema_industrial.ocr_suppliers.code_suggester import suggest_next_item_code, aplicar_sugerencias
 
 
 _JOB_PREFIX = "ocr_suppliers:job:"
@@ -120,7 +121,8 @@ def resultado(job_id: str):
       "lineas": [
         {"idx", "codigo_proveedor", "codigo_barras", "descripcion", "cantidad",
          "precio_unitario", "match": {item_code,item_name,score,reason}|null,
-         "confianza": 0..100, "candidatos": [{item_code,item_name,score,reason}...]}
+         "confianza": 0..100, "candidatos": [{item_code,item_name,score,reason}...],
+         "codigo_sugerido": "FF-SS-SS-NNN" | null}   // solo líneas SIN match (Forge)
       ],
       "meta": {...}
     }
@@ -177,6 +179,10 @@ def _procesar_job(ocr_job_id: str = None, file_url: str = None):
         frappe.log_error(f"ocr_proveedores match {job_id}: {exc}", "ocr_proveedores")
         _save_job(job_id, {"status": "error", "error": f"matching: {exc}"})
         return
+
+    # Sugerencia de código para las líneas SIN match (Forge). El humano lo
+    # confirma/edita; es una pre-carga del campo editable (Regla 8).
+    aplicar_sugerencias(lineas, suggest_next_item_code)
 
     _save_job(job_id, {
         "status": "done",

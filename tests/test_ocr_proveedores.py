@@ -133,3 +133,45 @@ def test_item_payload_item_name_se_trunca_a_140():
     largo = "D" * 200
     p = item_payload_nuevo("C1", largo, "S", "", "", "Ferretería", "Nos")
     assert len(p["item_name"]) == 140
+
+
+# --------------------------------------- FASE 2: sugerencia de código (wiring)
+
+from sistema_industrial.ocr_suppliers.code_suggester import (  # noqa: E402
+    aplicar_sugerencias, suggest_next_item_code,
+)
+
+
+def test_aplicar_sugerencias_solo_a_lineas_sin_match():
+    lineas = [
+        {"idx": 0, "match": {"item_code": "X"}, "candidatos": []},          # con match
+        {"idx": 1, "match": None, "candidatos": [{"item_code": "FF-01-001"}]},  # sin match
+    ]
+    aplicar_sugerencias(lineas, lambda l, c: "FF-01-002")
+    assert lineas[0]["codigo_sugerido"] is None      # con match -> sin sugerencia
+    assert lineas[1]["codigo_sugerido"] == "FF-01-002"  # sin match -> sugerido
+
+
+def test_aplicar_sugerencias_pasa_linea_y_candidatos_al_suggester():
+    recibido = {}
+    def fake(linea, candidatos):
+        recibido["desc"] = linea.get("descripcion")
+        recibido["cand"] = candidatos
+        return "SUG-1"
+    lineas = [{"idx": 0, "match": None, "descripcion": "Bulón", "candidatos": [{"item_code": "A"}]}]
+    aplicar_sugerencias(lineas, fake)
+    assert recibido["desc"] == "Bulón" and recibido["cand"] == [{"item_code": "A"}]
+    assert lineas[0]["codigo_sugerido"] == "SUG-1"
+
+
+def test_aplicar_sugerencias_graceful_si_suggester_falla():
+    # el seam sin implementar (NotImplementedError) NO debe romper el flujo
+    lineas = [{"idx": 0, "match": None, "candidatos": []}]
+    aplicar_sugerencias(lineas, suggest_next_item_code)   # el stub tira NotImplementedError
+    assert lineas[0]["codigo_sugerido"] is None
+
+
+def test_aplicar_sugerencias_none_del_suggester_queda_none():
+    lineas = [{"idx": 0, "match": None, "candidatos": []}]
+    aplicar_sugerencias(lineas, lambda l, c: None)
+    assert lineas[0]["codigo_sugerido"] is None
