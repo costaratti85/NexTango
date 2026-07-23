@@ -37,8 +37,14 @@ cp "$BK/${PREFIX}"* "$DEST/"
 
 echo "[3/4] planos + config critica"
 tar czf "$DEST/planos.tar.gz" -C "$(dirname "$PLANOS")" "$(basename "$PLANOS")"
-sudo cp "$NEXUS_ENV" "$DEST/frappe-bench-nexus.env"
-sudo chown "$(id -un):$(id -gn)" "$DEST/frappe-bench-nexus.env"
+# nexus.env (token Tango): leer sin sudo si es posible (necesario en cron, que no tiene TTY);
+# fallback a sudo para uso interactivo si el archivo fuera root-only.
+if cp "$NEXUS_ENV" "$DEST/frappe-bench-nexus.env" 2>/dev/null; then
+  :
+else
+  sudo cp "$NEXUS_ENV" "$DEST/frappe-bench-nexus.env"
+  sudo chown "$(id -un):$(id -gn)" "$DEST/frappe-bench-nexus.env"
+fi
 
 echo "[4/4] verificación"
 gzip -t "$DEST/${PREFIX}-database.sql.gz"

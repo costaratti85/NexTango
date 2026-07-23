@@ -33,9 +33,50 @@ DEST=/otra/ruta ./backup_datos.sh
 - **Destino de almacenamiento propio** (separado del código). **RECOMENDADO: copiar cada
   backup también fuera del server** (otra máquina/disco) — por si lo que se pierde es el server.
 
-### (Opcional) programarlo
+### Backup automático (ANDANDO) — diario + copia sola a la Mint
 
-Se puede dejar corriendo solo (cron). Hoy es **manual** a propósito; pedir si se quiere automatizar.
+Autorizado por Constantino. Un **cron en el server** corre todos los días y **copia solo** el
+resultado a la Mint (no hay que acordarse de nada).
+
+**Qué hace cada corrida** (`cron_backup_a_mint.sh`, en el server):
+1. corre `backup_datos.sh` (genera el backup de datos en el server);
+2. lo copia a la Mint por `rsync` — con **catch-up**: si algún día la Mint estuvo apagada, la
+   próxima corrida sube los que falten;
+3. **verifica la integridad EN la Mint** (gzip/tar + `encryption_key` + token);
+4. **reintenta** la copia hasta 3 veces si falla; todo queda en un **log**;
+5. **retención**: conserva los **últimos 10** en server y Mint (nunca borra el más nuevo).
+
+| | Ruta | Máquina |
+|---|---|---|
+| Scripts del cron | `/home/costa/backup-tools/` | SERVER (190.190.190.20) |
+| Backups (origen) | `/home/costa/backups/nextango-<ts>/` | SERVER |
+| Backups (copia) | `/home/costa/backups/nextango-<ts>/` | **MINT** (190.190.190.139) |
+| Log | `/home/costa/backups/backup_cron.log` | SERVER |
+
+**Frecuencia:** diaria a las **13:00** (mediodía, la Mint suele estar encendida). **Es
+ajustable.**
+
+**Cómo cambiar la frecuencia / hora** (en el server):
+```bash
+HORA=9  MIN=30 /home/costa/backup-tools/instalar_cron_backup.sh   # cambia a 09:30 diario
+/home/costa/backup-tools/instalar_cron_backup.sh --remove          # lo desactiva
+```
+Para otra periodicidad (ej. dos veces al día, o solo días hábiles) se edita la línea de cron
+`# NEXTANGO_BACKUP_AUTO` con `crontab -e` en el server. Retención: variable `RETENTION`
+(default 10; rango sugerido 7–14).
+
+**Cómo verificar que anda:**
+- En el server: `tail /home/costa/backups/backup_cron.log` → cada corrida termina en `═══ fin OK ═══`.
+- En la Mint: `ls -dt /home/costa/backups/nextango-*` → debe aparecer el del día.
+- Integridad manual: `gzip -t <dir>/*-database.sql.gz` y `tar -tf <dir>/*-files.tar`.
+
+**Conectividad:** la copia usa una clave SSH dedicada `id_backup` (server → Mint), autorizada en
+`~/.ssh/authorized_keys` de la Mint. Si la Mint cambia de IP, actualizar `MINT_HOST` en
+`cron_backup_a_mint.sh`.
+
+> **Nota:** existe además un auto-backup nativo de bench cada 6 h (solo base, sin archivos) que
+> **queda en el server**. El backup automático de acá es el **completo** (base + archivos +
+> planos + credenciales) y el único que **sale del server** a la Mint.
 
 ## Restore (destructivo — pisa la base del site)
 
