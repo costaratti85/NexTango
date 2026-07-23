@@ -59,6 +59,22 @@ res = generate_tango_import_excel(item_codes=nuevos_codigos_ocr)   # ferretería
 - Devuelve el **`file_url`** de un File privado de Frappe (para descargar/revisar/subir a Tango a mano — Regla 8, no sube nada).
 - Requiere `openpyxl` en el bench (dep del OCR).
 
+### 4. Sugerencia inteligente de código — `code_suggester.py`
+Para cada línea de factura **sin match**, propone el próximo `item_code` libre.
+```python
+from sistema_industrial.ocr_suppliers.code_suggester import suggest_next_item_code
+sug = suggest_next_item_code(linea_ocr=linea, candidatos=candidatos_rankeados)
+# -> {"codigo_sugerido","familia","grupo","paso","confianza","fuente",
+#     "candidato_ref","editable":True,"needs_review","nota"}
+```
+- **Infiere familia+subcategoría del candidato top** (los artículos parecidos que rankeó el matcher). Ej: amoladora DDWE → candidatos familia 54 → `54-00-00-00-126`.
+- **Numeración:** máximo del grupo + paso (5 taller / 1 en 52·54·99), con ceros. Maneja **grupo vacío** (primer código) y **colisiones** (salta al siguiente libre).
+- Si los candidatos **no dan familia clara** → `confianza:"baja"`, `needs_review:True`, subcategoría en `00` (no inventa). Sin candidatos → `codigo_sugerido:None`.
+- **NO reconstruye el árbol de Item Groups** (decisión de Constantino): solo lee `item_code` existentes.
+- **Regla 8:** `editable:True` siempre — el humano confirma/edita el sugerido.
+- Wrapper whitelisted `suggest_next_item_code_api`.
+- Anatomía de referencia: `coordination/reports/FORGE_ANATOMIA_CODIGOS_ARTICULOS.md`.
+
 ## Pendiente (otros dueños)
 - Motor OCR server-side (QR AFIP + layout + parsing) en `frappe.enqueue` — **OCR**.
 - DocTypes `si_supplier_*` (equivalencias, invoice_ocr) — **OCR / Atlas**.
