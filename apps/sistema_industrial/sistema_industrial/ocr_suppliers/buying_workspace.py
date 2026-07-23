@@ -54,3 +54,19 @@ def add_ocr_link_to_buying():
     ws.flags.ignore_links = True
     ws.save(ignore_permissions=True)
     frappe.db.commit()
+
+
+def ensure_sistema_industrial_on_home():
+    """Garantiza que el workspace 'Sistema Industrial' aparezca en la GRILLA de
+    la home del Desk (/app), no solo en el sidebar.
+
+    En Frappe v16 todos los workspaces que salen en la home tienen
+    type='Workspace'; los únicos con type=None son 'Welcome Workspace' (excluida
+    a propósito) y —hasta este fix— 'Sistema Industrial'. El fixture ya trae
+    type='Workspace'; esto lo re-asegura tras cada migrate por si la sync no lo
+    actualizara en un registro preexistente. Idempotente."""
+    if not frappe.db.exists("Workspace", "Sistema Industrial"):
+        return
+    if frappe.db.get_value("Workspace", "Sistema Industrial", "type") != "Workspace":
+        frappe.db.set_value("Workspace", "Sistema Industrial", "type", "Workspace")
+        frappe.db.commit()
