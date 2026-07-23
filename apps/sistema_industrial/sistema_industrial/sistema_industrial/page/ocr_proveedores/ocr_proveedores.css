@@ -1,0 +1,10 @@
+.ocr-prov { max-width: 900px; }
+.ocr-prov .ocr-resultado {
+	background: var(--fg-color, #f8f8f8);
+	border: 1px solid var(--border-color, #e0e0e0);
+	border-radius: 6px;
+	padding: 12px;
+	font-size: 12px;
+	max-height: 60vh;
+	overflow: auto;
+}
