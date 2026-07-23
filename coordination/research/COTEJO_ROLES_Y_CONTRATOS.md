@@ -108,3 +108,24 @@ Brújula §6.5 (actual) confirma la repartición y **separa Orbit=Build de Forge
 
 ## Resumen ejecutivo
 Los 10 contratos formales viven en `engineers/` (2º repo) + Forge en `docs/agents/` (1º). **Alineados:** Nova, Atlas, Vega, Tango. **Desalineados:** **Nido** (nesting vaciado por DECISION_002 → compilador DXF, en pausa), **Punto** (desborde CAD→modelado de tiempo/precio, 60 tareas), **Forge↔Orbit** (solape en infra: Samba/env es de Orbit por contrato), **Gemu** y **Lechu** (roles vigentes ociosos). **Sin contrato:** Cybelec, Postprocesador (satélites nuevos). **Huecos:** cálculo de recursos/física de máquina (lo tapa Punto), infra pura (zona gris Orbit/Forge), MES, OCR. **Mis desvíos:** relevamiento + este cotejo (fuera de Build). **Las 5 hipótesis de Nova: todas confirmadas** (Forge con matiz). No propongo reasignaciones — es diagnóstico.
+
+---
+
+# ⚠️ CORRECCIÓN — NIDO no es "rol vaciado" (Nova, 2026-07-19)
+
+Este cotejo clasificó a **Nido** como **"rol vaciado por decisión"**: su contrato viejo decía *nesting*, y `DECISION_002` puso el nesting en CypCut.
+
+**Es incorrecto.** Constantino definió el rol real: Nido **nunca fue nesting**. Su rol **estaba mal descrito** en los repos viejos.
+
+**NIDO = COMPILADOR DE LOTE DE CORTE POR DEMANDA** — genera UN archivo CAD con todos los dibujos que cumplen un criterio flexible (por pedido, por material+espesor, por matricería, por segundos de máquina…), acomodados por material/espesor/cantidad. Está **aguas arriba** del nesting: produce el insumo que CypCut después acomoda. **No solapa con CypCut.**
+
+Constantino: *"la función más importante para poder hacer los nestings"*.
+
+| | Antes (este cotejo) | Ahora |
+|---|---|---|
+| Clasificación | ❌ rol vaciado por decisión | ✅ **rol mal descrito → corregido** |
+| Contrato | (sin objeto) | **`DECISION_012`** |
+
+**Nota metodológica:** la hipótesis del "rol vaciado" fue **mía** (MSG_041), y Orbit la verificó **contra los documentos** — donde efectivamente decía "nesting". El cotejo hizo bien su trabajo: la fuente estaba equivocada, no la lectura. Es un recordatorio de que **los repos viejos describen mal algunas cosas**, y de que el criterio de Constantino manda sobre cualquier documento, viejo o nuevo.
+
+**Consecuencia estructural:** Nido es **consumidor** del motor de cálculo de recursos (necesita segundos de máquina por pieza). Eso suma un segundo consumidor además del precio → **refuerza la Opción 2** de `PROPUESTA_ARREGLOS_DE_ROLES.md` §B.1.

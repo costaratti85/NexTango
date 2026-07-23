@@ -835,10 +835,10 @@
    "task": "VEGA_CONECTAR_PRECIO_UI_PANEL_DECORATIVO",
    "descripcion": "Conectar el PRECIO en la pantalla de Panel Decorativo. Punto ya lo expone en el endpoint api/paneles.calcular() (commit 0e662a8): costo_material, costo_maquina, costo_total por panel + costo_total_linea + prices_missing. Falta que la UI los muestre. Cierra el precio end-to-end en la pantalla.",
    "msg": "coordination/channel/Nova/MSG_093_PUNTO_avance_precio_endpoint.md",
-   "status": "completado-codigo-espera-deploy",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "Codigo HECHO (MSG_096, commit 1d4ba96, pusheado): columna 'Costo motor' + resumen + manejo prices_missing. Falta DEPLOY (ORBIT_DEPLOY_PRECIO_PANEL_DECORATIVO). No verificado visual (sin bench local)."
+   "nota": "Superado/deployado."
   },
   {
    "agent": "Punto",
@@ -1065,11 +1065,11 @@
    "task": "RECREAR_PAGINA_PRECIOS",
    "descripcion": "Recrear la PAGINA DE CARGA DE PRECIOS que existia en el sistema standalone viejo y hoy NO esta en ERPNext (reportado por Constantino). Los precios hoy viven en doctypes (SI Precios Globales.precio_segundo_laser, precio_por_kg por material en SI Material Corte) pero falta una pantalla amigable para anotarlos/editarlos como antes. Punto define donde viven los precios y que falta; Vega arma la UI. Probablemente relacionado con el bug PUNTO_BUG_ERROR_AL_CALCULAR (si faltan precios cargados).",
    "msg": "coordination/channel/Vega/MSG_036_nova_pagina_precios.md",
-   "status": "completado-espera-deploy",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
    "nota_vega_2026_07_14": "HECHO en PR #3 (feat/vega, commit 7ca3900). Fase 1 segun definicion de Constantino: precio por kg POR FAMILIA (4 inputs, propagados a los 7 espesores de cada una) y SOLO PRECIOS (cero coeficientes; son de tiempo y universales de maquina -> fase 2 tras el simulador de Punto). Contenido: page nueva /app/precios con precio_segundo_laser + precio_por_plegado (SI Precios Globales) y, por familia, precio_por_kg + precio_plegar_por_kg (propagados a SI Material Corte) + shortcut Precios en el workspace. SIN BACKEND NUEVO: get_precios/save_precios/materiales.get_all/materiales.update ya existian -> Atlas no intervino. Cuidados: avisa divergencia de precios dentro de una familia (guardar unifica), avisa familias fuera de las 4 y el caso legacy_json no guardable, valida TODO antes de disparar requests (this.call dispara al construirse -> evitaba guardado parcial reportado como exito), y relee de la base antes de confirmar. DEPLOY: este PR SI necesita bench migrate (Page nueva + workspace son documentos, no assets) -> sin migrate /app/precios da 404. Ver MSG_150 en canal Nova y MSG_037 en canal Orbit.",
-   "nota": "Vega 2026-07-14 (MSG_146 Nova, MSG_045 Punto): investigacion previa HECHA, UI NO arrancada a proposito (2 definiciones pendientes; el brief pedia no adivinar). Mapeo verificado: la pagina vieja es render_precios() en panel_sales_local_app.py:5125 (ruta /precios, titulo 'Parametros de precios diarios', 6 inputs) -> hoy precio_segundo_maquina = SI Precios Globales.precio_segundo_laser, precio_doblez_plegadora = .precio_por_plegado, y los 4 precio_kg por familia = SI Material Corte.precio_por_kg. BACKEND YA EXISTE (get_precios/save_precios/materiales.get_all/materiales.update whitelisted) -> ATLAS NO HACE FALTA para la fase 1. DUDA 1 (Constantino): el precio por kg se carga por FAMILIA (4 inputs como la pagina vieja, propagados a las 7 filas de cada familia) o por FILA (28 filas = 7 espesores x 4 familias)? Pregunta concreta: el precio del kg cambia segun el espesor dentro de la misma familia? Recomendacion Vega: por familia. DUDA 2 (Constantino/Punto): la pagina incluye solo PRECIOS o tambien los COEFICIENTES de calibracion (velocidad_corte_mm_s, tiempo_perforacion_s, laser_a/b/c/d) que viven en la MISMA doctype? Riesgo real: PUNTO_BUG_ERROR_AL_CALCULAR_PRECIO dice que falta 'definir storage de coefs universales (no por-material)' -> si Vega hace UI de coefs ahora se tira. Recomendacion Vega: fase 1 solo precios (mapea 1:1 con la vieja), coefs en fase 2 cuando Punto cierre el storage. Con las 2 respuestas la fase 1 es corta."
+   "nota": "Superado por pagina editable, deployado."
   },
   {
    "agent": "Atlas",
@@ -1096,10 +1096,10 @@
    "task": "ORBIT_RELEVAMIENTO_DOC_3_REPOS",
    "descripcion": "Relevar la documentacion de los 3 repos historicos de GitHub (costaratti85): identificar cual es cual, leer READMEs/docs/decisions/notas, extraer definiciones valiosas de negocio-dominio-arquitectura-formulas, marcar contradicciones (gana el nuevo NexTango). SOLO LECTURA, sin tocar codigo. Entregable: coordination/research/RELEVAMIENTO_REPOS_HISTORICOS.md",
    "msg": "coordination/channel/Orbit/MSG_038_nova_relevamiento_documentacion_3_repos.md",
-   "status": "entregado-pasada1",
+   "status": "completado",
    "sprint": "2026-07",
    "prioridad": "alta",
-   "nota": "Pasada 1 entregada 2026-07-19: coordination/research/RELEVAMIENTO_REPOS_HISTORICOS.md. Falta pasada 2 (BRUJULA + NOVA) -> ORBIT_RELEVAMIENTO_BRUJULA_NOVA"
+   "nota": "Entregado v2 completo (Brujula+Nova)."
   },
   {
    "agent": "Orbit",
@@ -1116,10 +1116,10 @@
    "task": "VEGA_PAGINA_PRECIOS_EDITABLE",
    "descripcion": "REVERSION de DECISION_011: la pagina de precios diarios vuelve a ser EDITABLE/ESCRIBIBLE. El vendedor carga a mano cada manana precio por kg por familia, por segundo de laser y por plegado. Guardado real + feedback. Sacar solo-lectura y la leyenda de sync con Tango (no aplica). Revertir la restriccion del payload: precio_por_kg SI se guarda.",
    "msg": "coordination/channel/Vega/MSG_042_nova_revierte_decision011_pagina_editable.md",
-   "status": "pendiente",
+   "status": "completado",
    "sprint": "2026-07",
    "prioridad": "urgente",
-   "nota": "Error de Nova corregido por Constantino: los precios vienen de EXCEL (hoy carga manual), no de Tango. Uso diario del vendedor a la manana -> UX agil."
+   "nota": "Deployado (31e8aae): pagina editable productiva."
   },
   {
    "agent": "TODOS",
@@ -1136,10 +1136,11 @@
    "task": "PUNTO_CONFIRMAR_TOLERANCIAS_CAD",
    "descripcion": "Confirmar vigencia contra el motor actual de las tolerancias del repo historico: snap 0.01 / min_segment 0.05 / max_gap 0.10 / epsilon 0.001 mm, y orientacion outer CCW / holes CW. Si siguen vigentes se formaliza como DECISION_012. NO cambiar el motor: solo verificar y reportar.",
    "msg": "(pendiente de despacho - baja prioridad)",
-   "status": "pendiente",
+   "status": "activo",
    "sprint": "2026-07",
    "prioridad": "baja",
-   "nota": "Unica candidata NO proveniente de Brujula (viene del repo viejo Sistema-Industrial). Por eso no se formalizo directo."
+   "nota": "Activada con este a: Punto libre (simulador esperando mediciones). Solo verificar contra motor actual, sin tocar. Candidata a DECISION de tolerancias si vigente.",
+   "carril": "YA"
   },
   {
    "agent": "Orbit",
@@ -1176,10 +1177,10 @@
    "task": "ORBIT_PURGA_CANON_ERRATA_PRECIOS",
    "descripcion": "Corregir los ~16 docs del canon actual con la errata Tango-maestro-de-precios -> modelo correcto (pricing en Excel, vendedor carga a mano, Tango solo fiscal). Marcar TASK_003/006_TANGO_PRICE_CACHE como obsoletas SIN borrarlas. EXCEPCION: NO tocar docs/00_BRUJULA_* (doc de Constantino, consulta pendiente).",
    "msg": "coordination/channel/Orbit/MSG_044_nova_purga_canon_errata_precios.md",
-   "status": "pendiente",
+   "status": "completado",
    "sprint": "2026-07",
    "prioridad": "alta",
-   "nota": "TEXTO AJUSTADO por MSG_045: EXCEL es el MASTER; TANGO es DESTINO/COPIA (puede recibir precios para facturar), nunca fuente. Direccion Excel->Tango (push), NUNCA Tango->sistema (pull). Corregir la DIRECCION de la flecha, no solo el dueno. Repasar docs ya corregidos con el texto viejo."
+   "nota": "Hecho (MSG_164 §2): 16 docs corregidos + Brujula."
   },
   {
    "agent": "Orbit",
@@ -1216,10 +1217,10 @@
    "task": "ATLAS_LIMPIEZA_PRICECACHE_FUENTE_UNICA",
    "descripcion": "a) daily_prices.json + SI Precios Globales = fuente unica explicita de precios. b) retirar PriceCache muerto del camino de produccion + ELIMINAR sync_from_tango.py. c) MINIMO: si sobrevive algo del cache, PriceCache.load debe FALLAR RUIDOSAMENTE ante JSON sin clave prices (hoy devuelve [] en silencio => bug cotizaciones en 0). Con tests. Orbit deploya.",
    "msg": "coordination/channel/Atlas/MSG_019_nova_limpieza_pricecache_fuente_unica_precios.md",
-   "status": "activo",
+   "status": "completado",
    "sprint": "2026-07",
    "prioridad": "alta",
-   "nota": "Bug LATENTE: si se cablea quotation_payload a una Quotation real, cotizaciones salen en 0 sin error visible. Codigo en produccion que toca dinero: no mergear sin tests verdes. Autorizado por Constantino, consistente con DECISION_011. | DESBLOQUEADO: copia canonica=/home/costa/Nextango. Deploy procede con tests verdes."
+   "nota": "Deployado (MSG_182, cdadd5a, PriceCache $0 resuelto + backfill)."
   },
   {
    "agent": "Atlas",
@@ -1236,10 +1237,10 @@
    "task": "VEGA_FIX_CACHE_LOAD_PATTERNS",
    "descripcion": "Agregar cache:no-store (o cache-busting) al fetch GET get_all en panel_decorativo.js:load_patterns(), para que la galeria de patrones refleje el estado real sin depender de Ctrl+Shift+R. Una linea. Deploy con Orbit cuando toque.",
    "msg": "coordination/channel/Vega/MSG_043_nova_fix_cache_load_patterns.md",
-   "status": "activo",
+   "status": "completado",
    "sprint": "2026-07",
    "prioridad": "baja",
-   "nota": "El no-disponible de los 4 patrones NO era bug de backend (Atlas): era cache del navegador. Solo el fetch de la galeria, no la data de patrones."
+   "nota": "Deployado."
   },
   {
    "agent": "Orbit",
@@ -1256,40 +1257,40 @@
    "task": "PUNTO_BACKFILL_THUMBNAIL_PHILO",
    "descripcion": "Generar el thumbnail de Philo con el motor de render DXF (backfill_thumbnails para Philo). Archivo ya cargado por Constantino: Philo_OffX360_OffY623_convertido_v2.dxf. Punto pone/confirma motor y parametros; Orbit corre en el server. Verificar que se vea bien.",
    "msg": "coordination/channel/Punto/MSG_049_nova_thumbnail_philo_y_autogen.md",
-   "status": "activo",
+   "status": "completado",
    "sprint": "2026-07",
    "prioridad": "media",
-   "nota": "Philo era el unico patron sin DXF; ya disponible pero sin miniatura."
+   "nota": "Backfill corrido."
   },
   {
    "agent": "Atlas+Punto",
    "task": "AUTOGEN_THUMBNAIL_UPDATE_PATTERN",
    "descripcion": "REQUISITO FIRME (no opcional): el thumbnail se genera SOLO cada vez que se carga/reapunta un patron. update_pattern genera el thumbnail automaticamente. Punto expone el motor invocable; Atlas cablea la llamada en update_pattern. Modo de falla robusto: si el render falla, el patron queda disponible SIN thumbnail (NUNCA bloquea el update), con log para backfill. Con tests. Deploy Orbit.",
    "msg": "coordination/channel/Atlas/MSG_020_nova_autogen_thumbnail_update_pattern.md",
-   "status": "activo",
+   "status": "completado",
    "sprint": "2026-07",
    "prioridad": "alta",
-   "nota": "Constantino: \"el thumbnail se tiene que generar solo cada vez que cargo un patron\". Comportamiento esperado por defecto."
+   "nota": "Deployado (autogen thumbnail productiva)."
   },
   {
    "agent": "Atlas+Punto",
    "task": "ATLAS_FIX_TILEO_X_PHILO_SOLAPE",
    "descripcion": "FIX (causa confirmada por Constantino, DECISION_017): el motor estampa 1 sola columna cuando el DXF es mas ancho que step_x. Estampar copias cada step_x hasta cubrir TODA la chapa, con SOLAPE permitido, SIMETRICO al eje Y (que ya anda). El tile puede exceder el offset a proposito. Verificacion OBLIGATORIA: panel real Philo v3, 550x1500. Deploy con Orbit.",
    "msg": "coordination/channel/Atlas/MSG_021_nova_bug_philo_no_tilea_columnas.md",
-   "status": "deployado-espera-confirmacion-visual",
+   "status": "completado",
    "sprint": "2026-07",
    "prioridad": "alta",
-   "nota": "Deployado productivo 2026-07-21, HEAD 6e3bd7b (fix dcc9f80). Falta SOLO confirmacion visual de Constantino generando panel Philo."
+   "nota": "Deployado y confirmado (Philo tilea)."
   },
   {
    "agent": "Atlas",
    "task": "ATLAS_BUG_PHILO_NO_TILEA_COLUMNAS",
    "descripcion": "BUG: al generar panel con Philo el tileo no copia columnas (eje X, offset 360); las filas (eje Y, offset 623) si copian. Diagnosticar (data step_x mal / bug bucle columnas / DXF) sin tocar codigo, reportar causa exacta, luego fix.",
    "msg": "coordination/channel/Nova/MSG_022 -> reporte MSG_173",
-   "status": "codigo-hecho-mergeado-esperando-deploy-orbit",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "CAUSA RAIZ (verificada prod, read-only): el centrado-al-abrir (load_pattern, commit d7be7ba de Punto) centra sobre el bbox del DXF; Philo es un tile bueno ~360x623 pero tiene ~13 entidades de basura de vectorizacion que inflan su bbox a 4357x5392 -> centra sobre el bbox inflado -> corre el tile ~1100mm -> franja sin llenar. MODELO CANONICO (Constantino): patrones deben quedar CENTRADOS (para sangrar por los 4 margenes) y el centrado debe estar EN EL ARCHIVO al guardar, NO metido por el programa al abrir. FIX (codigo, dominio Punto): (a) sacar centrado de load_pattern; (b) vectorizador guarda centrado. Verificado: patron centrado + estampado ORIGINAL sangra 4 lados y llena, sin tocar el bucle. Opcion A de Atlas (extender estampado) DESCARTADA y revertida (arbol limpio). Datos (re-guardar centrados + limpiar basura Philo) los hace Constantino. Doc: coordination/research/DIAGNOSTICO_PHILO_CENTRADO_TILEO.md. Reporte Nova/MSG_174, handoff Punto/MSG_051. Sin trabajo de codigo pendiente de Atlas salvo apoyo. || IMPLEMENTADO (parte a): sacado el centrado de load_pattern (main.py). PR #6 mergeado a erpnext (fix dcc9f80, merge 6e3bd7b). Verificado panel real 550x1500 cut: Philo llena todo el ancho (0 bandas vacias), subte/Aconcagua/Cosmos sin regresion. Suite 231 passed / 4 failed preexistentes (fixtures faltantes + stubs). NO requiere bench migrate. Deploy pedido a Orbit (Orbit/MSG_049). Reporte Nova/MSG_175. Parte (b) vectorizador -> Punto (Punto/MSG_052). Datos -> Constantino."
+   "nota": "Deployado productivo (Philo tilea)."
   },
   {
    "agent": "TODOS",
@@ -1304,12 +1305,13 @@
   {
    "agent": "Punto",
    "task": "PUNTO_CENTRADO_AL_GUARDAR_PATRONES",
-   "descripcion": "Parte (b) del fix Philo/centrado: el VECTORIZADOR debe guardar el DXF centrado (bbox-center->origen) SOLO en el path de auto-generacion desde bitmap; los patrones subidos/hechos a mano NO se centran. La parte (a) -sacar centrado de load_pattern- ya la hizo Atlas (PR #6 mergeado). Ref Punto/MSG_052.",
+   "descripcion": "Sacar el centrado al guardar patrones, REVERSIBLE y quirurgico (solo eso, sin tocar offsets/tileo/bbox/data). Verificacion OBLIGATORIA con antes/despues: Philo llena la chapa, subte/Aconcagua/Cosmos siguen tileando, thumbnails se siguen generando. NO deployar hasta OK VISUAL de Constantino (dejar mergeado + deploy trabado, o preview). Si afecta patrones YA guardados (se corren), PARAR y avisar ANTES.",
    "msg": "coordination/channel/Punto/MSG_051_atlas_fix_centrado_al_guardar.md",
-   "status": "propuesta-pendiente-activacion-nova",
+   "status": "activo-con-freno-de-deploy",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "Handoff Atlas Punto/MSG_052. Doc: coordination/research/DIAGNOSTICO_PHILO_CENTRADO_TILEO.md"
+   "nota": "Aprobada por Constantino con resguardo fuerte (toca semantica DECISION_017). Deploy trabado a proposito hasta visto bueno visual. Reportar a Dispatch: antes/despues + estado listo-esperando-ok-de-deploy + si se corren los existentes.",
+   "carril": "YA"
   },
   {
    "agent": "Orbit",
@@ -1336,20 +1338,20 @@
    "task": "ATLAS_AUTOGEN_THUMBNAIL_UPDATE_PATTERN",
    "descripcion": "Autogen de thumbnail en update_pattern al aceptar/reapuntar DXF, con modo de falla firme.",
    "msg": "coordination/channel/Atlas/MSG_020_nova_autogen_thumbnail_update_pattern.md",
-   "status": "hecho-mergeado-esperando-deploy-orbit",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "media",
-   "nota": "HECHO: update_pattern invoca generate_thumbnail (motor de Punto) tras aceptar/reapuntar DXF; modo de falla FIRME (excepcion O ok=False -> patron disponible, update no rompe, log para backfill en ambos casos). Contrato unificado con el hook de Punto en upload_pattern (2523fcc). PR #7 mergeado a erpnext (cdadd5a). Tests: caso valido -> con thumbnail; caso no-renderizable -> sin thumbnail sin excepcion (+2 casos borde). Deploy pedido a Orbit (MSG_051), NO requiere migrate. Reporte Nova/MSG_179, contrato Punto/MSG_053."
+   "nota": "Deployado; ImportError resuelto, autogen productiva."
   },
   {
    "agent": "Atlas",
    "task": "ATLAS_LIMPIEZA_PRICECACHE",
    "descripcion": "Limpieza PriceCache + fuente unica de precios + falla ruidosa (MSG_019).",
    "msg": "coordination/channel/Atlas/MSG_019_nova_limpieza_pricecache_fuente_unica_precios.md",
-   "status": "hecho-mergeado-esperando-deploy-orbit",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "alta",
-   "nota": "HECHO: (c) PriceCache.load falla ruidoso sin clave 'prices' (corazon del fix, mata el bug del $0 silencioso); (b) _run_all_batches (produccion) ya no PriceCache.load(daily_prices.json) -> price_cache=None, precio real del cost del motor; sync_from_tango.py ELIMINADO + su test (DECISION_011); (a) fuente unica explicita en api/paneles.py docstring (daily_prices + SI Precios Globales). Produccion SIN cambio funcional (UI usa cost). Tests test_pricecache_cleanup.py (7): load lanza sin prices, TESTIGO del $0, fuente unica total>0, sin precios 0 visible, produccion no usa PriceCache. Suite sin fallos nuevos. PR #7 mergeado (cdadd5a). Deploy Orbit MSG_051, sin migrate. Reporte Nova/MSG_180."
+   "nota": "Deployado (MSG_182, cdadd5a): bug $0 resuelto + backfill."
   },
   {
    "agent": "Orbit",
@@ -1366,10 +1368,10 @@
    "task": "ATLAS_ETIQUETA_CANTIDAD_200MM",
    "descripcion": "Ajuste Constantino: la etiqueta de cantidad (xN) del panel decorativo debe quedar a 200mm del borde inferior del panel (antes 300mm).",
    "msg": "coordination/channel/Nova/MSG_183_ATLAS_etiqueta_cantidad_200mm_done.md",
-   "status": "hecho-mergeado-esperando-deploy-orbit",
+   "status": "completado",
    "sprint": "001-rebanada",
    "prioridad": "media",
-   "nota": "HECHO: layout/cad_result_layout.py -> QUANTITY_LABEL_Y_OFFSET=-200 (era LABEL_Y_OFFSET=-300); decoplado del espaciado de filas (ROW_LABEL_CLEARANCE=300 sin cambios). Etiqueta N° (numero/material) NO tocada: usa +150 inline, otro parametro. Verificado midiendo DXF (Philo 550x1500 cut x3): borde inferior chapa y=0, x3 en insert_y=-200 -> 200.0mm exactos; N°22 en +150 intacta. Test test_panel_label_offset.py. Suite sin fallos nuevos. PR #8 mergeado a erpnext (1b495d6). Deploy Orbit MSG_052, sin migrate. Reporte Nova/MSG_183. Nota: dxf/cad_result_layout.py duplicado muerto conserva -300 (fuera de alcance)."
+   "nota": "Deployado (MSG_187, 1b495d6)."
   },
   {
    "agent": "Orbit",
@@ -1380,6 +1382,192 @@
    "sprint": "001-rebanada",
    "prioridad": "media",
    "nota": "DEPLOYADO 2026-07-22: server cdadd5a -> 1b495d6 (ff-only). Rango: fix etiqueta 11644d6 (QUANTITY_LABEL_Y_OFFSET=-200 en cad_result_layout.py) + aditivo simulador Punto 812ddb8 (tools/). Sin JS/CSS -> sin build; sin DocType -> sin migrate. version stamp (commit=1b495d6) + bump_page_cache + restart all (7/7 RUNNING). Verificado: HEAD server=1b495d6, HTTP 301 estable, offset -200 confirmado en el diff. Reporte Nova/MSG_187."
+  },
+  {
+   "agent": "PedidoExcel",
+   "task": "PEDIDOEXCEL_LECTURA_CANON_Y_CARRILES",
+   "descripcion": "Lectura obligatoria antes de su primera tarea de fondo: Brujula, SOURCE_OF_TRUTH_MATRIX (regla de conflicto + corolario), DECISION_017, PROPUESTA_DOS_CARRILES (central para su rol).",
+   "msg": "coordination/channel/PedidoExcel/MSG_001_nova_bienvenida_contrato_y_lectura.md",
+   "status": "completado",
+   "sprint": "2026-07",
+   "prioridad": "alta",
+   "carril": "INFRA",
+   "nota": "Leido; PedidoExcel operando."
+  },
+  {
+   "agent": "PedidoExcel",
+   "task": "PEDIDOEXCEL_ANALIZAR_FULL_TECNICA_2026",
+   "descripcion": "Analizar el archivo ejemplo Full Tecnica 2026.xls: estructura de presupuesto/orden de trabajo, campos, hojas, formato al que hay que volcar el calculo/cotizacion del sistema para copiar-pegar. Constantino lo manda en paralelo.",
+   "msg": "(directo de Constantino)",
+   "status": "completado",
+   "sprint": "2026-07",
+   "prioridad": "alta",
+   "carril": "YA",
+   "nota": "Relevado (MSG_089/090) + integrados archivos viejos (MSG_190)."
+  },
+  {
+   "agent": "Constantino",
+   "task": "DECIDIR_PEDIDOEXCEL_VBA_VS_PYTHON",
+   "descripcion": "Decidir con que base se retoma el push a Tango: (a) recuperar el VBA viejo (TangoAPI_VBA.bas/.xlam/plantilla, hoy en Windows/OneDrive, no copiados) o (b) reencarar como modulo Python en repo (tango_sync/pedido_push.py). El agente recomienda (b).",
+   "msg": "coordination/decisions/DECISION_018_CONTRATO_PEDIDOEXCEL.md",
+   "status": "pendiente-decision-constantino",
+   "sprint": "",
+   "prioridad": "media",
+   "carril": "LARGO_PLAZO",
+   "nota": "NO bloquea el analisis del Excel. Solo define la base del push."
+  },
+  {
+   "agent": "PedidoExcel",
+   "task": "PEDIDOEXCEL_PUSH_TANGO",
+   "descripcion": "Push de pedidos a Tango (tramo largo plazo, fiscal).",
+   "msg": "coordination/decisions/DECISION_018_CONTRATO_PEDIDOEXCEL.md",
+   "status": "bloqueado-licencia-tango",
+   "sprint": "",
+   "prioridad": "baja",
+   "carril": "LARGO_PLAZO",
+   "nota": "BLOQUEO: requiere licencia Transacciones Tango Ventas (no esta). Ademas depende de DECIDIR_PEDIDOEXCEL_VBA_VS_PYTHON."
+  },
+  {
+   "agent": "Atlas+Orbit",
+   "task": "HOTFIX_IMPORTERROR_THUMBNAIL_PATRONES",
+   "descripcion": "PRODUCCION ROTA: ImportError cannot import _generate_and_save_thumbnail from sistema_industrial.api.patrones al cargar patron. Feature autogen thumbnail a medio deployar (entro el llamador, falta la funcion). 1) RESTAURAR YA: rollback del deploy parcial o fix-forward trivial (definir/exportar la funcion o corregir el import al nombre real del motor de Punto); si no hay verde en 10min, rollback. 2) Rearmar la feature COMPLETA con smoke test de import + modo de falla (thumbnail que falla NO rompe el flujo). Produccion en /home/costa/Nextango rama erpnext.",
+   "msg": "coordination/channel/Atlas/MSG_024_nova_URGENTE_importerror_thumbnail_bloquea_patrones.md",
+   "status": "completado",
+   "sprint": "2026-07",
+   "prioridad": "maxima",
+   "carril": "YA",
+   "nota": "Resuelto: autogen thumbnail productiva sin ImportError."
+  },
+  {
+   "agent": "PedidoExcel",
+   "task": "PEDIDOEXCEL_SPEC_DOS_BLOQUES",
+   "descripcion": "RE-SCOPE: por ahora NO modificar Excel desde el programa. Definir el SPEC de contenido/formato de DOS bloques copiar-pegar (bloque 1 -> presupuesto, bloque 2 -> OT): campos, orden, separadores, de donde sale cada dato. PROPUESTA antes de construir; Vega arma la pantalla despues.",
+   "msg": "coordination/channel/PedidoExcel/MSG_002_nova_rescope_dos_bloques_copiar_pegar.md",
+   "status": "activo",
+   "sprint": "2026-07",
+   "prioridad": "alta",
+   "carril": "YA",
+   "nota": "Constantino lo mando directo al agente; Nova registra. Spec a propuesta antes de que Vega construya."
+  },
+  {
+   "agent": "Vega",
+   "task": "VEGA_PANTALLA_DOS_BLOQUES_COPIAR_PEGAR",
+   "descripcion": "Pantalla web ERPNext con 2 bloques copiar/pegar (presupuesto y OT), boton copiar por bloque + feedback. Uso diario. ESPERA el spec de PedidoExcel (aprobado por Constantino) antes de construir.",
+   "msg": "coordination/channel/Vega/MSG_045_nova_pantalla_dos_bloques_espera_spec_pedidoexcel.md",
+   "status": "espera-spec-pedidoexcel",
+   "sprint": "2026-07",
+   "prioridad": "media",
+   "carril": "YA",
+   "nota": "No construir hasta spec aprobado."
+  },
+  {
+   "agent": "OCR",
+   "task": "OCR_INVESTIGAR_TRABAJO_PREVIO_Y_PLAN",
+   "descripcion": "SOLO LECTURA: relevar /home/costa/Python/OCR Proveedores (facturas proveedor: precio compra->Excel, articulo nuevo->Tango, luego stock->ERPNext) y /home/costa/Python/Baja de Stock en ERPnext al facturar en Tango (baja de vendidos escaneando facturas Tango). Entregable: coordination/research/OCR_PROVEEDORES_RELEVAMIENTO_Y_PLAN.md con que hay, que sirve, plan por fases, fronteras vs canon.",
+   "msg": "coordination/channel/OCR/MSG_001_nova_reactivacion_investigar_trabajo_previo.md",
+   "status": "activo",
+   "sprint": "2026-07",
+   "prioridad": "alta",
+   "carril": "LARGO_PLAZO",
+   "nota": "Rol OCR (DECISION_016) reactivado por Constantino. Canal OCR creado. Solo lectura, no ejecutar contra Tango/ERPNext reales, no transcribir secretos."
+  },
+  {
+   "agent": "Atlas",
+   "task": "ATLAS_BARRIDO_TOKEN_TEXTO_PLANO_REPO",
+   "descripcion": "EXCEPCION autorizada: eliminar todo rastro del token de Tango en texto plano en el repo (~10 archivos: queue.json + mensajes de canal de rotacion/purga). NUNCA pegar el valor. Si esta en historial git: AVISAR, NO reescribir historia. Reportar consolidado a Nova.",
+   "msg": "coordination/dispatch/MODO_INVESTIGACION_NOCTURNA.md",
+   "status": "completado",
+   "sprint": "2026-07",
+   "prioridad": "alta",
+   "carril": "INFRA",
+   "nota": "FALSA ALARMA: repo LIMPIO (match exacto), cero rastros en todos los arboles y toda la historia/ramas. Lo marcado por OCR eran GUIDs de sesion, no el token. Sin exposicion GitHub, sin reescribir historia."
+  },
+  {
+   "agent": "OCR",
+   "task": "OCR_BARRIDO_TOKEN_CARPETAS_PYTHON",
+   "descripcion": "EXCEPCION autorizada: eliminar rastro del token de Tango en texto plano en /home/costa/Python. NUNCA pegar el valor. Si en historial git, avisar no reescribir.",
+   "msg": "coordination/dispatch/MODO_INVESTIGACION_NOCTURNA.md",
+   "status": "completado",
+   "sprint": "2026-07",
+   "prioridad": "alta",
+   "carril": "INFRA",
+   "nota": "Hecho: /home/costa/Python (OCR Proveedores + OCR Mercadopago) limpiado."
+  },
+  {
+   "agent": "OCR",
+   "task": "OCR_REENCUADRE_PLAN_DENTRO_ERPNEXT",
+   "descripcion": "Re-encuadrar el plan OCR al nuevo destino: vive DENTRO de ERPNext como pagina web (motor server-side + UI Frappe por Vega + portar logica de /home/costa/Python/OCR Proveedores). Plan por fases. Investigacion, no construccion.",
+   "msg": "coordination/channel/OCR/MSG_002_nova_reencuadre_ocr_dentro_de_erpnext.md",
+   "status": "activo",
+   "sprint": "2026-07",
+   "prioridad": "alta",
+   "carril": "LARGO_PLAZO",
+   "nota": "Cambio de arquitectura de Constantino. Plan a propuesta antes de portar."
+  },
+  {
+   "agent": "Constantino",
+   "task": "RATIFICAR_SPLIT_MASTER_ARTICULOS_06",
+   "descripcion": "PROPUESTA (creo que): SPLIT master de articulos por prefijo. Ferreteria 06- -> ERPNext (sync ERPNext->Tango via Excel plantilla); caños/chapas/procesado -> Tango sin cambios. Acotado y bajo riesgo (~50 items). Requiere ratificacion explicita.",
+   "msg": "coordination/decisions/PROPUESTA_INVERSION_MASTER_ARTICULOS.md",
+   "status": "pendiente-ratificacion-constantino",
+   "sprint": "",
+   "prioridad": "alta",
+   "carril": "INFRA",
+   "nota": "Mucho menos riesgoso que invertir todo: solo ferreteria 06- (~50 items). Igual es cambio de fuente de verdad: nadie escribe a Tango ni cambia master hasta ratificacion. Encaja con OCR proveedores."
+  },
+  {
+   "agent": "Forge",
+   "task": "FORGE_DISENAR_EXPORT_ERPNEXT_A_TANGO",
+   "descripcion": "Disenar (PROPUESTA, no ejecutar) el export ERPNext->Tango en formato plantilla actualizacion masiva, ACOTADO a ferreteria (codigo prefijo 06-). No importar nada a Tango.",
+   "msg": "coordination/decisions/PROPUESTA_INVERSION_MASTER_ARTICULOS.md",
+   "status": "activo",
+   "sprint": "2026-07",
+   "prioridad": "media",
+   "carril": "INFRA",
+   "nota": "Scope acotado a 06- (ferreteria, ~50 items). Modo noche: diseno. Constantino directo."
+  },
+  {
+   "agent": "Atlas",
+   "task": "ATLAS_BARRIDO_TOKEN_SEGURIDAD",
+   "descripcion": "Seguridad (autorizada por Constantino): barrer el token de Tango en texto plano en el repo (ramas/codigo/config/.env ejemplo/scripts) y eliminar rastros. Token no rotable. NO reescribir historia por cuenta propia (relevar+recomendar). Coordinar con OCR.",
+   "msg": "coordination/channel/Nova/MSG_195_ATLAS_barrido_token_seguridad.md",
+   "status": "relevamiento-completo-repo-limpio",
+   "sprint": "seguridad",
+   "prioridad": "alta",
+   "nota": "RESULTADO: el REPO esta LIMPIO — token exacto en CERO archivos versionados/worktrees (main/erpnext/feat/*), CERO en historia git (no hace falta reescribir). .env.example con claves vacias; codigo lee de env (os.environ APP_INSTANCE_ID); GUIDs del repo son session IDs, no el token. Nextango/.env es gitignoreado (almacen legitimo, no fuga). NADA cambiado en el repo (no habia nada que sacar). EXPOSICION FUERA DEL REPO relevada (sin valor, no tocada): ~/Claude/* (scripts Tango con token HARDCODEADO, la mayor), ~/backups/nextango-*/frappe-bench-nexus.env (dominio Orbit), ~/.config/Claude/**/audit.jsonl (artefacto tooling), ~/SistemaIndustrial/Migrando Claude/ (3 notas de Constantino), /home/costa/Python NO barrido (area OCR). Coordinacion: OCR/MSG_003. Recomendado: redactar copias en texto plano (no se puede rotar el token); Constantino decide ~/Claude y Migrando Claude; Orbit los backups. Reporte Nova/MSG_195."
+  },
+  {
+   "agent": "OCR",
+   "task": "OCR_LIMPIAR_TOKEN_CLAUDE_Y_MIGRANDO",
+   "descripcion": "Redactar el token a variable de entorno en ~/Claude/* (scripts Tango con token hardcodeado = mayor exposicion real) y ~/SistemaIndustrial/Migrando Claude/ (notas). Sin dejar .bak con el valor.",
+   "msg": "(directo de Constantino)",
+   "status": "activo",
+   "sprint": "2026-07",
+   "prioridad": "alta",
+   "carril": "INFRA",
+   "nota": "Modo noche. Redaccion limpia, sin respaldo con el secreto."
+  },
+  {
+   "agent": "Orbit",
+   "task": "DECIDIR_MITIGACION_TOKEN_BACKUPS",
+   "descripcion": "DECISION Constantino: los backups ~/backups/nextango-*/frappe-bench-nexus.env tienen el token en texto plano pero es legitimo (restaurar). Mitigacion = asegurar/encriptar el backup, NO vaciarlo. Presentar opciones. Dominio Orbit.",
+   "msg": "coordination/BRIEF_MANANA_2026-07-22.md",
+   "status": "pendiente-decision-constantino",
+   "sprint": "",
+   "prioridad": "media",
+   "carril": "INFRA",
+   "nota": "No tocar hasta decision. Es exposicion aceptable si el backup esta asegurado."
+  },
+  {
+   "agent": "(sin asignar)",
+   "task": "DECIDIR_TOKEN_EN_AUDIT_JSONL",
+   "descripcion": "DECISION Constantino: audit.jsonl (logs de sesion) contienen el token y no son removibles facilmente. Definir que hacer.",
+   "msg": "coordination/BRIEF_MANANA_2026-07-22.md",
+   "status": "pendiente-decision-constantino",
+   "sprint": "",
+   "prioridad": "baja",
+   "carril": "INFRA",
+   "nota": "No removible facil. Decision de la manana."
   }
  ],
  "foco_2026-07-02": {
@@ -2119,5 +2307,10 @@
   "canonica": "/home/costa/Nextango",
   "detalle": "bench apps/sistema_industrial -> symlink a /home/costa/Nextango/apps/sistema_industrial. Motor standalone en Programas_hechos/Panel Decorativo/ del mismo clon. Deploys se pullean en /home/costa/Nextango. Confirmado por Orbit MSG_176.",
   "desbloquea": "ORBIT_CONFIRMAR_COPIA_CANONICA_DEPLOY completada; deploy de PriceCache ya no bloqueado."
+ },
+ "modo_noche_2026_07_22": {
+  "regla": "Solo investigacion/relevamiento/specs/propuestas. Cero deploys, cero datos, cero Tango/fiscal. Deploy centrado patrones TRABADO. Excepcion: limpieza token texto plano (Atlas repo + OCR carpetas Python), sin pegar valor, si esta en historial git AVISAR no reescribir.",
+  "brief": "coordination/BRIEF_MANANA_2026-07-22.md",
+  "doc": "coordination/dispatch/MODO_INVESTIGACION_NOCTURNA.md"
  }
 }

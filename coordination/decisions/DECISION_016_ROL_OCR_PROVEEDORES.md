@@ -1,4 +1,13 @@
-> ⚠️ **CORRECCIÓN 2026-07-19 — DECISION_011.** Este documento contiene la errata **"Tango maestro de precios"** (precios a/desde Tango, sync de precios Tango, cache de precios Tango). **ES FALSO: Tango NO maneja precios.** El pricing se hace en **EXCEL**; hoy el **vendedor los carga a mano** en el sistema (ERPNext). Tango es **fiscal/facturación**. Todo tramo de este doc que diga "precios a/desde Tango", "Tango maestro/publicados de precios" o "sync/cache de precios Tango" **queda SIN EFECTO**. Ver `coordination/decisions/DECISION_011_PAGINA_PRECIOS_SOLO_LECTURA.md`.
+> 📗 **NOTA 2026-07-19 — este documento tenía razón.** El banner de corrección genérico que llevaba antes **sobrecorregía** y fue reemplazado por esta nota.
+>
+> El flujo de OCR descrito acá es **correcto** y coincide con el **modelo definitivo de fuentes de verdad** (Constantino, *"así va a ser"*): **catálogo/artículos → TANGO** · **stock → ERPNext** · **precios → EXCEL**.
+>
+> - *"si es nuevo: agregar a **Tango**"* → ✅ correcto: Tango es máster del **catálogo**.
+> - *"stock a **ERPNext**"* → ✅ correcto.
+> - *"precio a **Excel** → pricing en Excel"* → ✅ correcto: Excel es máster de **precios**.
+> - *"→ precios a Tango"* → ✅ correcto **como destino** (`Excel → Tango`, para facturar desde ahí). Nunca al revés.
+>
+> De hecho **`docs/05_OCR_SUPPLIERS_FLOW.md` fue el documento donde el modelo correcto estaba bien especificado desde el principio** — y quedó sin leer. Ver `DECISION_011` §7.
 
 ---
 
@@ -61,4 +70,4 @@ Lo que queda fijado hoy: **el rol, el dueño, el flujo canónico, la base existe
 
 ---
 
-> ⚠️ **CORRECCIÓN 2026-07-19 (`DECISION_011`):** **Tango NO maneja precios.** El pricing se hace en **EXCEL** y de ahí vienen los precios; hoy el vendedor los carga a mano en nuestro sistema. Cualquier tramo de este documento que diga "precios a Tango" o "Tango maestro de precios" **queda sin efecto**. Tango es **fiscal/facturación**.
+> 📗 Ver la nota del encabezado: el flujo de OCR de este documento **es correcto** y coincide con el modelo definitivo de fuentes de verdad (catálogo → Tango · stock → ERPNext · precios → Excel).
