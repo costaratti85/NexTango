@@ -22,12 +22,21 @@ class _CaptureStore:
     (Supplier.si_ocr_layout, decisión de Forge) la hace la orquestación con
     meta['layout_learned']."""
 
-    def __init__(self, layout_por_cuit=None):
+    def __init__(self, layout_por_cuit=None, loader=None):
         self._in = {_norm(k): v for k, v in (layout_por_cuit or {}).items()}
+        self._loader = loader  # callable(cuit)->layout|None, inyectado por la orquestación
         self.learned = {}
 
     def obtener_layout(self, cuit):
-        return self._in.get(_norm(cuit))
+        c = _norm(cuit)
+        if c in self._in:
+            return self._in[c]
+        if self._loader is not None:
+            try:
+                return self._loader(c)
+            except Exception:
+                return None
+        return None
 
     def guardar_layout(self, cuit, proveedor, page_w, page_h,
                        y0_pct, y1_pct, x0_pct, x1_pct, es_pdf_nativo, necesita_ocr):
@@ -52,7 +61,8 @@ def extract_invoice(file_path, options=None):
     Devuelve la forma de OCR_PAGINA_CONTRATO §3."""
     options = options or {}
     warnings = []
-    reader = FacturaTableReader(base=_CaptureStore(options.get("layout_por_cuit")))
+    reader = FacturaTableReader(base=_CaptureStore(
+        options.get("layout_por_cuit"), options.get("layout_loader")))
 
     try:
         items, debug, datos = reader.analizar(file_path, aprender=True)
