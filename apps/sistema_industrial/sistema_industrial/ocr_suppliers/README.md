@@ -6,33 +6,18 @@ Módulo del OCR de proveedores (factura de compra → ERPNext). En construcción
 
 ## Parte de Forge (integración ERPNext) — ya implementada
 
-### 1. Lectura del catálogo para el matching — `catalog.py`
-Reemplaza el export manual `Artículos.xlsx` de Tango: el OCR lee el catálogo directo de ERPNext.
-
-- **`build_item_catalog(item_group=None, tango_only=False, include_disabled=False) -> list[dict]`**
-  Función **in-process** (ORM). Es la que debe usar el módulo OCR server-side.
-  Eficiente: **3 queries** (Item + Item Barcode + Item Supplier), agrupadas en memoria (sin N+1).
-- **`get_item_catalog(...)`** — wrapper `@frappe.whitelist()` para debug/consumo externo (no para el OCR in-process).
-
-**Contrato de salida** (una fila por Item):
+### 1. Lectura del catálogo para el matching — `catalog.py` (de Atlas)
+El catálogo lo lee **`load_catalog()`** (autor: Atlas), que trae Items + Item Barcode +
+Item Supplier y cachea en Redis (TTL 30 min). El matcher (`item_matcher.match_lines`)
+lo consume. **Reemplaza el export manual `Artículos.xlsx` de Tango.**
 ```python
-{
-    "item_code":      str,            # = COD_STA11 (mismo código en Tango y ERPNext)
-    "item_name":      str,
-    "description":    str | None,
-    "item_group":     str,            # ej. "Ferretería"
-    "stock_uom":      str,
-    "si_tango_id":    int | None,     # mapeo Tango <-> Item
-    "barcodes":       list[str],                              # matching prioritario
-    "supplier_items": list[{"supplier": str, "supplier_part_no": str}],  # código del proveedor
-}
+from sistema_industrial.ocr_suppliers.catalog import load_catalog
+catalogo = load_catalog()          # cacheado; force=True re-lee de la DB
 ```
-Uso típico desde el matcher del OCR:
-```python
-from sistema_industrial.ocr_suppliers.catalog import build_item_catalog
-catalogo = build_item_catalog(item_group="Ferretería")   # o sin filtro para todo
-```
-Prioridad de matching sugerida (heredada del OCR V9): `supplier_part_no` / `barcode` > descripción.
+> Nota de reconciliación (2026-07-23): la lectura de catálogo la ganó la interfaz de
+> Atlas (`load_catalog`), que es la que importa el api `api/ocr_proveedores.py`. Mi
+> `build_item_catalog`/`get_item_catalog` previos se retiraron (mi sugeridor consulta
+> los Items directo, no necesita el catálogo).
 
 ### 2. Custom field del layout aprendido — `custom_fields.py` + `layout.py`
 - **`Supplier.si_ocr_layout`** (fieldtype **JSON**, read-only, no-copy): guarda las zonas/posiciones de la factura que el OCR aprende por proveedor/CUIT ("experiencia de scaneo"). Vacío hasta la primera pasada.
@@ -64,19 +49,27 @@ res = build_tango_import_excel(created_items)   # los Items recién creados
 - Requiere `openpyxl` en el bench (dep del OCR).
 
 ### 4. Sugerencia inteligente de código — `code_suggester.py`
-Para cada línea de factura **sin match**, propone el próximo `item_code` libre.
+**Interfaz de Atlas (la que importa el api), lógica de Forge.** Para cada línea
+**sin match**, propone el próximo `item_code` libre.
 ```python
-from sistema_industrial.ocr_suppliers.code_suggester import suggest_next_item_code
-sug = suggest_next_item_code(linea_ocr=linea, candidatos=candidatos_rankeados)
-# -> {"codigo_sugerido","familia","grupo","paso","confianza","fuente",
-#     "candidato_ref","editable":True,"needs_review","nota"}
+from sistema_industrial.ocr_suppliers.code_suggester import (
+    suggest_next_item_code, aplicar_sugerencias,
+)
+# firma exacta que llama el api:
+codigo = suggest_next_item_code(linea, candidatos)   # -> str | None (solo el código)
+aplicar_sugerencias(lineas, suggest_next_item_code)  # setea l["codigo_sugerido"] por línea sin match
 ```
-- **Infiere familia+subcategoría del candidato top** (los artículos parecidos que rankeó el matcher). Ej: amoladora DDWE → candidatos familia 54 → `54-00-00-00-126`.
-- **Numeración:** máximo del grupo + paso (5 taller / 1 en 52·54·99), con ceros. Maneja **grupo vacío** (primer código) y **colisiones** (salta al siguiente libre).
-- Si los candidatos **no dan familia clara** → `confianza:"baja"`, `needs_review:True`, subcategoría en `00` (no inventa). Sin candidatos → `codigo_sugerido:None`.
-- **NO reconstruye el árbol de Item Groups** (decisión de Constantino): solo lee `item_code` existentes.
-- **Regla 8:** `editable:True` siempre — el humano confirma/edita el sugerido.
-- Wrapper whitelisted `suggest_next_item_code_api`.
+- **`suggest_next_item_code(linea, candidatos) -> str | None`**: infiere familia+subcategoría
+  del **candidato top** del matcher (`{item_code, item_name, score, reason}`) y calcula el
+  próximo código libre. Ej: amoladora DeWalt → candidatos 54 → **`54-00-00-00-126`**.
+- **Numeración:** máximo del grupo + paso (5 taller / 1 en 52·54·99), con ceros. Maneja
+  **grupo vacío** y **colisiones**. Sin familia clara / sin candidatos → **`None`** (no inventa;
+  la UI deja el campo vacío para carga manual — Regla 8).
+- **`aplicar_sugerencias(lineas, suggester)`**: wiring PURO de Atlas (graceful; líneas con
+  match no llevan sugerencia).
+- **NO reconstruye el árbol de Item Groups** (decisión de Constantino): solo lee `item_code`.
+- Metadata (confianza/needs_review/nota) disponible en el debug `suggest_code_details_api`
+  (la interfaz principal devuelve solo el string, por contrato con Atlas).
 - Anatomía de referencia: `coordination/reports/FORGE_ANATOMIA_CODIGOS_ARTICULOS.md`.
 
 ## Pendiente (otros dueños)
