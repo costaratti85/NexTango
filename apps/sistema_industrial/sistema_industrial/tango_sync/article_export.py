@@ -242,6 +242,60 @@ def generate_tango_import_excel(
     }
 
 
+def _extract_item_codes(created_items) -> list[str]:
+    """Normaliza `created_items` a una lista de item_code.
+
+    Acepta cada elemento como: str (item_code), dict (`item_code`/`name`) o
+    Document de Frappe (`.item_code`/`.name`). Descarta vacíos y deduplica
+    preservando el orden.
+    """
+    codes: list[str] = []
+    for it in created_items or []:
+        code = None
+        if isinstance(it, str):
+            code = it
+        elif isinstance(it, dict):
+            code = it.get("item_code") or it.get("name")
+        else:  # Document de Frappe u objeto con atributos
+            code = getattr(it, "item_code", None) or getattr(it, "name", None)
+        if code and code not in codes:
+            codes.append(code)
+    return codes
+
+
+def build_tango_import_excel(created_items) -> dict:
+    """Genera el .xlsx DESCARGABLE de importación a Tango para los Items recién creados.
+
+    Es el punto que **Atlas invoca en el "Confirmar" de la Fase 2**, después de crear
+    los Items nuevos del OCR. Firma acordada con Atlas/Vega:
+
+        build_tango_import_excel(created_items) -> {"file_url": ..., ...}
+
+    Args:
+        created_items: los Items recién creados. Cada elemento puede ser un
+            item_code (str), un dict (`item_code`/`name`) o un Document de Frappe.
+
+    Returns:
+        El mismo dict de `generate_tango_import_excel` (incluye **`file_url`** de un
+        File real de Frappe, .xlsx en formato de la plantilla de actualización masiva
+        de Tango, listo para descargar). No sube nada a Tango (Regla 8).
+    """
+    codes = _extract_item_codes(created_items)
+    if not codes:
+        frappe.throw("build_tango_import_excel: `created_items` no trae ningún item_code.")
+    # item_codes explícitos → build_tango_article_rows ignora el filtro por grupo.
+    return generate_tango_import_excel(item_codes=codes)
+
+
+@frappe.whitelist()
+def build_tango_import_excel_api(created_items=None) -> dict:
+    """Wrapper whitelisted de `build_tango_import_excel` (UI/debug).
+
+    `created_items` puede venir como JSON (lista) o CSV de item_codes por HTTP.
+    """
+    return build_tango_import_excel(_parse_codes(created_items) or [])
+
+
 @frappe.whitelist()
 def generate_tango_import_excel_api(item_codes=None, item_group: str = "Ferretería") -> dict:
     """Wrapper whitelisted de `generate_tango_import_excel`.

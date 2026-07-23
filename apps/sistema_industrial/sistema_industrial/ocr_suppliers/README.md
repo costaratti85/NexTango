@@ -49,12 +49,16 @@ Prioridad de matching sugerida (heredada del OCR V9): `supplier_part_no` / `barc
   `save_layout_by_cuit` devuelve `None` si no existe Supplier con ese CUIT (el alta del Supplier la decide el humano — Regla 8).
 
 ### 3. Generador del Excel de importación a Tango — `tango_sync/article_export.py`
-Punto que **Atlas invoca tras crear los Items nuevos del OCR**:
+Punto que **Atlas invoca en el "Confirmar" de la Fase 2, tras crear los Items**:
 ```python
-from sistema_industrial.tango_sync.article_export import generate_tango_import_excel
-res = generate_tango_import_excel(item_codes=nuevos_codigos_ocr)   # ferretería 06-
+from sistema_industrial.tango_sync.article_export import build_tango_import_excel
+res = build_tango_import_excel(created_items)   # los Items recién creados
 # -> {"file_url", "file_name", "count", "item_codes", "gaps"}
+# res["file_url"] = .xlsx REAL descargable (File de Frappe), formato plantilla Tango
 ```
+- `created_items`: cada elemento puede ser item_code (str), dict (`item_code`/`name`) o Document de Frappe. Se normaliza y deduplica.
+- Genera un **.xlsx real y descargable** (no filas sueltas): la UI descarga `file_url`.
+- Equivalente por filtro/grupo: `generate_tango_import_excel(item_codes=..., item_group=...)` (mismo return). `build_tango_article_rows(...)` devuelve solo las filas (sin archivo), para preview.
 - Carga la **plantilla oficial de Tango** (bundleada en `tango_sync/tango_templates/`) y **pega solo las filas** en la hoja "Artículos", preservando las 80 hojas de lookup + `_metadata`. **No fabrica el xlsx de cero.**
 - Devuelve el **`file_url`** de un File privado de Frappe (para descargar/revisar/subir a Tango a mano — Regla 8, no sube nada).
 - Requiere `openpyxl` en el bench (dep del OCR).
