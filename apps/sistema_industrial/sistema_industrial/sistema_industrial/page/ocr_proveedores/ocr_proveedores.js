@@ -44,6 +44,7 @@ function ocrNormLinea(L, i) {
 	const importe = L.importe != null ? L.importe : (cant != null && precio != null ? cant * precio : null);
 	return {
 		id: String(L.id != null ? L.id : (L.idx != null ? L.idx : i)),
+		idx: L.idx != null ? L.idx : (L.id != null ? L.id : i),   // identificador crudo para el backend
 		descripcion: L.descripcion || '',
 		codigo_proveedor: L.codigo_proveedor || L.codigo_barras || '',
 		cantidad: cant,
@@ -227,9 +228,11 @@ class OcrProveedores {
 		(this.data.lineas || []).forEach((ln) => {
 			const has = ln.match && ln.match.item_code != null;
 			this.decisiones[ln.id] = {
+				accion: has ? 'match' : 'omitir',   // match | nuevo | omitir
 				item_code: has ? ln.match.item_code : null,
 				item_name: has ? ln.match.item_name : null,
-				accion: has ? 'confirmar' : 'omitir',
+				nuevo_codigo: '',
+				codigo_barras: '',
 			};
 		});
 
@@ -296,14 +299,7 @@ class OcrProveedores {
 			$conf.append($('<span class="ocr-conf">').addClass('ocr-conf-' + estado).text(conf != null ? conf + '%' : '—'));
 			tr.append($conf);
 
-			const $act = $('<td style="text-align:center;white-space:nowrap">');
-			$act.append($('<button class="btn btn-xs btn-default">').text(__('Ver candidatos')).on('click', () => this.ver_candidatos(ln)));
-			$act.append(
-				$('<button class="btn btn-xs btn-default" style="margin-left:5px">')
-					.text(dec.accion === 'omitir' ? __('Incluir') : __('Omitir'))
-					.on('click', () => this.toggle_omitir(ln))
-			);
-			tr.append($act);
+			tr.append(this.render_acciones_cell(ln));
 
 			tbody.append(tr);
 		});
@@ -312,15 +308,49 @@ class OcrProveedores {
 	render_item_cell(ln) {
 		const dec = this.decisiones[ln.id];
 		const $td = $('<td class="ocr-item-cell">');
+
+		if (dec.accion === 'nuevo') {
+			// Modo "ingresar como nuevo artículo": el humano genera el código.
+			// El nombre sale de la descripción leída y el código de proveedor ya lo tenemos.
+			const $box = $('<div class="ocr-nuevo-box">');
+			$box.append($('<div class="ocr-nuevo-tag">').text(__('NUEVO artículo')));
+			const $code = $('<input type="text" class="ocr-nuevo-input" placeholder="' + __('Código de artículo') + '">').val(dec.nuevo_codigo || '');
+			$code.on('input', () => { dec.nuevo_codigo = $code.val().trim(); dec.item_code = dec.nuevo_codigo || null; this.render_summary(); });
+			const $bar = $('<input type="text" class="ocr-nuevo-input" placeholder="' + __('Código de barras (opcional)') + '">').val(dec.codigo_barras || '');
+			$bar.on('input', () => { dec.codigo_barras = $bar.val().trim(); });
+			$box.append($('<label class="ocr-nuevo-lbl">').text(__('Código de artículo *')).append($code));
+			$box.append($('<label class="ocr-nuevo-lbl">').text(__('Código de barras')).append($bar));
+			$box.append($('<div class="ocr-nuevo-nombre">').text(__('Nombre: ') + (ln.descripcion || '—') + (ln.codigo_proveedor ? '  ·  ' + __('cód. prov.: ') + ln.codigo_proveedor : '')));
+			$td.append($box);
+			return $td;
+		}
+
 		if (dec.item_code) {
 			$td.append($('<div class="ocr-item-name">').text(dec.item_name || dec.item_code));
 			$td.append($('<div class="ocr-item-code">').text(dec.item_code));
 			if (ln.match && ln.match.item_code === dec.item_code && ln.match.criterio)
 				$td.append($('<div class="ocr-criterio">').text(__('match por ') + ln.match.criterio));
 		} else {
-			$td.append($('<span class="ocr-item-none">').text(__('sin Item — elegí uno')));
+			$td.append($('<span class="ocr-item-none">').text(__('sin Item — elegí uno o cargalo como nuevo')));
 		}
 		return $td;
+	}
+
+	render_acciones_cell(ln) {
+		const dec = this.decisiones[ln.id];
+		const $act = $('<td style="text-align:center;white-space:nowrap">');
+		$act.append($('<button class="btn btn-xs btn-default ocr-a-cand">').text(__('Ver candidatos')).on('click', () => this.ver_candidatos(ln)));
+		$act.append(
+			$('<button class="btn btn-xs btn-default ocr-a-nuevo" style="margin-left:5px">')
+				.text(dec.accion === 'nuevo' ? __('✕ Nuevo') : __('+ Nuevo'))
+				.on('click', () => this.toggle_nuevo(ln))
+		);
+		$act.append(
+			$('<button class="btn btn-xs btn-default ocr-a-omitir" style="margin-left:5px">')
+				.text(dec.accion === 'omitir' ? __('Incluir') : __('Omitir'))
+				.on('click', () => this.toggle_omitir(ln))
+		);
+		return $act;
 	}
 
 	refresh_row(ln) {
@@ -328,14 +358,30 @@ class OcrProveedores {
 		if (!$tr.length) return;
 		const dec = this.decisiones[ln.id];
 		$tr.find('.ocr-item-cell').replaceWith(this.render_item_cell(ln));
+		$tr.find('td:last-child').replaceWith(this.render_acciones_cell(ln));
 		$tr.toggleClass('ocr-omitida', dec.accion === 'omitir');
-		$tr.find('td:last-child .btn:last-child').text(dec.accion === 'omitir' ? __('Incluir') : __('Omitir'));
 		this.render_summary();
 	}
 
 	toggle_omitir(ln) {
 		const dec = this.decisiones[ln.id];
-		dec.accion = dec.accion === 'omitir' ? 'confirmar' : 'omitir';
+		dec.accion = dec.accion === 'omitir' ? (dec.item_code ? 'match' : 'omitir') : 'omitir';
+		// si venía sin item y se "incluye", queda a la espera de que elija/cree
+		if (dec.accion !== 'omitir' && !dec.item_code && dec.nuevo_codigo) dec.accion = 'nuevo';
+		this.refresh_row(ln);
+	}
+
+	toggle_nuevo(ln) {
+		const dec = this.decisiones[ln.id];
+		if (dec.accion === 'nuevo') {
+			// volver atrás: si había match original, restaurarlo; si no, omitir
+			const m = ln.match;
+			if (m && m.item_code != null) { dec.accion = 'match'; dec.item_code = m.item_code; dec.item_name = m.item_name; }
+			else { dec.accion = 'omitir'; dec.item_code = null; }
+		} else {
+			dec.accion = 'nuevo';
+			dec.item_code = dec.nuevo_codigo || null;   // el código nuevo (lo ingresa el humano)
+		}
 		this.refresh_row(ln);
 	}
 
@@ -388,7 +434,7 @@ class OcrProveedores {
 		const dec = this.decisiones[ln.id];
 		dec.item_code = item_code;
 		dec.item_name = item_name;
-		dec.accion = 'confirmar';
+		dec.accion = 'match';
 		this.refresh_row(ln);
 	}
 
@@ -397,65 +443,124 @@ class OcrProveedores {
 	//    (confirmar_recepcion_borrador de Atlas — nunca submit).
 	// ------------------------------------------------------------------
 
-	render_summary() {
-		let conf = 0, omit = 0, sin = 0;
-		Object.keys(this.decisiones).forEach((k) => {
-			const d = this.decisiones[k];
-			if (d.accion === 'omitir') omit++;
-			else if (d.item_code) conf++;
-			else sin++;
-		});
-		let txt = __('{0} a confirmar · {1} omitidas', [conf, omit]);
-		if (sin) txt += ' · ' + __('{0} sin Item (elegí o omití)', [sin]);
-		$('#ocr-confirm-summary').text(txt);
-		$('#ocr-btn-confirmar').prop('disabled', sin > 0 || conf === 0);
+	// Estado de resolución de una decisión:
+	//  match  → tiene item_code (Item de ERPNext elegido)
+	//  nuevo  → tiene nuevo_codigo (el humano lo generó)
+	//  omitir → resuelta (no se hace nada con la línea)
+	//  pend   → falta que el humano complete (match sin item / nuevo sin código)
+	estado_decision(d) {
+		if (d.accion === 'omitir') return 'omitir';
+		if (d.accion === 'nuevo') return (d.nuevo_codigo || '').trim() ? 'nuevo' : 'pend';
+		if (d.accion === 'match') return d.item_code ? 'match' : 'pend';
+		return 'pend';
 	}
 
-	// Líneas confirmadas → [{item_code, qty, rate}] (contrato de confirmar_recepcion_borrador)
-	lineas_confirmadas() {
+	render_summary() {
+		let match = 0, nuevo = 0, omit = 0, pend = 0;
+		Object.keys(this.decisiones).forEach((k) => {
+			const e = this.estado_decision(this.decisiones[k]);
+			if (e === 'match') match++;
+			else if (e === 'nuevo') nuevo++;
+			else if (e === 'omitir') omit++;
+			else pend++;
+		});
+		let txt = __('{0} match · {1} nuevo · {2} omitidas', [match, nuevo, omit]);
+		if (pend) txt += ' · ' + __('{0} sin resolver (elegí Item, cargá como nuevo, u omití)', [pend]);
+		$('#ocr-confirm-summary').text(txt);
+		$('#ocr-btn-confirmar').prop('disabled', pend > 0 || (match + nuevo) === 0);
+	}
+
+	// Decisiones por línea → contrato de confirmar (T2/T3, coordinado con Atlas):
+	// [{idx, decision:"match"|"nuevo"|"omitir", item_code, codigo_barras}]
+	// - match  → item_code = Item de ERPNext elegido
+	// - nuevo  → item_code = código nuevo que ingresó el humano; codigo_barras opcional
+	//   (Atlas toma el nombre de la descripción leída y el código de proveedor de la línea)
+	// - omitir → item_code null
+	decisiones_payload() {
 		const byId = {};
 		(this.data.lineas || []).forEach((ln) => (byId[ln.id] = ln));
-		return Object.keys(this.decisiones)
-			.map((id) => ({ id: id, dec: this.decisiones[id], ln: byId[id] }))
-			.filter((x) => x.dec.accion !== 'omitir' && x.dec.item_code && x.ln)
-			.map((x) => ({ item_code: x.dec.item_code, qty: Number(x.ln.cantidad || 0), rate: Number(x.ln.precio || 0) }));
+		return Object.keys(this.decisiones).map((id) => {
+			const d = this.decisiones[id], ln = byId[id] || {};
+			const decision = d.accion;
+			let item_code = null;
+			if (decision === 'match') item_code = d.item_code || null;
+			else if (decision === 'nuevo') item_code = (d.nuevo_codigo || '').trim() || null;
+			return {
+				idx: ln.idx != null ? ln.idx : id,
+				line_id: id,
+				decision: decision,
+				item_code: item_code,
+				codigo_barras: decision === 'nuevo' ? ((d.codigo_barras || '').trim() || null) : null,
+			};
+		});
 	}
 
 	confirmar() {
 		if (!this.data) return;
 		const st = '#ocr-confirm-status';
-		const sin = Object.keys(this.decisiones).filter((k) => this.decisiones[k].accion !== 'omitir' && !this.decisiones[k].item_code);
-		if (sin.length) return this.status(__('Hay líneas sin Item. Elegí uno o omitilas.'), 'var(--si-red)', st);
+		const pend = Object.keys(this.decisiones).filter((k) => this.estado_decision(this.decisiones[k]) === 'pend');
+		if (pend.length) return this.status(__('Hay líneas sin resolver. Elegí un Item, cargalas como nuevo, u omitilas.'), 'var(--si-red)', st);
 
-		const lineas = this.lineas_confirmadas();
-		if (!lineas.length) return this.status(__('No hay líneas confirmadas.'), 'var(--si-red)', st);
+		const decisiones = this.decisiones_payload();
+		const activas = decisiones.filter((x) => x.decision !== 'omitir');
+		if (!activas.length) return this.status(__('No hay líneas para confirmar (todas omitidas).'), 'var(--si-red)', st);
 
-		if (this.job_id === 'DEMO' || !this.job_id)
-			return this.status(__('Ejemplo: en una factura real, acá se crea la recepción en borrador.'), 'var(--si-muted)', st);
+		$('#ocr-confirm-result').empty();
 
-		const supplier = (this.data.proveedor || {}).supplier;
-		if (!supplier)
-			return this.status(__('Este proveedor no tiene Supplier en ERPNext, así que no se puede crear la recepción. (El alta de proveedor es zona Tango.)'), 'var(--si-red)', st);
+		if (this.job_id === 'DEMO' || !this.job_id) {
+			const nuevos = activas.filter((x) => x.decision === 'nuevo').map((x) => x.item_code);
+			this.render_confirm_result({ ok: true, proveedor_creado: null, created_items: nuevos, tango_excel: null, _demo: true });
+			return this.status(__('Ejemplo: en una factura real, acá se crean los artículos y el Excel de Tango.'), 'var(--si-muted)', st);
+		}
 
 		const btn = $('#ocr-btn-confirmar').prop('disabled', true);
 		this.status(__('Confirmando…'), '', st);
-		this.call_ocr('confirmar_recepcion_borrador', { supplier: supplier, lineas_json: JSON.stringify(lineas) })
+		// Endpoint T2/T3 (a construir Atlas): confirmar(invoice_id, decisiones_json)
+		// -> {ok, proveedor_creado, created_items, tango_excel}. AISLADO acá.
+		this.call_ocr('confirmar', { invoice_id: this.job_id, decisiones_json: JSON.stringify(decisiones) })
 			.then((m) => {
 				m = m || {};
 				if (m.ok) {
-					this.status('✓ ' + __('Recepción en borrador creada: {0}', [m.purchase_receipt || '']), 'var(--si-green)', st);
-					frappe.show_alert({ message: __('Recepción en borrador creada'), indicator: 'green' });
+					this.render_confirm_result(m);
+					this.status('✓ ' + __('Revisión confirmada'), 'var(--si-green)', st);
+					frappe.show_alert({ message: __('Revisión confirmada'), indicator: 'green' });
 				} else {
 					this.status(__('No se pudo confirmar: ') + (m.error || __('desconocido')), 'var(--si-red)', st);
 				}
 			})
 			.catch((e) => {
 				if (this.is_not_published(e))
-					this.status(__('El backend de confirmación todavía no está publicado.'), 'var(--si-accent2)', st);
+					this.status(__('El backend de confirmación (crear artículos + Excel) todavía no está publicado.'), 'var(--si-accent2)', st);
 				else
 					this.status(__('Error al confirmar. Revisá la consola.'), 'var(--si-red)', st);
 			})
 			.then(() => btn.prop('disabled', false));
+	}
+
+	// Feedback del resultado: proveedor creado, artículos nuevos, y descarga del Excel Tango.
+	render_confirm_result(m) {
+		const $r = $('#ocr-confirm-result').empty().removeClass('hidden');
+		const created = m.created_items || m.created || [];
+		const prov = m.proveedor_creado || m.supplier_creado || null;
+
+		if (prov) $r.append($('<div class="ocr-res-line">').html('🏢 ' + __('Proveedor creado') + ': <b>' + frappe.utils.escape_html(String(prov)) + '</b>'));
+
+		if (created.length) {
+			$r.append($('<div class="ocr-res-line">').html('📦 ' + __('Artículos nuevos creados') + ': <b>' + created.length + '</b>'));
+			$r.append($('<div class="ocr-res-items">').text(created.join('  ·  ')));
+		} else {
+			$r.append($('<div class="ocr-res-line dimmed">').text(__('No se crearon artículos nuevos.')));
+		}
+
+		if (m.tango_excel) {
+			const a = document.createElement('a');
+			a.href = m.tango_excel; a.className = 'btn btn-primary ocr-res-dl';
+			a.setAttribute('download', ''); a.textContent = '⤓ ' + __('Descargar Excel para importar a Tango');
+			$r.append($('<div style="margin-top:8px">').append(a));
+			$r.append($('<div class="dimmed ocr-res-note">').text(__('El Excel se importa a Tango a mano (la app no escribe a Tango).')));
+		} else if (created.length && !m._demo) {
+			$r.append($('<div class="dimmed ocr-res-note">').text(__('El Excel de Tango no vino en la respuesta — coordinando con el backend.')));
+		}
 	}
 }
 

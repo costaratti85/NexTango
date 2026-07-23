@@ -59,6 +59,23 @@
                             flex-wrap:wrap; margin-top:16px; padding-top:14px; border-top:1px solid var(--si-line); }
 .si-page .ocr-confirm-summary { font-size:13px; }
 
+/* Modo "ingresar como nuevo artículo" (filas rojas que el humano da de alta) */
+.si-page .ocr-nuevo-box { display:flex; flex-direction:column; gap:5px; padding:7px 8px;
+                          background:#fff8ec; border:1px solid #f0d9a8; border-radius:6px; }
+.si-page .ocr-nuevo-tag { font-size:9px; font-weight:800; letter-spacing:.5px; color:#8a6516; }
+.si-page .ocr-nuevo-lbl { font-size:10px; color:var(--si-muted); display:flex; flex-direction:column; gap:2px; }
+.si-page .ocr-nuevo-input { font-size:12px; padding:4px 7px; border:1px solid #d9c088; border-radius:4px; width:100%; }
+.si-page .ocr-nuevo-nombre { font-size:10.5px; color:var(--si-muted); }
+.si-page .ocr-grid tr.ocr-omitida .ocr-nuevo-box { text-decoration:none; }
+
+/* Resultado de la confirmación */
+.si-page .ocr-confirm-result { margin-top:14px; padding:12px 14px; background:#eef7f0;
+                               border:1px solid #bfe3c9; border-radius:8px; }
+.si-page .ocr-res-line { font-size:13.5px; margin-bottom:4px; }
+.si-page .ocr-res-items { font-size:11.5px; color:var(--si-muted); word-break:break-all; margin-bottom:4px; }
+.si-page .ocr-res-dl { padding:8px 20px; font-weight:700; margin-top:2px; text-decoration:none; display:inline-block; }
+.si-page .ocr-res-note { font-size:11px; margin-top:6px; }
+
 /* Diálogo de candidatos */
 .ocr-cand-row { display:flex; justify-content:space-between; align-items:center; gap:12px;
                 padding:8px 10px; border:1px solid var(--si-line); border-radius:6px; margin-bottom:6px; cursor:pointer; }
