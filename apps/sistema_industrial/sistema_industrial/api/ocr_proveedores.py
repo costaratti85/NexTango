@@ -85,11 +85,15 @@ def subir_factura(file_url: str):
 
     job_id = frappe.generate_hash(length=12)
     _save_job(job_id, {"status": "queued", "file_url": file_url})
+    # OJO: `job_id` es kwarg RESERVADO de frappe.enqueue/RQ (lo consume como ID
+    # del job de RQ y NO lo reenvía a la función). Por eso el ticket va como
+    # `jid` — si no, _procesar_job se ejecuta sin ese argumento y falla con
+    # TypeError, dejando el job "en cola" para siempre.
     frappe.enqueue(
         "sistema_industrial.api.ocr_proveedores._procesar_job",
         queue="long",
         timeout=600,
-        job_id=job_id,
+        jid=job_id,
         file_url=file_url,
     )
     return {"job_id": job_id, "status": "queued"}
@@ -136,20 +140,24 @@ def resultado(job_id: str):
 
 # --------------------------------------------------------------- worker
 
-def _procesar_job(job_id: str, file_url: str):
-    """Worker encolado: OCR (seam) -> resolver Supplier -> match Items -> guardar."""
-    _save_job(job_id, {"status": "processing", "file_url": file_url})
+def _procesar_job(jid: str, file_url: str):
+    """Worker encolado: OCR (seam) -> resolver Supplier -> match Items -> guardar.
+
+    `jid` es el ticket del job (NO se llama job_id porque ese nombre lo reserva
+    frappe.enqueue/RQ; ver subir_factura).
+    """
+    _save_job(jid, {"status": "processing", "file_url": file_url})
     try:
         path = frappe.get_doc("File", {"file_url": file_url}).get_full_path()
     except Exception as exc:
-        _save_job(job_id, {"status": "error", "error": f"archivo: {exc}"})
+        _save_job(jid, {"status": "error", "error": f"archivo: {exc}"})
         return
 
     # --- SEAM OCR: si el motor aún no está implementado, estado explícito ---
     try:
         extracted = extract_invoice(path)
     except NotImplementedError:
-        _save_job(job_id, {
+        _save_job(jid, {
             "status": "ocr_pendiente",
             "error": "El motor OCR (ocr_suppliers.extraction.extract_invoice) "
                      "todavía no está implementado. Plumbing OK.",
@@ -157,8 +165,8 @@ def _procesar_job(job_id: str, file_url: str):
         })
         return
     except Exception as exc:
-        frappe.log_error(f"ocr_proveedores extract {job_id}: {exc}", "ocr_proveedores")
-        _save_job(job_id, {"status": "error", "error": f"extracción: {exc}"})
+        frappe.log_error(f"ocr_proveedores extract {jid}: {exc}", "ocr_proveedores")
+        _save_job(jid, {"status": "error", "error": f"extracción: {exc}"})
         return
 
     proveedor = _resolver_supplier((extracted.get("proveedor") or {}).get("cuit", ""))
@@ -170,11 +178,11 @@ def _procesar_job(job_id: str, file_url: str):
         catalog = load_catalog()
         lineas = match_lines(extracted.get("lineas", []), catalog)
     except Exception as exc:
-        frappe.log_error(f"ocr_proveedores match {job_id}: {exc}", "ocr_proveedores")
-        _save_job(job_id, {"status": "error", "error": f"matching: {exc}"})
+        frappe.log_error(f"ocr_proveedores match {jid}: {exc}", "ocr_proveedores")
+        _save_job(jid, {"status": "error", "error": f"matching: {exc}"})
         return
 
-    _save_job(job_id, {
+    _save_job(jid, {
         "status": "done",
         "file_url": file_url,
         "proveedor": proveedor,
