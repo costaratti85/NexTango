@@ -34,9 +34,30 @@ catalogo = build_item_catalog(item_group="Ferretería")   # o sin filtro para to
 ```
 Prioridad de matching sugerida (heredada del OCR V9): `supplier_part_no` / `barcode` > descripción.
 
-### 2. Custom field del layout aprendido — `custom_fields.py`
-- **`Supplier.si_ocr_layout`** (fieldtype **JSON**, read-only, no-copy): guarda las zonas/posiciones de la factura que el OCR aprende por proveedor/CUIT. Vacío hasta la primera pasada.
+### 2. Custom field del layout aprendido — `custom_fields.py` + `layout.py`
+- **`Supplier.si_ocr_layout`** (fieldtype **JSON**, read-only, no-copy): guarda las zonas/posiciones de la factura que el OCR aprende por proveedor/CUIT ("experiencia de scaneo"). Vacío hasta la primera pasada.
 - Se crea **idempotente en cada `bench migrate`** vía `after_migrate` → `ensure_ocr_custom_fields()` (declarado en `hooks.py`). Reproducible y versionado.
+- **Helpers `layout.py`** (para que el OCR persista tras procesar cada factura, sin tocar el ORM):
+  ```python
+  from sistema_industrial.ocr_suppliers.layout import (
+      get_supplier_layout, save_supplier_layout,     # por name de Supplier
+      get_layout_by_cuit, save_layout_by_cuit,        # por CUIT (Supplier.tax_id)
+      find_supplier_by_cuit,
+  )
+  ```
+  El **OCR es dueño de la forma del JSON**; los helpers solo guardan/leen un dict.
+  `save_layout_by_cuit` devuelve `None` si no existe Supplier con ese CUIT (el alta del Supplier la decide el humano — Regla 8).
+
+### 3. Generador del Excel de importación a Tango — `tango_sync/article_export.py`
+Punto que **Atlas invoca tras crear los Items nuevos del OCR**:
+```python
+from sistema_industrial.tango_sync.article_export import generate_tango_import_excel
+res = generate_tango_import_excel(item_codes=nuevos_codigos_ocr)   # ferretería 06-
+# -> {"file_url", "file_name", "count", "item_codes", "gaps"}
+```
+- Carga la **plantilla oficial de Tango** (bundleada en `tango_sync/tango_templates/`) y **pega solo las filas** en la hoja "Artículos", preservando las 80 hojas de lookup + `_metadata`. **No fabrica el xlsx de cero.**
+- Devuelve el **`file_url`** de un File privado de Frappe (para descargar/revisar/subir a Tango a mano — Regla 8, no sube nada).
+- Requiere `openpyxl` en el bench (dep del OCR).
 
 ## Pendiente (otros dueños)
 - Motor OCR server-side (QR AFIP + layout + parsing) en `frappe.enqueue` — **OCR**.
