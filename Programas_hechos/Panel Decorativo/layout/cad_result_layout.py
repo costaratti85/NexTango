@@ -10,7 +10,15 @@ from geometry.text_label import TextLabel
 
 HORIZONTAL_GAP = 200
 VERTICAL_GAP = 500
-LABEL_Y_OFFSET = -300
+# Etiqueta de cantidad («×N»): a 200 mm por debajo del borde inferior del panel
+# (pedido de Constantino). El panel se coloca con su borde inferior en
+# current_row_y y el MTEXT usa ancla top-right, así que el tope del texto queda
+# exactamente a esta distancia del borde inferior. Antes eran 300 mm (muy lejos).
+QUANTITY_LABEL_Y_OFFSET = -200
+# Espacio reservado bajo el panel al calcular el salto de fila. Se mantiene en
+# 300 (independiente de la posición de la etiqueta) para NO alterar el
+# espaciado entre grupos de material al mover la etiqueta.
+ROW_LABEL_CLEARANCE = 300
 TEXT_HEIGHT = 100
 
 _MATERIAL_TABLE_FILE = (
@@ -119,7 +127,7 @@ def arrange_cad_result_items(items):
             quantity_label = TextLabel(
                 f"x{item.quantity}",
                 current_x + 150,
-                current_row_y + LABEL_Y_OFFSET,
+                current_row_y + QUANTITY_LABEL_Y_OFFSET,
                 TEXT_HEIGHT,
                 right_align=True,
             )
@@ -141,7 +149,7 @@ def arrange_cad_result_items(items):
         current_row_y -= (
             max_height_in_row
             + VERTICAL_GAP
-            + abs(LABEL_Y_OFFSET)
+            + ROW_LABEL_CLEARANCE
         )
 
     return output_items
