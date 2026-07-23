@@ -26,5 +26,8 @@ fixtures = [
 # workspace estándar "Buying" (Compras). Se re-aplica tras cada migrate → sobrevive
 # a updates de ERPNext sin forkear el buying.json estándar.
 after_migrate = [
+    # Sistema Industrial visible en la grilla de la home del Desk (type=Workspace).
+    "sistema_industrial.ocr_suppliers.buying_workspace.ensure_sistema_industrial_on_home",
+    # OCR Proveedores dentro del workspace estándar Compras (Buying).
     "sistema_industrial.ocr_suppliers.buying_workspace.add_ocr_link_to_buying",
 ]
