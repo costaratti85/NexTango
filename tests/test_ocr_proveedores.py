@@ -105,3 +105,31 @@ def test_barcode_gana_a_fuzzy():
     r = match_line({"codigo_barras": "7790009999999", "descripcion": "broca hss 6mm"}, CATALOGO)
     assert r["match"]["item_code"] == "TORN-M6"
     assert r["match"]["reason"] == "Código de barras exacto"
+
+
+# ------------------------------------------------ FASE 2: payload de Item nuevo
+
+from sistema_industrial.ocr_suppliers.item_builder import item_payload_nuevo  # noqa: E402
+
+
+def test_item_payload_nuevo_completo():
+    p = item_payload_nuevo("BUL-M8", "Bulón M8x40", "SUP-001", "PROV-99", "7791234567890",
+                            "Ferretería", "unidad")
+    assert p["doctype"] == "Item"
+    assert p["item_code"] == "BUL-M8" and p["item_name"] == "Bulón M8x40"
+    assert p["item_group"] == "Ferretería" and p["stock_uom"] == "unidad"
+    assert p["supplier_items"] == [{"supplier": "SUP-001", "supplier_part_no": "PROV-99"}]
+    assert p["barcodes"] == [{"barcode": "7791234567890"}]
+
+
+def test_item_payload_nuevo_sin_barcode_ni_supplier():
+    p = item_payload_nuevo("X1", "", None, "", "", "Ferretería", "Nos")
+    assert p["item_name"] == "X1"            # item_name cae al item_code si falta
+    assert p["barcodes"] == []               # sin barcode -> tabla vacía
+    assert p["supplier_items"] == []         # sin supplier -> tabla vacía
+
+
+def test_item_payload_item_name_se_trunca_a_140():
+    largo = "D" * 200
+    p = item_payload_nuevo("C1", largo, "S", "", "", "Ferretería", "Nos")
+    assert len(p["item_name"]) == 140
