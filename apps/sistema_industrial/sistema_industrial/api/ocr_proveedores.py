@@ -89,7 +89,9 @@ def subir_factura(file_url: str):
         "sistema_industrial.api.ocr_proveedores._procesar_job",
         queue="long",
         timeout=600,
-        job_id=job_id,
+        # OJO: `job_id` es un kwarg RESERVADO de frappe.enqueue (id del job RQ) y NO
+        # se reenvía a la función. Pasamos nuestro id bajo `ocr_job_id` para que llegue.
+        ocr_job_id=job_id,
         file_url=file_url,
     )
     return {"job_id": job_id, "status": "queued"}
@@ -136,8 +138,9 @@ def resultado(job_id: str):
 
 # --------------------------------------------------------------- worker
 
-def _procesar_job(job_id: str, file_url: str):
+def _procesar_job(ocr_job_id: str = None, file_url: str = None):
     """Worker encolado: OCR (seam) -> resolver Supplier -> match Items -> guardar."""
+    job_id = ocr_job_id  # ver subir_factura: `job_id` colisiona con el reservado de enqueue
     _save_job(job_id, {"status": "processing", "file_url": file_url})
     try:
         path = frappe.get_doc("File", {"file_url": file_url}).get_full_path()
