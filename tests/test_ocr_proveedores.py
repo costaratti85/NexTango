@@ -105,3 +105,73 @@ def test_barcode_gana_a_fuzzy():
     r = match_line({"codigo_barras": "7790009999999", "descripcion": "broca hss 6mm"}, CATALOGO)
     assert r["match"]["item_code"] == "TORN-M6"
     assert r["match"]["reason"] == "Código de barras exacto"
+
+
+# ------------------------------------------------ FASE 2: payload de Item nuevo
+
+from sistema_industrial.ocr_suppliers.item_builder import item_payload_nuevo  # noqa: E402
+
+
+def test_item_payload_nuevo_completo():
+    p = item_payload_nuevo("BUL-M8", "Bulón M8x40", "SUP-001", "PROV-99", "7791234567890",
+                            "Ferretería", "unidad")
+    assert p["doctype"] == "Item"
+    assert p["item_code"] == "BUL-M8" and p["item_name"] == "Bulón M8x40"
+    assert p["item_group"] == "Ferretería" and p["stock_uom"] == "unidad"
+    assert p["supplier_items"] == [{"supplier": "SUP-001", "supplier_part_no": "PROV-99"}]
+    assert p["barcodes"] == [{"barcode": "7791234567890"}]
+
+
+def test_item_payload_nuevo_sin_barcode_ni_supplier():
+    p = item_payload_nuevo("X1", "", None, "", "", "Ferretería", "Nos")
+    assert p["item_name"] == "X1"            # item_name cae al item_code si falta
+    assert p["barcodes"] == []               # sin barcode -> tabla vacía
+    assert p["supplier_items"] == []         # sin supplier -> tabla vacía
+
+
+def test_item_payload_item_name_se_trunca_a_140():
+    largo = "D" * 200
+    p = item_payload_nuevo("C1", largo, "S", "", "", "Ferretería", "Nos")
+    assert len(p["item_name"]) == 140
+
+
+# --------------------------------------- FASE 2: sugerencia de código (wiring)
+
+from sistema_industrial.ocr_suppliers.code_suggester import (  # noqa: E402
+    aplicar_sugerencias, suggest_next_item_code,
+)
+
+
+def test_aplicar_sugerencias_solo_a_lineas_sin_match():
+    lineas = [
+        {"idx": 0, "match": {"item_code": "X"}, "candidatos": []},          # con match
+        {"idx": 1, "match": None, "candidatos": [{"item_code": "FF-01-001"}]},  # sin match
+    ]
+    aplicar_sugerencias(lineas, lambda l, c: "FF-01-002")
+    assert lineas[0]["codigo_sugerido"] is None      # con match -> sin sugerencia
+    assert lineas[1]["codigo_sugerido"] == "FF-01-002"  # sin match -> sugerido
+
+
+def test_aplicar_sugerencias_pasa_linea_y_candidatos_al_suggester():
+    recibido = {}
+    def fake(linea, candidatos):
+        recibido["desc"] = linea.get("descripcion")
+        recibido["cand"] = candidatos
+        return "SUG-1"
+    lineas = [{"idx": 0, "match": None, "descripcion": "Bulón", "candidatos": [{"item_code": "A"}]}]
+    aplicar_sugerencias(lineas, fake)
+    assert recibido["desc"] == "Bulón" and recibido["cand"] == [{"item_code": "A"}]
+    assert lineas[0]["codigo_sugerido"] == "SUG-1"
+
+
+def test_aplicar_sugerencias_graceful_si_suggester_falla():
+    # el seam sin implementar (NotImplementedError) NO debe romper el flujo
+    lineas = [{"idx": 0, "match": None, "candidatos": []}]
+    aplicar_sugerencias(lineas, suggest_next_item_code)   # el stub tira NotImplementedError
+    assert lineas[0]["codigo_sugerido"] is None
+
+
+def test_aplicar_sugerencias_none_del_suggester_queda_none():
+    lineas = [{"idx": 0, "match": None, "candidatos": []}]
+    aplicar_sugerencias(lineas, lambda l, c: None)
+    assert lineas[0]["codigo_sugerido"] is None
