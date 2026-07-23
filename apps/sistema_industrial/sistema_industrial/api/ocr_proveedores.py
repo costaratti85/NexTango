@@ -232,8 +232,8 @@ def confirmar_recepcion_borrador(supplier: str, lineas_json, company: str = None
 
 
 # ==================================================================== FASE 2
-# "Confirmar revisión": confirmación HUMANA. CERO escritura a Tango.
-# Orden: (1) crear/resolver Supplier -> (2) crear Items NUEVOS -> (3) Excel Tango.
+# "Confirmar revisión" (T2/T3): confirmación HUMANA. CERO escritura a Tango.
+# Orden ESTRICTO: (1) Supplier -> (2) si_ocr_layout -> (3) Items nuevos -> (4) Excel.
 
 _ITEM_GROUP_DEFAULT = "Ferretería"
 
@@ -252,13 +252,14 @@ def _default_supplier_group() -> str:
     return frappe.db.get_value("Supplier Group", {}, "name") or "All Supplier Groups"
 
 
-def _get_or_create_supplier(cuit: str, nombre: str) -> str:
-    """name del Supplier (por tax_id==CUIT); lo CREA si no existe (nativo)."""
+def _get_or_create_supplier(cuit: str, nombre: str):
+    """(name, creado): Supplier por tax_id==CUIT; lo CREA si no existe (nativo).
+    creado=True solo si se dio de alta en esta llamada."""
     cuit_n = _normalizar_cuit(cuit)
     if cuit_n:
         existing = frappe.db.get_value("Supplier", {"tax_id": cuit_n}, "name")
         if existing:
-            return existing
+            return existing, False
     if not (nombre or "").strip():
         frappe.throw("No se puede crear el proveedor: falta la razón social (nombre) del OCR.")
     doc = frappe.get_doc({
@@ -269,7 +270,29 @@ def _get_or_create_supplier(cuit: str, nombre: str) -> str:
         "supplier_type": "Company",
     })
     doc.insert(ignore_permissions=True)
-    return doc.name
+    return doc.name, True
+
+
+def _guardar_layout_supplier(supplier: str, cuit: str, meta: dict) -> bool:
+    """Guarda el layout aprendido por el OCR en Supplier.si_ocr_layout (JSON).
+
+    El layout viene en meta['layout_learned'] = {cuit: {zonas...}}. Se persiste
+    la entrada del CUIT del proveedor. DEFENSIVO: si el campo si_ocr_layout aún
+    no existe en Supplier (lo agrega Forge, requiere migrate) se saltea sin
+    romper. Devuelve True si se guardó."""
+    learned = (meta or {}).get("layout_learned") or {}
+    cuit_n = _normalizar_cuit(cuit)
+    layout = learned.get(cuit_n) or learned.get(cuit) or (learned if learned else None)
+    if not layout:
+        return False
+    if not frappe.get_meta("Supplier").get_field("si_ocr_layout"):
+        frappe.log_error(
+            f"si_ocr_layout no existe en Supplier (pendiente Forge/migrate); "
+            f"layout de {supplier} no persistido.", "ocr_proveedores")
+        return False
+    frappe.db.set_value("Supplier", supplier, "si_ocr_layout",
+                        json.dumps(layout, ensure_ascii=False))
+    return True
 
 
 def _crear_item_nuevo(item_code, item_name, supplier, codigo_proveedor="", barcode=""):
@@ -310,69 +333,70 @@ def _generar_excel_tango(created_items, proveedor):
 
 
 @frappe.whitelist()
-def confirmar(job_id, decisiones_json, company=None):
-    """Confirmación humana de la revisión (Fase 2). CERO escritura a Tango.
+def confirmar(invoice_id, decisiones_json):
+    """Confirmación humana de la revisión (Fase 2, T2/T3). Contrato Vega/MSG_032.
+    CERO escritura a Tango, sin auto-submit. Solo lo que el humano confirmó (Regla 8).
 
-    Orden garantizado: (1) resolver/crear Supplier -> (2) crear Items NUEVOS ->
-    (3) generar el Excel de Tango de esos items (Forge).
+    ORDEN ESTRICTO: (1) Supplier -> (2) si_ocr_layout -> (3) Items nuevos -> (4) Excel.
 
-    decisiones_json: JSON [{id, accion, item_code, barcode?, item_name?, codigo_proveedor?}]
-      - accion "nuevo": crea el Item. item_code (manual, obligatorio); barcode
-        opcional. item_name y codigo_proveedor se toman del OCR (cache) si no vienen.
-      - accion "match": usa un Item existente (item_code); no crea nada.
-      - accion "omitir": se descarta.
+    invoice_id:      = el job_id que devolvió subir_factura.
+    decisiones_json: JSON [{idx, line_id, decision, item_code, codigo_barras}]
+      - decision "match":  item_code = Item existente elegido (no crea nada).
+      - decision "nuevo":  item_code = código del humano; codigo_barras opcional.
+                           item_name (=descripción) y codigo_proveedor se toman del
+                           job (Redis) por idx.
+      - decision "omitir": no se hace nada.
 
-    r.message: {ok, supplier, created_items, matched, omitted, tango_excel, resumen}
+    r.message: {ok, proveedor_creado, created_items, tango_excel}
+      - proveedor_creado: name del Supplier SOLO si se dio de alta ahora, si no null.
+      - created_items:    lista de item_code (strings) creados.
+      - tango_excel:      file_url del .xlsx, o null si Forge aún no lo generó.
     """
-    job = _load_job(job_id)
+    job = _load_job(invoice_id)
     if job is None:
-        frappe.throw("job_id desconocido o expirado — reprocesá la factura.")
+        frappe.throw("invoice_id desconocido o expirado — reprocesá la factura.")
     decisiones = json.loads(decisiones_json) if isinstance(decisiones_json, str) else decisiones_json
     if not decisiones:
         frappe.throw("No hay decisiones para confirmar.")
 
     prov = job.get("proveedor", {}) or {}
+    meta = job.get("meta", {}) or {}
     ocr_by_id = {str(l.get("idx", i)): l for i, l in enumerate(job.get("lineas", []))}
 
-    # (1) Supplier (crear si falta)
-    supplier = _get_or_create_supplier(prov.get("cuit", ""), prov.get("nombre", ""))
+    def _linea(d):
+        return ocr_by_id.get(str(d.get("idx", d.get("line_id", "")))) or {}
 
-    # (2) Items nuevos primero
-    created, matched, omitted = [], [], 0
+    # (1) Supplier — crear si no existe
+    supplier, creado = _get_or_create_supplier(prov.get("cuit", ""), prov.get("nombre", ""))
+
+    # (2) si_ocr_layout — guardar el layout aprendido en el Supplier
+    _guardar_layout_supplier(supplier, prov.get("cuit", ""), meta)
+
+    # (3) Items nuevos (solo decision == "nuevo") — created_rich para Forge, codes para Vega
+    created_rich, created_codes = [], []
     for d in decisiones:
-        accion = (d.get("accion") or "").lower()
-        if accion == "omitir":
-            omitted += 1
-            continue
-        line = ocr_by_id.get(str(d.get("id", d.get("line_id", ""))), {})
-        if accion == "nuevo":
-            desc = d.get("item_name") or line.get("descripcion", "")
-            cod_prov = d.get("codigo_proveedor") or line.get("codigo_proveedor", "")
-            name = _crear_item_nuevo(d.get("item_code"), desc, supplier, cod_prov, d.get("barcode") or "")
-            created.append({"item_code": name, "item_name": desc,
-                            "codigo_proveedor": cod_prov, "barcode": d.get("barcode") or ""})
-        elif accion in ("match", "confirmar"):
-            code = d.get("item_code")
-            if not code or not frappe.db.exists("Item", code):
-                frappe.throw(f"Item inexistente para la línea {d.get('id')}: {code}")
-            matched.append(code)
-        else:
-            frappe.throw(f"Acción desconocida en la línea {d.get('id')}: {accion!r}")
+        decision = (d.get("decision") or "").lower()
+        if decision in ("omitir", "match", ""):
+            continue  # omitir/match no crean Item (match usa uno existente)
+        if decision != "nuevo":
+            frappe.throw(f"decision desconocida en la línea {d.get('idx')}: {decision!r}")
+        line = _linea(d)
+        desc = line.get("descripcion", "")
+        cod_prov = line.get("codigo_proveedor", "")
+        name = _crear_item_nuevo(d.get("item_code"), desc, supplier, cod_prov,
+                                 d.get("codigo_barras") or "")
+        created_codes.append(name)
+        created_rich.append({"item_code": name, "item_name": desc,
+                             "codigo_proveedor": cod_prov, "barcode": d.get("codigo_barras") or ""})
 
     frappe.db.commit()
 
-    # (3) Excel de Tango de los NUEVOS (Forge). Sin escritura a Tango.
-    tango_excel = _generar_excel_tango(created, {**prov, "supplier": supplier})
+    # (4) Excel de Tango de los NUEVOS (Forge). Sin escritura a Tango.
+    tango_excel = _generar_excel_tango(created_rich, {**prov, "supplier": supplier})
 
     return {
         "ok": True,
-        "supplier": supplier,
-        "created_items": created,
-        "matched": matched,
-        "omitted": omitted,
+        "proveedor_creado": supplier if creado else None,
+        "created_items": created_codes,
         "tango_excel": tango_excel,
-        "resumen": (f"{len(created)} artículo(s) nuevo(s), {len(matched)} match, "
-                    f"{omitted} omitido(s)."
-                    + ("" if tango_excel or not created else
-                       " (Excel de Tango pendiente: generador de Forge no disponible aún.)")),
     }
