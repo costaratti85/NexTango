@@ -1,0 +1,68 @@
+/* Estilos de la page ocr-proveedores.
+ * Frappe autocarga este .css (homónimo de la page). NUNCA <style> inline en el
+ * .html (rompe la compilación del template con new Function — ver panel_decorativo.css). */
+
+/* Subida */
+.si-page .ocr-drop { border:2px dashed #c5dde8; border-radius:8px; padding:18px; text-align:center;
+                     background:#f8fbfd; cursor:pointer; transition:border-color .15s, background .15s; }
+.si-page .ocr-drop:hover { border-color:var(--si-brand); background:#eef7fb; }
+.si-page .ocr-drop.has-file { border-color:var(--si-green); background:#eef7f0; }
+.si-page .ocr-file-name { font-size:12px; color:var(--si-muted); margin-top:6px; word-break:break-all; }
+.si-page .ocr-status { font-size:13px; font-weight:600; min-height:18px; }
+
+/* Cabecera de revisión */
+.si-page .ocr-review-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.si-page .ocr-umbral { font-size:12px; }
+.si-page .ocr-header { display:flex; flex-wrap:wrap; gap:8px 22px; font-size:13px; margin-bottom:12px;
+                       padding:10px 12px; background:#f4f8fb; border-radius:6px; }
+.si-page .ocr-header b { color:var(--si-ink); }
+.si-page .ocr-header .ocr-h-warn { color:var(--si-red); font-weight:600; }
+
+/* Grilla */
+.si-page .ocr-grid { font-size:12.5px; }
+.si-page .ocr-grid td { vertical-align:middle; }
+.si-page .ocr-grid .ocr-desc { font-weight:600; color:var(--si-ink); }
+.si-page .ocr-grid .ocr-codigo { font-size:11px; color:var(--si-muted); }
+
+/* Semáforo por fila: borde izquierdo de color */
+.si-page .ocr-grid tr.ocr-verde    td:first-child { box-shadow: inset 4px 0 0 var(--si-green); }
+.si-page .ocr-grid tr.ocr-amarillo td:first-child { box-shadow: inset 4px 0 0 #e0a800; }
+.si-page .ocr-grid tr.ocr-rojo     td:first-child { box-shadow: inset 4px 0 0 var(--si-red); }
+.si-page .ocr-grid tr.ocr-omitida  { opacity:.5; }
+.si-page .ocr-grid tr.ocr-omitida .ocr-item-cell { text-decoration:line-through; }
+
+/* Punto de estado */
+.si-page .ocr-dot { display:inline-block; width:10px; height:10px; border-radius:50%; vertical-align:middle; }
+.si-page .ocr-dot-verde { background:var(--si-green); }
+.si-page .ocr-dot-amarillo { background:#e0a800; }
+.si-page .ocr-dot-rojo { background:var(--si-red); }
+
+/* Item matcheado */
+.si-page .ocr-item-cell .ocr-item-name { font-weight:600; }
+.si-page .ocr-item-cell .ocr-item-code { font-size:11px; color:var(--si-muted); }
+.si-page .ocr-item-none { color:var(--si-red); font-style:italic; }
+.si-page .ocr-criterio { font-size:10px; text-transform:uppercase; letter-spacing:.3px; color:var(--si-muted); }
+
+/* Badge de confianza */
+.si-page .ocr-conf { display:inline-block; min-width:44px; text-align:center; font-weight:700; font-size:12px;
+                     padding:3px 8px; border-radius:12px; }
+.si-page .ocr-conf-verde { background:#e6f6ec; color:#177245; }
+.si-page .ocr-conf-amarillo { background:#fff3d4; color:#8a6516; }
+.si-page .ocr-conf-rojo { background:#fdecea; color:#a12a1e; }
+
+/* Leyenda */
+.si-page .ocr-legend { display:flex; gap:18px; font-size:12px; margin:10px 0 4px; }
+.si-page .ocr-legend span { display:flex; align-items:center; gap:6px; }
+
+/* Barra de confirmar */
+.si-page .ocr-confirm-bar { display:flex; justify-content:space-between; align-items:center; gap:14px;
+                            flex-wrap:wrap; margin-top:16px; padding-top:14px; border-top:1px solid var(--si-line); }
+.si-page .ocr-confirm-summary { font-size:13px; }
+
+/* Diálogo de candidatos */
+.ocr-cand-row { display:flex; justify-content:space-between; align-items:center; gap:12px;
+                padding:8px 10px; border:1px solid var(--si-line); border-radius:6px; margin-bottom:6px; cursor:pointer; }
+.ocr-cand-row:hover { background:#eef7fb; border-color:var(--si-brand); }
+.ocr-cand-row.selected { background:#e6f6ec; border-color:var(--si-green); }
+.ocr-cand-name { font-weight:600; }
+.ocr-cand-meta { font-size:11px; color:var(--si-muted); }
