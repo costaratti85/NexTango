@@ -21,3 +21,9 @@ app_include_js = [
 fixtures = [
     {"dt": "Role", "filters": [["role_name", "like", "SI %"]]},
 ]
+
+# Custom fields declarados por código (idempotentes) — se crean en cada migrate.
+# ocr_suppliers.si_ocr_layout (Supplier): layout aprendido del OCR de proveedores.
+after_migrate = [
+    "sistema_industrial.ocr_suppliers.custom_fields.ensure_ocr_custom_fields",
+]
