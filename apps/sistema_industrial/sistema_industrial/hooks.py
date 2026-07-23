@@ -21,3 +21,10 @@ app_include_js = [
 fixtures = [
     {"dt": "Role", "filters": [["role_name", "like", "SI %"]]},
 ]
+
+# Aditivo e idempotente: suma el link a la página OCR Proveedores dentro del
+# workspace estándar "Buying" (Compras). Se re-aplica tras cada migrate → sobrevive
+# a updates de ERPNext sin forkear el buying.json estándar.
+after_migrate = [
+    "sistema_industrial.ocr_suppliers.buying_workspace.add_ocr_link_to_buying",
+]
