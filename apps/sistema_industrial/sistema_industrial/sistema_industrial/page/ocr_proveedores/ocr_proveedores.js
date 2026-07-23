@@ -51,6 +51,7 @@ function ocrNormLinea(L, i) {
 		precio: precio,
 		importe: importe,
 		iva: L.iva != null ? L.iva : null,
+		codigo_sugerido: L.codigo_sugerido != null ? L.codigo_sugerido : null,   // solo líneas sin match (suggester)
 		match: L.match ? ocrNormMatch(L.match, L) : null,
 		candidatos: (L.candidatos || []).map((c) => ocrNormMatch(c, L)),
 	};
@@ -231,7 +232,9 @@ class OcrProveedores {
 				accion: has ? 'match' : 'omitir',   // match | nuevo | omitir
 				item_code: has ? ln.match.item_code : null,
 				item_name: has ? ln.match.item_name : null,
-				nuevo_codigo: '',
+				// Filas sin match: pre-cargo el código con la sugerencia del backend
+				// (codigo_sugerido; null → vacío). Queda editable en el modo "nuevo".
+				nuevo_codigo: !has && ln.codigo_sugerido ? String(ln.codigo_sugerido) : '',
 				codigo_barras: '',
 			};
 		});
@@ -318,7 +321,10 @@ class OcrProveedores {
 			$code.on('input', () => { dec.nuevo_codigo = $code.val().trim(); dec.item_code = dec.nuevo_codigo || null; this.render_summary(); });
 			const $bar = $('<input type="text" class="ocr-nuevo-input" placeholder="' + __('Código de barras (opcional)') + '">').val(dec.codigo_barras || '');
 			$bar.on('input', () => { dec.codigo_barras = $bar.val().trim(); });
-			$box.append($('<label class="ocr-nuevo-lbl">').text(__('Código de artículo *')).append($code));
+			const sugerido = ln.codigo_sugerido && (dec.nuevo_codigo || '') === String(ln.codigo_sugerido);
+			const $codeLbl = $('<label class="ocr-nuevo-lbl">').text(__('Código de artículo *'));
+			if (sugerido) $codeLbl.append($('<span class="ocr-nuevo-sug">').text(' · ' + __('sugerido')));
+			$box.append($codeLbl.append($code));
 			$box.append($('<label class="ocr-nuevo-lbl">').text(__('Código de barras')).append($bar));
 			$box.append($('<div class="ocr-nuevo-nombre">').text(__('Nombre: ') + (ln.descripcion || '—') + (ln.codigo_proveedor ? '  ·  ' + __('cód. prov.: ') + ln.codigo_proveedor : '')));
 			$td.append($box);

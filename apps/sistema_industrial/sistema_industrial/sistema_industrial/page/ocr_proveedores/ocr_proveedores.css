@@ -66,6 +66,7 @@
 .si-page .ocr-nuevo-lbl { font-size:10px; color:var(--si-muted); display:flex; flex-direction:column; gap:2px; }
 .si-page .ocr-nuevo-input { font-size:12px; padding:4px 7px; border:1px solid #d9c088; border-radius:4px; width:100%; }
 .si-page .ocr-nuevo-nombre { font-size:10.5px; color:var(--si-muted); }
+.si-page .ocr-nuevo-sug { font-size:9px; font-weight:800; letter-spacing:.4px; color:#177245; text-transform:uppercase; }
 .si-page .ocr-grid tr.ocr-omitida .ocr-nuevo-box { text-decoration:none; }
 
 /* Resultado de la confirmación */
