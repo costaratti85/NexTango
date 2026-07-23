@@ -78,6 +78,12 @@ Para otra periodicidad (ej. dos veces al día, o solo días hábiles) se edita l
 > **queda en el server**. El backup automático de acá es el **completo** (base + archivos +
 > planos + credenciales) y el único que **sale del server** a la Mint.
 
+### También en el mismo cron: el "cerebro de los agentes"
+El cron diario, además, **hala de la Mint** al server la parte durable de Claude Desktop/Cowork
+(memorias CLI + Cowork, config MCP, sesiones Cowork como referencia) → `agentes-mint-<ts>/` en el
+server (`backup_agentes_mint.sh`). Esto respalda a los agentes **fuera de la Mint**. Cómo se
+recuperan (y por qué las sesiones no "reviven" 1:1): ver **`RECUPERACION_AGENTES.md`**.
+
 ## Restore (destructivo — pisa la base del site)
 
 **Pre-requisito: el PROGRAMA ya tiene que estar instalado** (ver [PROGRAMA.md](PROGRAMA.md)).

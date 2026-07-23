@@ -87,4 +87,14 @@ ssh $SSHOPT "$MINT_USER@$MINT_HOST" \
   "ls -dt '$MINT_DIR'/nextango-* 2>/dev/null | tail -n +$((RETENTION+1)) | xargs -r rm -rf" \
   2>>"$LOG" && log "  Mint: retención aplicada" || log "  WARN: no pude aplicar retención en la Mint"
 
+# ── 5. backup del "cerebro de los agentes" (Mint→server), best-effort ────────
+# Sesiones Cowork + memorias (Cowork y CLI) + config MCP. NO bloquea si falla.
+AGENTES="$TOOLS_DIR/backup_agentes_mint.sh"
+if [ -x "$AGENTES" ]; then
+  log "corriendo backup del cerebro de agentes…"
+  "$AGENTES" || log "  WARN: backup de agentes con problemas (ver arriba)"
+else
+  log "  (backup_agentes_mint.sh no encontrado; salteo cerebro de agentes)"
+fi
+
 log "═══ fin OK ═══"
