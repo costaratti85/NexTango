@@ -1,7 +1,7 @@
 {
  "app": "sistema_industrial",
  "charts": [],
- "content": "[{\"id\":\"si_hdr_tools\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Herramientas</b></span>\",\"col\":12}},{\"id\":\"si_sc_panel0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Panel Decorativo\",\"col\":3}},{\"id\":\"si_sc_pleg00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Plegados Complejos\",\"col\":3}},{\"id\":\"si_sc_perf00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Perfiles Plegados\",\"col\":3}},{\"id\":\"si_sc_corte0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Corte de Barras\",\"col\":3}},{\"id\":\"si_sc_patr00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Administrar Patrones\",\"col\":3}},{\"id\":\"si_sc_vect00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vectorizar Imagen\",\"col\":3}},{\"id\":\"si_sc_prcio0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Precios\",\"col\":3}},{\"id\":\"si_spacer01\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"si_hdr_datos\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Datos</b></span>\",\"col\":12}},{\"id\":\"si_sc_mat000\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Materiales\",\"col\":3}},{\"id\":\"si_sc_pres00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Presupuestos\",\"col\":3}},{\"id\":\"si_sc_pedi00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pedidos de Plegado\",\"col\":3}},{\"id\":\"si_sc_prec00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Precios Globales\",\"col\":3}}]",
+ "content": "[{\"id\":\"si_hdr_tools\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Herramientas</b></span>\",\"col\":12}},{\"id\":\"si_sc_panel0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Panel Decorativo\",\"col\":3}},{\"id\":\"si_sc_pleg00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Plegados Complejos\",\"col\":3}},{\"id\":\"si_sc_perf00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Perfiles Plegados\",\"col\":3}},{\"id\":\"si_sc_corte0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Corte de Barras\",\"col\":3}},{\"id\":\"si_sc_patr00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Administrar Patrones\",\"col\":3}},{\"id\":\"si_sc_vect00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vectorizar Imagen\",\"col\":3}},{\"id\":\"si_sc_ocr000\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"OCR Proveedores\",\"col\":3}},{\"id\":\"si_sc_prcio0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Precios\",\"col\":3}},{\"id\":\"si_spacer01\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"si_hdr_datos\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Datos</b></span>\",\"col\":12}},{\"id\":\"si_sc_mat000\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Materiales\",\"col\":3}},{\"id\":\"si_sc_pres00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Presupuestos\",\"col\":3}},{\"id\":\"si_sc_pedi00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pedidos de Plegado\",\"col\":3}},{\"id\":\"si_sc_prec00\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Precios Globales\",\"col\":3}}]",
  "creation": "2026-07-02 00:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -45,6 +45,7 @@
   }
  ],
  "sequence_id": 20.0,
+ "type": "Workspace",
  "shortcuts": [
   {
    "color": "Blue",
@@ -86,6 +87,13 @@
    "doc_view": "",
    "label": "Vectorizar Imagen",
    "link_to": "vectorizar-patron",
+   "type": "Page"
+  },
+  {
+   "color": "Orange",
+   "doc_view": "",
+   "label": "OCR Proveedores",
+   "link_to": "ocr-proveedores",
    "type": "Page"
   },
   {

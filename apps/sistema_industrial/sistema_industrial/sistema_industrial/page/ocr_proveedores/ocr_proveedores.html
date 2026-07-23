@@ -1,0 +1,72 @@
+<div class="si-page">
+  <div class="page-wrapper">
+
+    <!-- 1. Subir factura -->
+    <div class="card">
+      <div class="card-title">Subir factura</div>
+      <div class="dimmed" style="margin-bottom:10px">
+        PDF o imagen (JPG/PNG). El OCR se procesa en el servidor; puede tardar unos segundos.
+      </div>
+      <div class="ocr-drop" id="ocr-drop">
+        <div id="ocr-drop-prompt">⤒ Elegir factura (PDF / imagen)…</div>
+        <div class="ocr-file-name hidden" id="ocr-file-name"></div>
+      </div>
+      <div style="display:flex; gap:12px; align-items:center; margin-top:14px; flex-wrap:wrap">
+        <button class="btn btn-primary" id="ocr-btn-procesar" style="padding:9px 26px;font-weight:700" disabled>Procesar factura</button>
+        <button class="btn btn-default" id="ocr-btn-demo" style="padding:9px 18px" title="Ver la grilla con una factura de ejemplo">Ver ejemplo (Cómodo)</button>
+        <span class="ocr-status" id="ocr-status"></span>
+      </div>
+    </div>
+
+    <!-- 2. Revisión -->
+    <div class="card hidden" id="ocr-section-review">
+      <div class="ocr-review-head">
+        <div class="card-title" style="margin:0">Revisión</div>
+        <div class="ocr-umbral dimmed" id="ocr-umbral"></div>
+      </div>
+
+      <!-- Cabecera: proveedor / factura -->
+      <div class="ocr-header" id="ocr-header"></div>
+
+      <div id="ocr-warnings"></div>
+
+      <div style="overflow-x:auto">
+        <table class="table table-bordered ocr-grid" id="ocr-grid">
+          <thead>
+            <tr>
+              <th style="width:34px"></th>
+              <th>Descripción leída</th>
+              <th style="text-align:right">Cant.</th>
+              <th style="text-align:right">Precio</th>
+              <th style="text-align:right">Importe</th>
+              <th>Item de ERPNext</th>
+              <th style="text-align:center">Confianza</th>
+              <th style="text-align:center">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="ocr-grid-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Leyenda de colores -->
+      <div class="ocr-legend dimmed">
+        <span><i class="ocr-dot ocr-dot-verde"></i> match confiable</span>
+        <span><i class="ocr-dot ocr-dot-amarillo"></i> revisar</span>
+        <span><i class="ocr-dot ocr-dot-rojo"></i> sin match / bajo</span>
+      </div>
+
+      <!-- 3. Confirmar (humano decide — Regla 8) -->
+      <div class="ocr-confirm-bar">
+        <div class="ocr-confirm-summary dimmed" id="ocr-confirm-summary"></div>
+        <div style="display:flex; gap:10px; align-items:center">
+          <span class="ocr-status" id="ocr-confirm-status"></span>
+          <button class="btn btn-success" id="ocr-btn-confirmar" style="padding:9px 28px;font-weight:700">✓ Confirmar revisión</button>
+        </div>
+      </div>
+
+      <!-- Resultado de la confirmación: proveedor/artículos creados + Excel Tango -->
+      <div class="ocr-confirm-result hidden" id="ocr-confirm-result"></div>
+    </div>
+
+  </div>
+</div>

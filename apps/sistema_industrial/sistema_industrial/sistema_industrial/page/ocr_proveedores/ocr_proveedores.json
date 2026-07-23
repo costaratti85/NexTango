@@ -1,0 +1,19 @@
+{
+ "content": null,
+ "doctype": "Page",
+ "icon": "file",
+ "idx": 0,
+ "module": "Sistema Industrial",
+ "name": "ocr-proveedores",
+ "owner": "Administrator",
+ "page_name": "ocr-proveedores",
+ "roles": [
+  {"role": "SI Admin Produccion"},
+  {"role": "System Manager"}
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "OCR Proveedores"
+}

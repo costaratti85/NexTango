@@ -21,3 +21,16 @@ app_include_js = [
 fixtures = [
     {"dt": "Role", "filters": [["role_name", "like", "SI %"]]},
 ]
+
+# Custom fields declarados por código (idempotentes) — se crean en cada migrate.
+# ocr_suppliers.si_ocr_layout (Supplier): layout aprendido del OCR de proveedores.
+# + Aditivo e idempotente: suma el link a la página OCR Proveedores dentro del
+#   workspace estándar "Buying" (Compras). Se re-aplica tras cada migrate → sobrevive
+#   a updates de ERPNext sin forkear el buying.json estándar.
+after_migrate = [
+    "sistema_industrial.ocr_suppliers.custom_fields.ensure_ocr_custom_fields",
+    # Sistema Industrial visible en la grilla de la home del Desk (type=Workspace).
+    "sistema_industrial.ocr_suppliers.buying_workspace.ensure_sistema_industrial_on_home",
+    # OCR Proveedores dentro del workspace estándar Compras (Buying).
+    "sistema_industrial.ocr_suppliers.buying_workspace.add_ocr_link_to_buying",
+]
