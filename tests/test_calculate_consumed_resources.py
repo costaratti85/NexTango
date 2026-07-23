@@ -1,5 +1,8 @@
-"""Tests para calculate_consumed_resources — modelo del PIERCE prescripto (Constantino,
-2026-07-14): 3s sin flycut / 1s con flycut, universal, NO calibrado por regresión.
+"""Tests para calculate_consumed_resources — modelo del PIERCE (Constantino):
+SIN_FLYCUT derivado por regresión de Batería 2 (2026-07-23, ver
+tools/derivar_pierce_seconds.py); CON_FLYCUT fijado por Constantino (0.2s).
+Los tests usan los símbolos importados, no los valores numéricos hardcodeados,
+para no romper si el valor derivado se recalibra con más datos.
 """
 
 import sys
@@ -33,28 +36,28 @@ MATERIAL_LEGACY = {
 }
 
 
-def test_prescripto_valores():
-    assert PIERCE_SECONDS_SIN_FLYCUT == 3.0
-    assert PIERCE_SECONDS_CON_FLYCUT == 1.0
+def test_valores_pierce():
+    assert PIERCE_SECONDS_SIN_FLYCUT == pytest.approx(0.7196)
+    assert PIERCE_SECONDS_CON_FLYCUT == 0.2
 
 
-def test_calibrado_sin_flycut_usa_3s_por_pierce():
+def test_calibrado_sin_flycut_usa_gamma_derivado_por_pierce():
     r = calculate_consumed_resources(
         cut_length_m=1.0, pierce_count=10, sheet_area_m2=0.09,
         material_entry=MATERIAL_CALIBRADO, travel_length_mm=500.0,
         apto_flycut=False,
     )
-    esperado = 0.013372 * 1000.0 + 0.004946 * 500.0 + 3.0 * 10 + 0.0
+    esperado = 0.013372 * 1000.0 + 0.004946 * 500.0 + PIERCE_SECONDS_SIN_FLYCUT * 10 + 0.0
     assert r["machine_seconds"] == pytest.approx(round(esperado, 1))
 
 
-def test_calibrado_con_flycut_usa_1s_por_pierce():
+def test_calibrado_con_flycut_usa_02s_por_pierce():
     r = calculate_consumed_resources(
         cut_length_m=1.0, pierce_count=10, sheet_area_m2=0.09,
         material_entry=MATERIAL_CALIBRADO, travel_length_mm=500.0,
         apto_flycut=True,
     )
-    esperado = 0.013372 * 1000.0 + 0.004946 * 500.0 + 1.0 * 10 + 0.0
+    esperado = 0.013372 * 1000.0 + 0.004946 * 500.0 + PIERCE_SECONDS_CON_FLYCUT * 10 + 0.0
     assert r["machine_seconds"] == pytest.approx(round(esperado, 1))
 
 
@@ -84,23 +87,23 @@ def test_apto_flycut_default_false():
     assert r_default["machine_seconds"] == r_explicito["machine_seconds"]
 
 
-def test_legacy_sin_flycut_usa_3s_por_pierce_ignora_tiempo_perforacion_tabla():
+def test_legacy_sin_flycut_usa_gamma_derivado_ignora_tiempo_perforacion_tabla():
     r = calculate_consumed_resources(
         cut_length_m=1.0, pierce_count=10, sheet_area_m2=0.09,
         material_entry=MATERIAL_LEGACY, apto_flycut=False,
     )
     esperado_cut = 1000.0 / 280.0
-    esperado = esperado_cut + 3.0 * 10
+    esperado = esperado_cut + PIERCE_SECONDS_SIN_FLYCUT * 10
     assert r["machine_seconds"] == pytest.approx(round(esperado, 1))
 
 
-def test_legacy_con_flycut_usa_1s_por_pierce():
+def test_legacy_con_flycut_usa_02s_por_pierce():
     r = calculate_consumed_resources(
         cut_length_m=1.0, pierce_count=10, sheet_area_m2=0.09,
         material_entry=MATERIAL_LEGACY, apto_flycut=True,
     )
     esperado_cut = 1000.0 / 280.0
-    esperado = esperado_cut + 1.0 * 10
+    esperado = esperado_cut + PIERCE_SECONDS_CON_FLYCUT * 10
     assert r["machine_seconds"] == pytest.approx(round(esperado, 1))
 
 

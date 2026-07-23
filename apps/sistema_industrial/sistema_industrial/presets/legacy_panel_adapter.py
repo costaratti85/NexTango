@@ -137,14 +137,28 @@ def compute_travel_length_mm(
     return intra + inter
 
 
-# Tiempo de perforación (pierce) — PRESCRIPTO por Constantino (2026-07-14), NO ajustado
-# por regresión. Domina el tiempo de subir/bajar el cabezal (que CypCut desprecia en su
-# estimación); la diferencia entre espesores es insignificante frente a eso y se IGNORA
-# a propósito — nuestra fórmula da tiempos más altos (más reales) que CypCut, intencional.
+# Tiempo de perforación (pierce), sin flycut — DERIVADO de datos reales (2026-07-23,
+# tools/derivar_pierce_seconds.py), ya NO prescripto. Constantino observó en vivo que
+# el cabezal empieza a bajar ANTES de llegar al punto de perforación (el pierce se
+# solapa con el posicionamiento) — el valor prescripto anterior (3.0s) era una
+# sobreestimación. Regresión lineal por origen (Delay_s = gamma * pierce_count, sin
+# término constante — no hay motivo físico para un delay con 0 perforaciones) contra
+# los 12 paneles reales de Batería 2 (Delay_s medido por CypCut, pierce_count = huecos
+# SOLO, sin el contorno — misma convención que calculate_pierce_count() acá abajo, para
+# que la constante multiplique exactamente lo que va a multiplicar en producción):
+# gamma = 0.7196 s/perforación, error medio 1.9%, spread panel-a-panel 4.2% (ver el
+# script para la cuenta completa, incluida la variante que SÍ cuenta el contorno como
+# una perforación más — da un ajuste más ajustado (spread 1.5%) pero NO se usó acá
+# porque calculate_pierce_count() no cuenta el contorno; queda anotado como hallazgo
+# aparte, no corregido en esta tarea — alcance quirúrgico, solo las constantes).
+# La diferencia entre espesores es insignificante frente al tiempo de posicionamiento
+# del cabezal y se IGNORA a propósito — nuestra fórmula da tiempos más altos (más
+# reales) que la estimación de CypCut, intencional.
 # "Apto flycut" (lo elige el vendedor en la UI) baja el tiempo: el cabezal no necesita
-# bajar tanto entre agujeros cuando el panel se corta en flycut.
-PIERCE_SECONDS_SIN_FLYCUT = 3.0
-PIERCE_SECONDS_CON_FLYCUT = 1.0
+# bajar tanto entre agujeros cuando el panel se corta en flycut — CON_FLYCUT sigue
+# siendo un valor fijado por Constantino (2026-07-23), no derivado de datos propios.
+PIERCE_SECONDS_SIN_FLYCUT = 0.7196
+PIERCE_SECONDS_CON_FLYCUT = 0.2
 
 
 def calculate_consumed_resources(

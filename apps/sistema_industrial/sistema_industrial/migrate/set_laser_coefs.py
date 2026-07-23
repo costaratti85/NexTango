@@ -14,11 +14,14 @@ velocidad EFECTIVA de desplazamiento (~202 mm/s), menor que el rápido nominal
 (1650 mm/s) porque los saltos entre agujeros son cortos y nunca alcanzan la
 velocidad crucero — esperado y correcto. δ≈0 (sin overhead fijo).
 
-γ (pierce) NO viene de acá: Constantino lo PRESCRIBIÓ (2026-07-14) como constante
-universal — 3s sin flycut / 1s con flycut, ver PIERCE_SECONDS_* en
-legacy_panel_adapter.py. El campo `laser_c_s_per_m2` del DocType queda en 0 (no
-se usa; el código ya no lo lee) — no re-ajustar γ contra los tiempos de CypCut,
-eso corrompería α/β (compensarían bajando para absorber el pierce forzado).
+γ (pierce) NO viene de acá: es universal, constante en `legacy_panel_adapter.py`
+(`PIERCE_SECONDS_*`), no una calibración por-material. SIN_FLYCUT se derivó
+(2026-07-23) por regresión aislada de Delay_s contra pierce_count de Batería 2
+(tools/derivar_pierce_seconds.py) — NO junto con α/β; CON_FLYCUT lo fija
+Constantino directamente. El campo `laser_c_s_per_m2` del DocType queda en 0 (no
+se usa; el código ya no lo lee) — no re-ajustar γ en un regresión CONJUNTA con
+α/β contra el tiempo total de CypCut, eso corrompería α/β (compensarían bajando
+para absorber el pierce forzado).
 
 NO editar α/β/δ a mano — regenerar con tools/calibrar_laser.py solo si llega una
 calibración nueva (otro material/espesor), y solo para esos dos coeficientes.
