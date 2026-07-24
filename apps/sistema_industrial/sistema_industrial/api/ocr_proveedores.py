@@ -52,6 +52,34 @@ def _normalizar_cuit(cuit: str) -> str:
     return re.sub(r"\D", "", str(cuit or ""))
 
 
+def _factura_ref(prov: dict, meta: dict) -> str:
+    """Identidad canónica de una factura de proveedor para dedup (Nova/MSG_036).
+
+    Forma "{cuit}-{tipo}-{numero_completo}" normalizada (mayúsculas, solo alnum en
+    cada parte). El `numero_completo` del OCR ya trae ptovta+numero, y la letra va
+    dentro de `tipo`, así que esto captura la misma identidad tipo+letra+ptovta+numero.
+
+    Devuelve "" si falta el número (no se puede deduplicar con confianza → no
+    bloquea; el humano decide, y el OCR ya avisa temprano)."""
+    cuit = _normalizar_cuit((prov or {}).get("cuit", ""))
+    tipo = re.sub(r"[^0-9A-Za-z]", "", str((meta or {}).get("tipo", ""))).upper()
+    numero = re.sub(r"[^0-9A-Za-z]", "", str((meta or {}).get("numero_completo", ""))).upper()
+    if not numero:
+        return ""
+    return f"{cuit}-{tipo}-{numero}"
+
+
+def _factura_ya_cargada(factura_ref: str) -> str | None:
+    """name de la Purchase Receipt que ya cargó esa factura, o None. Chequeo
+    bloqueante del dedup: mira el custom field factura_proveedor_ref (índice único)."""
+    if not factura_ref:
+        return None
+    if not frappe.get_meta("Purchase Receipt").get_field("factura_proveedor_ref"):
+        return None  # campo aún no migrado: el índice único no existe todavía
+    return frappe.db.get_value("Purchase Receipt",
+                               {"factura_proveedor_ref": factura_ref}, "name")
+
+
 def _resolver_supplier(cuit: str) -> dict:
     """Busca el Supplier de ERPNext por tax_id == CUIT (clave nativa, design §2)."""
     cuit_n = _normalizar_cuit(cuit)
@@ -371,12 +399,16 @@ def _receipt_defaults(company: str = None) -> dict:
         return {"company": comp, "set_warehouse": wh}
 
 
-def _crear_recepcion_borrador(supplier, pr_lineas, company=None):
+def _crear_recepcion_borrador(supplier, pr_lineas, company=None,
+                              factura_ref="", numero_remito=""):
     """Crea la Purchase Receipt en BORRADOR (docstatus=0) con los renglones de la
     factura. NUNCA hace submit — el stock+costo entran cuando Constantino la
     submitea (Regla 8, Nova/MSG_033). 100% ERPNext, nada a Tango.
 
     pr_lineas: [{item_code, qty, rate}] ya filtradas (qty>0, decision match/nuevo).
+    factura_ref: identidad de la factura para el dedup (custom field único).
+    numero_remito: numero_completo de la factura -> supplier_delivery_note nativo
+        (Purchase Receipt no tiene bill_no; ese campo es de Purchase Invoice).
     Devuelve {purchase_receipt, warning}: name del borrador o None + un aviso
     legible si no se pudo armar (nunca rompe el flujo de creación de items)."""
     if not pr_lineas:
@@ -392,17 +424,22 @@ def _crear_recepcion_borrador(supplier, pr_lineas, company=None):
         # igual pero ese renglón no cargará stock al submitear (Nova/MSG_033).
         no_stock = [l["item_code"] for l in pr_lineas
                     if not frappe.db.get_value("Item", l["item_code"], "is_stock_item")]
-        doc = frappe.get_doc({
+        payload = {
             "doctype": "Purchase Receipt",
             "supplier": supplier,
             "company": d["company"],
             "set_warehouse": d["set_warehouse"],
+            "supplier_delivery_note": (numero_remito or "")[:140],
             "items": [{
                 "item_code": l["item_code"],
                 "qty": float(l["qty"]),
                 "rate": float(l.get("rate") or 0),
             } for l in pr_lineas],
-        })
+        }
+        # factura_proveedor_ref (dedup): solo si el custom field ya está migrado.
+        if factura_ref and frappe.get_meta("Purchase Receipt").get_field("factura_proveedor_ref"):
+            payload["factura_proveedor_ref"] = factura_ref
+        doc = frappe.get_doc(payload)
         doc.insert(ignore_permissions=True)   # BORRADOR (docstatus=0) — sin submit
         frappe.db.commit()
         warning = None
@@ -460,6 +497,16 @@ def confirmar(invoice_id, decisiones_json):
     def _linea(d):
         return ocr_by_id.get(str(d.get("idx", d.get("line_id", "")))) or {}
 
+    # (0) DEDUP BLOQUEANTE (Nova/MSG_036): no cargar dos veces la misma factura.
+    # Va ANTES de crear Supplier/Items/PR para no duplicar nada.
+    factura_ref = _factura_ref(prov, meta)
+    pr_existente = _factura_ya_cargada(factura_ref)
+    if pr_existente:
+        frappe.throw(
+            f"Esta factura ya fue cargada (Recepción de Compra {pr_existente}). "
+            f"No se vuelve a cargar para no duplicar stock ni artículos.",
+            title="Factura duplicada")
+
     # (1) Supplier — crear si no existe
     supplier, creado = _get_or_create_supplier(prov.get("cuit", ""), prov.get("nombre", ""))
 
@@ -505,7 +552,21 @@ def confirmar(invoice_id, decisiones_json):
     tango_excel = _generar_excel_tango(created_rich, {**prov, "supplier": supplier})
 
     # (5) Recepción de Compra en BORRADOR (stock-in nativo, sin submit — Nova/MSG_033).
-    recepcion = _crear_recepcion_borrador(supplier, pr_lineas)
+    #     Lleva la identidad de la factura para el dedup (factura_proveedor_ref, único).
+    recepcion = _crear_recepcion_borrador(
+        supplier, pr_lineas, factura_ref=factura_ref,
+        numero_remito=meta.get("numero_completo", ""))
+
+    # Log de auditoría de la carga (Nova/MSG_036): factura, proveedor, PR, ítems.
+    frappe.logger("ocr_proveedores").info({
+        "evento": "confirmar_recepcion",
+        "invoice_id": invoice_id,
+        "factura_ref": factura_ref,
+        "supplier": supplier,
+        "purchase_receipt": recepcion["purchase_receipt"],
+        "items_creados": [c["item_code"] for c in created_out],
+        "renglones_pr": len(pr_lineas),
+    })
 
     return {
         "ok": True,

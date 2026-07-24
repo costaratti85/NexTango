@@ -25,6 +25,27 @@ OCR_CUSTOM_FIELDS: dict[str, list[dict]] = {
             ),
         }
     ],
+    # Dedup de facturas de proveedor (Fase 3, Nova/MSG_036): identidad de la factura
+    # "{cuit}-{tipo}-{numero_completo}" en la Recepción de Compra, con ÍNDICE ÚNICO.
+    # Las PR nativas (sin OCR) quedan con el campo NULL -> MariaDB permite múltiples
+    # NULLs, así que el único no las choca. Solo las PR de OCR llevan un ref no vacío.
+    "Purchase Receipt": [
+        {
+            "fieldname": "factura_proveedor_ref",
+            "label": "Factura Proveedor (ref OCR)",
+            "fieldtype": "Data",
+            "insert_after": "supplier_delivery_note",
+            "unique": 1,
+            "read_only": 1,
+            "no_copy": 1,
+            "description": (
+                "Identidad de la factura de proveedor '{cuit}-{tipo}-{numero_completo}' "
+                "que originó esta recepción. Índice único: impide cargar dos veces la "
+                "misma factura (dedup del OCR de proveedores). Vacío en recepciones "
+                "cargadas a mano."
+            ),
+        }
+    ],
 }
 
 
