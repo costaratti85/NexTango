@@ -98,6 +98,36 @@ def _resolver_supplier(cuit: str) -> dict:
     return {"cuit": cuit_n, "nombre": sname or name, "supplier": name, "encontrado": True}
 
 
+def _enriquecer_tango(lineas: list) -> list:
+    """Por cada línea SIN match, consulta Tango (solo lectura) y adjunta
+    `tango_articulo` = {encontrado, match, articulo:{code,description,...}} | None.
+
+    SEAM con Forge (tango_sync.lookup.find_tango_article, MSG_041-C): si el módulo
+    aún no está deployado, o Tango no responde, deja `tango_articulo=None` sin
+    romper. Es una SUGERENCIA para la UI (paralela a codigo_sugerido); no crea ni
+    override el ítem — el humano decide (Regla 8). Las líneas CON match no se tocan."""
+    try:
+        from sistema_industrial.tango_sync.lookup import find_tango_article
+    except (ImportError, NotImplementedError):
+        for l in lineas:
+            l.setdefault("tango_articulo", None)
+        return lineas
+    for l in lineas:
+        if l.get("match"):
+            l.setdefault("tango_articulo", None)
+            continue
+        try:
+            r = find_tango_article(
+                code=l.get("codigo_proveedor") or None,
+                descripcion=l.get("descripcion") or None,
+                barcode=l.get("codigo_barras") or None,
+            )
+            l["tango_articulo"] = r if (r and r.get("encontrado")) else None
+        except Exception:
+            l["tango_articulo"] = None
+    return lineas
+
+
 # --------------------------------------------------------------- endpoints
 
 @frappe.whitelist()
@@ -150,7 +180,9 @@ def resultado(job_id: str):
         {"idx", "codigo_proveedor", "codigo_barras", "descripcion", "cantidad",
          "precio_unitario", "match": {item_code,item_name,score,reason}|null,
          "confianza": 0..100, "candidatos": [{item_code,item_name,score,reason}...],
-         "codigo_sugerido": "FF-SS-SS-NNN" | null}   // solo líneas SIN match (Forge)
+         "codigo_sugerido": "FF-SS-SS-NNN" | null,   // solo líneas SIN match (Forge)
+         "tango_articulo": {encontrado, match, articulo:{code,description,uom,tango_id,...}}
+                           | null}   // solo líneas SIN match: existe en Tango (solo lectura)
       ],
       "meta": {...}
     }
@@ -211,6 +243,11 @@ def _procesar_job(ocr_job_id: str = None, file_url: str = None):
     # Sugerencia de código para las líneas SIN match (Forge). El humano lo
     # confirma/edita; es una pre-carga del campo editable (Regla 8).
     aplicar_sugerencias(lineas, suggest_next_item_code)
+
+    # Consulta a Tango de las líneas SIN match (Fase 3, Constantino / Forge MSG_041):
+    # un artículo puede existir en Tango y no en la copia ERPNext. Es SOLO lectura y
+    # SOLO una sugerencia (la UI la muestra; el humano decide) — no crea ni override.
+    _enriquecer_tango(lineas)
 
     _save_job(job_id, {
         "status": "done",
