@@ -899,7 +899,7 @@ class FacturaTableReader:
         """Asigna `iva_pct` + `needs_review` a cada item.
         (a) columna por línea → confiable. (b) alícuota única en el doc → confiable.
         (c) multi-alícuota agrupada → best-guess por bloque + needs_review.
-        (d) indeterminado → iva_pct=None + needs_review."""
+        (d) indeterminado → default 21 + needs_review (Constantino: default 21)."""
         rates_doc = self._rates_en_texto(texto)
         markers = self._marcadores_alicuota(lineas)
         rates_marker = {r for _, r in markers}
@@ -916,7 +916,8 @@ class FacturaTableReader:
                 item["iva_pct"] = self._rate_por_bloque(y, markers)
                 item["iva_fuente"], item["needs_review"] = "agrupado", True
             else:
-                item["iva_pct"], item["iva_fuente"], item["needs_review"] = None, "indeterminado", True
+                # Default 21% (alícuota general) pero marcado para que el humano confirme.
+                item["iva_pct"], item["iva_fuente"], item["needs_review"] = 21.0, "default_21", True
 
     def analizar(self, ruta, aprender=True):
         """Analiza una factura y extrae los renglones. Devuelve (items, zonas_debug, datos).
