@@ -69,6 +69,10 @@ def extract_invoice(file_path, options=None):
             "descripcion": it.get("descripcion", "") or "",
             "cantidad": _f(reader.parse_decimal(it.get("cantidad"))),
             "precio_unitario": _f(reader.parse_decimal(it.get("precio"))),
+            # IVA % del renglón (el engine lo calcula) → contrato de línea. De acá lo
+            # toma la orquestación (Atlas) para guardarlo en Item.si_iva_pct, que a su
+            # vez llena la columna "Código de IVA" del Excel de importación a Tango.
+            "iva_pct": _f(reader.parse_decimal(it.get("iva"))),
             "raw_text": it.get("linea_detectada", "") or "",
         })
 
