@@ -15,6 +15,13 @@ import frappe
 
 # Preferencias de nombre para elegir el warehouse por defecto si no hay config.
 _WAREHOUSE_NAME_HINTS = ("Ferretería", "Ferreteria", "Almacén Principal", "Almacen Principal")
+# Almacenes que NUNCA deben ser el default (no son stock real).
+_WAREHOUSE_EXCLUDE = ("tránsito", "transito", "transit", "devoluc", "merma", "retazo", "wip", "proceso")
+
+
+def _is_excluded_warehouse(name: str) -> bool:
+    n = (name or "").lower()
+    return any(bad in n for bad in _WAREHOUSE_EXCLUDE)
 
 
 def get_default_company() -> str | None:
@@ -47,12 +54,19 @@ def get_default_warehouse(company: str | None = None) -> str | None:
              "warehouse_name": ["like", f"%{hint}%"]},
             "name",
         )
-        if wh:
+        if wh and not _is_excluded_warehouse(wh):
             return wh
 
-    return frappe.db.get_value(
-        "Warehouse", {"company": company, "is_group": 0, "disabled": 0}, "name"
-    )
+    # último recurso: primer almacén de stock REAL (no tránsito/devoluciones/merma/wip)
+    for wh in frappe.get_all(
+        "Warehouse",
+        filters={"company": company, "is_group": 0, "disabled": 0},
+        pluck="name",
+        order_by="creation asc",
+    ):
+        if not _is_excluded_warehouse(wh):
+            return wh
+    return None
 
 
 def receipt_defaults(company: str | None = None) -> dict:
