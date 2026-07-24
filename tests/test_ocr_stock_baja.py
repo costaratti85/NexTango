@@ -8,7 +8,7 @@ _APP = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "apps", "si
 if _APP not in sys.path:
     sys.path.insert(0, _APP)
 
-from sistema_industrial.stock_sync import baja
+from sistema_industrial.stock_sync import baja, tango_ventas
 from sistema_industrial.ocr_suppliers import tango_lookup, engine
 
 
@@ -65,8 +65,35 @@ def test_iva_default_21():
     assert it["iva_pct"] == 21.0 and it["needs_review"] is True and it["iva_fuente"] == "default_21"
 
 
+def test_tango_ventas_reader():
+    """Mapeo Tango-crudo (Live Query) -> docs -> baja, con signo/CAE/fecha/dedup."""
+    recs = [
+        {"COD_ARTICULO": "06-1", "CANTIDAD_CONTROL_STOCK": -10, "TIPO_COMPROBANTE": "FAC A",
+         "NRO_COMPROBANTE": "0001-00000001", "FECHA_DE_COMPROBANTE": "2026-07-20T00:00:00", "CAE": "71", "ID_STA14": "d1"},
+        {"COD_ARTICULO": "06-2", "CANTIDAD_CONTROL_STOCK": -5, "TIPO_COMPROBANTE": "FAC A",
+         "NRO_COMPROBANTE": "0001-00000001", "FECHA_DE_COMPROBANTE": "2026-07-20T00:00:00", "CAE": "71", "ID_STA14": "d1"},
+        {"COD_ARTICULO": "06-1", "CANTIDAD_CONTROL_STOCK": 3, "TIPO_COMPROBANTE": "NC A",
+         "NRO_COMPROBANTE": "0001-00000002", "FECHA_DE_COMPROBANTE": "2026-07-21T00:00:00", "CAE": "72", "ID_STA14": "d2"},
+        {"COD_ARTICULO": "06-3", "CANTIDAD_CONTROL_STOCK": -2, "TIPO_COMPROBANTE": "FAC A",
+         "NRO_COMPROBANTE": "0001-00000003", "FECHA": "22/07/2026", "CAE": "", "ID_STA14": "d3"},
+    ]
+    docs = {f"{d['tipo']}-{d['letra']}-{d['punto_venta']}-{d['numero']}": d
+            for d in tango_ventas.agrupar_en_documentos(recs)}
+    assert len(docs) == 3
+    assert len(docs["FAC-A-0001-00000001"]["lineas"]) == 2
+    assert docs["NC-A-0001-00000002"]["es_nota_credito"] is True         # signo + => NC
+    assert docs["FAC-A-0001-00000003"]["cae_autorizado"] is False        # sin CAE
+    assert docs["FAC-A-0001-00000003"]["fecha"] == "2026-07-22"          # dd/mm/yyyy -> ISO
+    res = tango_ventas.procesar_baja_desde_registros(recs)
+    movs = {(m.item_code, m.quantity_delta) for m in res["movimientos"]}
+    assert ("06-1", -10.0) in movs and ("06-2", -5.0) in movs and ("06-1", 3.0) in movs
+    assert all(m.source_document_id != "FAC-A-0001-00000003" for m in res["movimientos"])  # sin CAE fuera
+    assert res["hwm_nuevo"] == {"fecha": "2026-07-22", "doc_id": "d3"}
+
+
 if __name__ == "__main__":
     test_baja_filtros_signo_dedup_hwm()
     test_consulta_tango_y_catalogo()
     test_iva_default_21()
+    test_tango_ventas_reader()
     print("TODOS OK")
