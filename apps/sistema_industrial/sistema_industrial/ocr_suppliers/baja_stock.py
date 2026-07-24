@@ -139,6 +139,61 @@ def _company_puede_postear_stock(company: str, warehouse: str = None) -> bool:
 
 # ---------------------------------------------------------------- baja / reversión
 
+def _construir_baja(ref, items, company, warehouse, entry_type):
+    """Constructor compartido (validado en smoke duro): arma el Stock Entry de la
+    baja, lo submitea si el gate está ON, loguea y devuelve el resultado.
+
+    ref: identidad del comprobante (tango_comprobante_ref, índice único).
+    items: [{item_code, qty}] con qty > 0 (ya en valor absoluto).
+    entry_type: 'Material Issue' (salida/venta → descuenta) o 'Material Receipt'
+        (entrada/nota de crédito → suma). El warehouse va como s_warehouse o
+        t_warehouse según corresponda.
+
+    Dedup capa 2: si el índice único ya tiene ese ref, ERPNext rechaza el insert
+    (UniqueValidationError) → se captura y se reporta 'ya procesado' (nunca dos veces).
+    """
+    es_salida = entry_type == "Material Issue"
+    wh_key = "s_warehouse" if es_salida else "t_warehouse"
+    try:
+        payload = {
+            "doctype": "Stock Entry",
+            "stock_entry_type": entry_type,
+            "company": company,
+            "items": [{"item_code": it["item_code"], "qty": float(it["qty"]),
+                       wh_key: warehouse} for it in items],
+        }
+        if frappe.get_meta("Stock Entry").get_field("tango_comprobante_ref"):
+            payload["tango_comprobante_ref"] = ref
+        doc = frappe.get_doc(payload)
+        doc.insert(ignore_permissions=True)   # BORRADOR (docstatus=0)
+
+        submitted = False
+        if auto_submit_habilitado():
+            doc.submit()                      # docstatus=1: MUEVE stock
+            submitted = True
+        frappe.db.commit()
+
+        frappe.logger(_LOG).info({
+            "evento": "baja_stock", "ref": ref, "stock_entry": doc.name,
+            "entry_type": entry_type, "docstatus": doc.docstatus, "submitted": submitted,
+            "items": [{"item_code": it["item_code"], "qty": float(it["qty"])} for it in items],
+        })
+        return {"ok": True, "stock_entry": doc.name, "docstatus": doc.docstatus,
+                "submitted": submitted, "skipped": False, "motivo": None, "ref": ref,
+                "warning": (None if submitted else
+                            "baja en BORRADOR: el gate de auto-submit "
+                            "(ocr_baja_auto_submit) está apagado; no movió stock.")}
+    except frappe.UniqueValidationError:
+        frappe.db.rollback()
+        existente = ya_procesado(ref)
+        return {"ok": True, "stock_entry": existente, "skipped": True,
+                "motivo": "comprobante ya procesado (índice único)", "ref": ref}
+    except Exception as exc:
+        frappe.log_error(f"ocr_baja _construir_baja {ref}: {exc}", _LOG)
+        return {"ok": False, "stock_entry": None, "skipped": False,
+                "motivo": f"error al armar la baja: {exc}", "ref": ref}
+
+
 def _cae_autorizado(comprobante: dict) -> bool:
     """El comprobante trae un CAE (o CAEA) autorizado. Blindaje MSG_035: solo se
     descuenta stock de comprobantes AUTORIZADOS. El filtro fino (autorizado + con
@@ -211,47 +266,10 @@ def crear_baja(comprobante: dict, lineas: list, company: str = None) -> dict:
                 "warning": "configurá 'ocr_default_company' a una company con cuenta de "
                            "inventario (default_inventory_account) o cargá la cuenta en el depósito"}
 
-    try:
-        payload = {
-            "doctype": "Stock Entry",
-            "stock_entry_type": "Material Issue",
-            "company": comp,
-            "items": [{
-                "item_code": l["item_code"],
-                "qty": float(l["qty"]),
-                "s_warehouse": s_wh,
-            } for l in lineas],
-        }
-        if frappe.get_meta("Stock Entry").get_field("tango_comprobante_ref"):
-            payload["tango_comprobante_ref"] = ref
-        doc = frappe.get_doc(payload)
-        doc.insert(ignore_permissions=True)  # BORRADOR (docstatus=0)
-
-        submitted = False
-        if auto_submit_habilitado():
-            doc.submit()                      # docstatus=1: DESCUENTA stock
-            submitted = True
-
-        avanzar_hwm(comprobante)              # el HWM avanza hacia adelante
-        frappe.db.commit()
-
-        frappe.logger(_LOG).info({
-            "evento": "baja_stock",
-            "ref": ref,
-            "stock_entry": doc.name,
-            "docstatus": doc.docstatus,
-            "submitted": submitted,
-            "items": [{"item_code": l["item_code"], "qty": float(l["qty"])} for l in lineas],
-        })
-        return {"ok": True, "stock_entry": doc.name, "docstatus": doc.docstatus,
-                "submitted": submitted, "skipped": False, "motivo": None, "ref": ref,
-                "warning": (None if submitted else
-                            "baja en BORRADOR: el gate de auto-submit "
-                            "(ocr_baja_auto_submit) está apagado; no descontó stock.")}
-    except Exception as exc:
-        frappe.log_error(f"ocr_baja crear_baja {ref}: {exc}", _LOG)
-        return {"ok": False, "stock_entry": None, "skipped": False,
-                "motivo": f"error al crear la baja: {exc}", "ref": ref}
+    res = _construir_baja(ref, lineas, comp, s_wh, "Material Issue")
+    if res.get("ok") and not res.get("skipped"):
+        avanzar_hwm(comprobante)   # HWM propio del caller directo (el orquestador usa el de OCR)
+    return res
 
 
 @frappe.whitelist()

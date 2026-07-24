@@ -34,3 +34,15 @@ after_migrate = [
     # OCR Proveedores dentro del workspace estándar Compras (Buying).
     "sistema_industrial.ocr_suppliers.buying_workspace.add_ocr_link_to_buying",
 ]
+
+# Baja de stock por ventas de Tango (T5). DORMIDO mientras el gate
+# `ocr_baja_auto_submit` esté OFF (scheduled_baja_ventas no procesa nada). Se
+# despierta al prender el gate tras el smoke duro. Read-only sobre Tango.
+scheduler_events = {
+    "cron": {
+        # cada 15 min; idempotente por el dedup (HWM + tango_comprobante_ref único).
+        "*/15 * * * *": [
+            "sistema_industrial.ocr_suppliers.baja_orchestrator.scheduled_baja_ventas",
+        ],
+    },
+}
