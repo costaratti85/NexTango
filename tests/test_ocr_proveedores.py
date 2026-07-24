@@ -135,6 +135,23 @@ def test_item_payload_item_name_se_trunca_a_140():
     assert len(p["item_name"]) == 140
 
 
+def test_item_payload_is_stock_item_default_1():
+    p = item_payload_nuevo("S1", "art", "S", "", "", "Ferretería", "Nos")
+    assert p["is_stock_item"] == 1          # default: con control de stock
+
+
+def test_item_payload_is_stock_item_off():
+    p = item_payload_nuevo("S2", "art", "S", "", "", "Ferretería", "Nos", is_stock_item=0)
+    assert p["is_stock_item"] == 0          # checkbox desmarcado -> no mueve stock
+
+
+def test_item_payload_iva_solo_si_viene():
+    sin = item_payload_nuevo("S3", "art", "S", "", "", "Ferretería", "Nos")
+    assert "si_iva_pct" not in sin          # None -> no se incluye el campo
+    con = item_payload_nuevo("S4", "art", "S", "", "", "Ferretería", "Nos", si_iva_pct=21)
+    assert con["si_iva_pct"] == 21
+
+
 # --------------------------------------- FASE 2: sugerencia de código (wiring)
 
 from sistema_industrial.ocr_suppliers.code_suggester import (  # noqa: E402
