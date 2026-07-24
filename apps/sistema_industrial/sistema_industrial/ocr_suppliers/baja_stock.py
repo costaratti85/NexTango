@@ -126,18 +126,44 @@ def _source_warehouse(company: str = None) -> tuple:
         return comp, None  # sin depósito seguro -> el caller degrada
 
 
+def _company_puede_postear_stock(company: str, warehouse: str = None) -> bool:
+    """Con perpetual inventory ON, submitear stock postea GL → hace falta cuenta de
+    inventario. True si el depósito tiene `account`, o la company tiene
+    `default_inventory_account`. (Nextango sí; HSRS no, a hoy.)"""
+    if warehouse and frappe.db.get_value("Warehouse", warehouse, "account"):
+        return True
+    if not frappe.db.get_value("Company", company, "enable_perpetual_inventory"):
+        return True  # sin perpetual inventory no se exige cuenta
+    return bool(frappe.db.get_value("Company", company, "default_inventory_account"))
+
+
 # ---------------------------------------------------------------- baja / reversión
+
+def _cae_autorizado(comprobante: dict) -> bool:
+    """El comprobante trae un CAE (o CAEA) autorizado. Blindaje MSG_035: solo se
+    descuenta stock de comprobantes AUTORIZADOS. El filtro fino (autorizado + con
+    mercadería) lo hace OCR en la Live Query; acá NO confiamos a ciegas y exigimos
+    que la señal de autorización venga en el comprobante (defensa en profundidad)."""
+    cae = comprobante.get("cae") or comprobante.get("caea") or comprobante.get("cae_numero")
+    if str(cae or "").strip():
+        return True
+    # flag explícito alternativo (por si OCR marca autorizado sin adjuntar el nº)
+    return bool(comprobante.get("cae_autorizado") or comprobante.get("autorizado"))
+
 
 def crear_baja(comprobante: dict, lineas: list, company: str = None) -> dict:
     """Crea la baja de stock (Stock Entry Material Issue) de un comprobante de venta.
 
-    comprobante: {tipo, letra, punto_venta, numero, ...} (lo arma OCR desde Tango).
-    lineas: [{item_code, qty}] a descontar.
+    comprobante: {tipo, letra, punto_venta, numero, cae, ...} (lo arma OCR desde
+        Tango; DEBE traer el CAE autorizado — ver `_cae_autorizado`).
+    lineas: [{item_code, qty}] de MERCADERÍA a descontar (OCR ya filtra servicios/
+        percepciones; acá se exige al menos un renglón con item_code y qty>0).
     company: opcional (default configurable).
 
-    Dedup en DOS capas antes de tocar stock: HWM (acota) + índice único (garantiza).
-    AUTO-SUBMIT GATEADO: solo submitea si `auto_submit_habilitado()` (default OFF);
-    si no, deja el Stock Entry en BORRADOR (no descuenta hasta el submit humano).
+    Blindaje (MSG_035): (1) solo comprobantes con CAE autorizado + mercadería;
+    (2) dedup DOS capas: HWM (acota) + índice único `tango_comprobante_ref`.
+    AUTO-SUBMIT GATEADO: submitea (descuenta) solo si `auto_submit_habilitado()`
+    (flag `ocr_baja_auto_submit`); si no, deja el Stock Entry en BORRADOR.
 
     Devuelve {ok, stock_entry, docstatus, submitted, ref, skipped, motivo, warning}.
     """
@@ -147,6 +173,12 @@ def crear_baja(comprobante: dict, lineas: list, company: str = None) -> dict:
                 "motivo": "comprobante sin tipo/numero — no se puede deduplicar",
                 "ref": ""}
 
+    # Blindaje 1a: CAE autorizado (si no, NO se descuenta — smoke test 2).
+    if not _cae_autorizado(comprobante):
+        return {"ok": False, "stock_entry": None, "skipped": True,
+                "motivo": "comprobante sin CAE autorizado — no se descuenta stock",
+                "ref": ref}
+
     # Dedup capa 2 (índice único): ¿ya se descontó este comprobante?
     existente = ya_procesado(ref)
     if existente:
@@ -154,17 +186,30 @@ def crear_baja(comprobante: dict, lineas: list, company: str = None) -> dict:
                 "submitted": None, "skipped": True, "motivo": "comprobante ya procesado",
                 "ref": ref}
 
+    # Blindaje 1b: mercadería (al menos un renglón con item_code y qty>0).
     lineas = [l for l in (lineas or [])
               if l.get("item_code") and float(l.get("qty") or 0) > 0]
     if not lineas:
         return {"ok": False, "stock_entry": None, "skipped": True,
-                "motivo": "sin renglones con item_code y qty > 0", "ref": ref}
+                "motivo": "sin mercadería (renglones con item_code y qty > 0)", "ref": ref}
 
     comp, s_wh = _source_warehouse(company)
     if not s_wh:
         return {"ok": False, "stock_entry": None, "skipped": True,
                 "motivo": "sin depósito origen configurado (ocr_default_warehouse)",
                 "ref": ref, "warning": "configurá el depósito origen de la baja"}
+
+    # Blindaje contable: con perpetual inventory, submitear un movimiento de stock
+    # postea GL y necesita cuenta de inventario. Si la company NO la tiene (p. ej.
+    # HSRS no la tiene, Nextango sí), NO intentamos la baja auto: mensaje claro que
+    # apunta al fix (ocr_default_company) en vez de un error críptico de ERPNext.
+    if auto_submit_habilitado() and not _company_puede_postear_stock(comp, s_wh):
+        return {"ok": False, "stock_entry": None, "skipped": True,
+                "motivo": f"la company '{comp}' no tiene cuenta de inventario configurada "
+                          f"(perpetual inventory): no se puede postear la baja",
+                "ref": ref,
+                "warning": "configurá 'ocr_default_company' a una company con cuenta de "
+                           "inventario (default_inventory_account) o cargá la cuenta en el depósito"}
 
     try:
         payload = {
@@ -201,8 +246,8 @@ def crear_baja(comprobante: dict, lineas: list, company: str = None) -> dict:
         return {"ok": True, "stock_entry": doc.name, "docstatus": doc.docstatus,
                 "submitted": submitted, "skipped": False, "motivo": None, "ref": ref,
                 "warning": (None if submitted else
-                            "baja en BORRADOR: el auto-submit está apagado hasta el "
-                            "smoke del dedup (resguardo de Constantino).")}
+                            "baja en BORRADOR: el gate de auto-submit "
+                            "(ocr_baja_auto_submit) está apagado; no descontó stock.")}
     except Exception as exc:
         frappe.log_error(f"ocr_baja crear_baja {ref}: {exc}", _LOG)
         return {"ok": False, "stock_entry": None, "skipped": False,
