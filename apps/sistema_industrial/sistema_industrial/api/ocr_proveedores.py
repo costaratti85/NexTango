@@ -333,6 +333,9 @@ def _crear_item_nuevo(item_code, item_name, supplier, codigo_proveedor="", barco
     item_code = (item_code or "").strip()
     if not item_code:
         frappe.throw("Falta el código de artículo (item_code) para un ítem nuevo.")
+    # si_iva_pct solo si el custom field de Forge ya está migrado (defensivo).
+    if si_iva_pct is not None and not frappe.get_meta("Item").get_field("si_iva_pct"):
+        si_iva_pct = None
     if frappe.db.exists("Item", item_code):
         doc = frappe.get_doc("Item", item_code)
         if supplier and not any(r.supplier == supplier for r in (doc.supplier_items or [])):
@@ -537,9 +540,13 @@ def confirmar(invoice_id, decisiones_json):
         cod_prov = line.get("codigo_proveedor", "")
         # is_stock_item del checkbox de la grilla (Vega/MSG_040), default 1.
         lleva_stock = d.get("is_stock_item", d.get("lleva_stock", True))
+        # IVA % del renglón (Vega/MSG_040) → Item.si_iva_pct (Forge/MSG_041). El
+        # valor del humano manda (Regla 8); si no, cae al que detectó el OCR.
+        iva = d.get("iva", line.get("iva", line.get("iva_pct")))
         name = _crear_item_nuevo(d.get("item_code"), desc, supplier, cod_prov,
                                  d.get("codigo_barras") or "",
-                                 is_stock_item=1 if lleva_stock else 0)
+                                 is_stock_item=1 if lleva_stock else 0,
+                                 si_iva_pct=iva)
         created_out.append({"item_code": name, "origen": "nuevo", "item_name": desc})
         created_rich.append({"item_code": name, "item_name": desc,
                              "codigo_proveedor": cod_prov, "barcode": d.get("codigo_barras") or ""})
