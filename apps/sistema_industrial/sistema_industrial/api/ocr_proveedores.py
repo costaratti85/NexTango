@@ -455,11 +455,26 @@ def _crear_recepcion_borrador(supplier, pr_lineas, company=None,
         return {"purchase_receipt": None, "warning": None}
     try:
         d = _receipt_defaults(company)
-        if not d.get("set_warehouse"):
+        wh = d.get("set_warehouse")
+        if not wh:
             return {"purchase_receipt": None,
                     "warning": "No se pudo resolver un depósito destino: configurá "
                                "'ocr_default_warehouse' en site_config. No se creó la "
                                "Recepción de Compra (los artículos sí se crearon)."}
+        # Seguridad: si NO hay depósito configurado en site_config y el fallback
+        # resolvió a un depósito NO apto como destino real (tránsito / trabajo en
+        # proceso), NO armamos la recepción apuntando ahí (evita cargar stock a un
+        # depósito equivocado). El humano configura ocr_default_warehouse y reintenta.
+        if not frappe.conf.get("ocr_default_warehouse"):
+            _NO_APTO = ("tránsito", "transito", "transit", "trabajo en proceso",
+                        "work in progress", "wip", "en proceso")
+            if any(t in (wh or "").lower() for t in _NO_APTO):
+                return {"purchase_receipt": None,
+                        "warning": f"El depósito destino no está configurado y el "
+                                   f"fallback resolvió a un depósito no apto ({wh}). "
+                                   f"Configurá 'ocr_default_warehouse' en site_config con "
+                                   f"el depósito real de recepción. No se creó la "
+                                   f"Recepción de Compra (los artículos sí se crearon)."}
         # Aviso si algún renglón no mueve stock (is_stock_item=0): la PR se arma
         # igual pero ese renglón no cargará stock al submitear (Nova/MSG_033).
         no_stock = [l["item_code"] for l in pr_lineas
