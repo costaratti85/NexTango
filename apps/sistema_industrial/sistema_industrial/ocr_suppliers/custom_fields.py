@@ -46,6 +46,27 @@ OCR_CUSTOM_FIELDS: dict[str, list[dict]] = {
             ),
         }
     ],
+    # Dedup FÉRREO de la baja de stock por ventas (Fase T5, Nova/MSG_035 D-dedup):
+    # identidad única del comprobante de venta de Tango en el Stock Entry, con
+    # ÍNDICE ÚNICO. Segunda capa junto al high-water mark: nunca descontar dos veces.
+    # Las Stock Entry manuales quedan con el campo NULL (múltiples NULLs permitidos).
+    "Stock Entry": [
+        {
+            "fieldname": "tango_comprobante_ref",
+            "label": "Comprobante Tango (ref baja)",
+            "fieldtype": "Data",
+            "insert_after": "remarks",
+            "unique": 1,
+            "read_only": 1,
+            "no_copy": 1,
+            "description": (
+                "Identidad del comprobante de venta de Tango 'tipo-letra-ptovta-numero' "
+                "(ej. 'FA-A-0003-00012345') que originó esta baja de stock. Índice único: "
+                "impide descontar dos veces el mismo comprobante. Vacío en movimientos "
+                "cargados a mano."
+            ),
+        }
+    ],
 }
 
 
