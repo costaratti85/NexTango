@@ -87,14 +87,26 @@ def calculate_cut_length_mm(geometry_items) -> float:
 
 
 def calculate_pierce_count(geometry_items) -> int:
-    """Count the number of closed figure objects (perforations).
+    """Count perforations: closed figures (holes) PLUS each Polyline (sheet
+    outline / border paths) — the contour also needs its own pierce to start
+    cutting it, it isn't free. Confirmado por Constantino (2026-07-23) contra
+    Delay_s real de Batería 2: la convención "agujeros + contorno" da el ajuste
+    más ajustado (spread 1.5% vs 4.2% sin contorno) — ver
+    tools/derivar_pierce_seconds.py.
 
     The legacy engine emits Figure objects (not Piece) for closed perforated
     shapes. Both share the .entities interface, so we detect closed figures by
-    the presence of .entities rather than by class name.  Polyline objects (the
-    sheet outline) do not have .entities and are excluded.
+    the presence of .entities rather than by class name. Polyline objects (the
+    sheet outline, and any other border path) do NOT have .entities — each one
+    counts as one additional pierce (usually exactly 1, the sheet outline; if a
+    pattern ever emits more than one Polyline — e.g. extra border paths — each
+    one legitimately needs its own pierce too, so it's counted, not hardcoded
+    as a flat +1).
     """
-    return sum(1 for item in geometry_items if hasattr(item, "entities"))
+    holes = sum(1 for item in geometry_items if hasattr(item, "entities"))
+    contornos = sum(1 for item in geometry_items
+                    if not hasattr(item, "entities") and type(item).__name__ == "Polyline")
+    return holes + contornos
 
 
 def calculate_sheet_area_m2(width_mm: float, height_mm: float) -> float:
@@ -137,14 +149,27 @@ def compute_travel_length_mm(
     return intra + inter
 
 
-# Tiempo de perforación (pierce) — PRESCRIPTO por Constantino (2026-07-14), NO ajustado
-# por regresión. Domina el tiempo de subir/bajar el cabezal (que CypCut desprecia en su
-# estimación); la diferencia entre espesores es insignificante frente a eso y se IGNORA
-# a propósito — nuestra fórmula da tiempos más altos (más reales) que CypCut, intencional.
+# Tiempo de perforación (pierce), sin flycut — DERIVADO de datos reales (2026-07-23,
+# tools/derivar_pierce_seconds.py), ya NO prescripto. Constantino observó en vivo que
+# el cabezal empieza a bajar ANTES de llegar al punto de perforación (el pierce se
+# solapa con el posicionamiento) — el valor prescripto anterior (3.0s) era una
+# sobreestimación. Regresión lineal por origen (Delay_s = gamma * pierce_count, sin
+# término constante — no hay motivo físico para un delay con 0 perforaciones) contra
+# los 12 paneles reales de Batería 2 (Delay_s medido por CypCut, pierce_count =
+# agujeros + 1 por el contorno de cada pieza — el contorno TAMBIÉN necesita su propio
+# pierce, ver calculate_pierce_count() acá abajo, confirmado por Constantino
+# 2026-07-23 porque es justo la convención que da el ajuste más ajustado):
+# gamma = 0.7187 s/perforación, error medio 0.54%, máximo 1.42% contra los 12 paneles
+# reales. Constantino confirmó 0.72 (diferencia de 0.18% contra el valor exacto de la
+# regresión — se usa 0.72 tal cual lo confirmó, no el decimal completo).
+# La diferencia entre espesores es insignificante frente al tiempo de posicionamiento
+# del cabezal y se IGNORA a propósito — nuestra fórmula da tiempos más altos (más
+# reales) que la estimación de CypCut, intencional.
 # "Apto flycut" (lo elige el vendedor en la UI) baja el tiempo: el cabezal no necesita
-# bajar tanto entre agujeros cuando el panel se corta en flycut.
-PIERCE_SECONDS_SIN_FLYCUT = 3.0
-PIERCE_SECONDS_CON_FLYCUT = 1.0
+# bajar tanto entre agujeros cuando el panel se corta en flycut — CON_FLYCUT sigue
+# siendo un valor fijado por Constantino (2026-07-23), no derivado de datos propios.
+PIERCE_SECONDS_SIN_FLYCUT = 0.72
+PIERCE_SECONDS_CON_FLYCUT = 0.2
 
 
 def calculate_consumed_resources(

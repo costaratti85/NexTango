@@ -1,5 +1,8 @@
-"""Tests para calculate_consumed_resources — modelo del PIERCE prescripto (Constantino,
-2026-07-14): 3s sin flycut / 1s con flycut, universal, NO calibrado por regresión.
+"""Tests para calculate_consumed_resources — modelo del PIERCE (Constantino):
+SIN_FLYCUT derivado por regresión de Batería 2 (2026-07-23, ver
+tools/derivar_pierce_seconds.py); CON_FLYCUT fijado por Constantino (0.2s).
+Los tests usan los símbolos importados, no los valores numéricos hardcodeados,
+para no romper si el valor derivado se recalibra con más datos.
 """
 
 import sys
@@ -11,9 +14,27 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "apps" / "sistema_i
 
 from sistema_industrial.presets.legacy_panel_adapter import (
     calculate_consumed_resources,
+    calculate_pierce_count,
     PIERCE_SECONDS_SIN_FLYCUT,
     PIERCE_SECONDS_CON_FLYCUT,
 )
+
+
+class _FakeFigure:
+    """Agujero: tiene .entities (como Figure/Piece del motor legacy)."""
+    def __init__(self):
+        self.entities = []
+
+
+class Polyline:
+    """Contorno/borde: SIN .entities -- se detecta por nombre de clase 'Polyline'."""
+    pass
+
+
+class _OtraClaseSinEntities:
+    """Cualquier otra cosa sin .entities y que NO se llame Polyline -- no debe
+    contarse como pierce (para no inflar el conteo con basura inesperada)."""
+    pass
 
 # Coeficientes reales de la Batería 2 (α, β, δ calibrados; γ ya no se lee de acá).
 MATERIAL_CALIBRADO = {
@@ -33,28 +54,28 @@ MATERIAL_LEGACY = {
 }
 
 
-def test_prescripto_valores():
-    assert PIERCE_SECONDS_SIN_FLYCUT == 3.0
-    assert PIERCE_SECONDS_CON_FLYCUT == 1.0
+def test_valores_pierce():
+    assert PIERCE_SECONDS_SIN_FLYCUT == 0.72
+    assert PIERCE_SECONDS_CON_FLYCUT == 0.2
 
 
-def test_calibrado_sin_flycut_usa_3s_por_pierce():
+def test_calibrado_sin_flycut_usa_gamma_derivado_por_pierce():
     r = calculate_consumed_resources(
         cut_length_m=1.0, pierce_count=10, sheet_area_m2=0.09,
         material_entry=MATERIAL_CALIBRADO, travel_length_mm=500.0,
         apto_flycut=False,
     )
-    esperado = 0.013372 * 1000.0 + 0.004946 * 500.0 + 3.0 * 10 + 0.0
+    esperado = 0.013372 * 1000.0 + 0.004946 * 500.0 + PIERCE_SECONDS_SIN_FLYCUT * 10 + 0.0
     assert r["machine_seconds"] == pytest.approx(round(esperado, 1))
 
 
-def test_calibrado_con_flycut_usa_1s_por_pierce():
+def test_calibrado_con_flycut_usa_02s_por_pierce():
     r = calculate_consumed_resources(
         cut_length_m=1.0, pierce_count=10, sheet_area_m2=0.09,
         material_entry=MATERIAL_CALIBRADO, travel_length_mm=500.0,
         apto_flycut=True,
     )
-    esperado = 0.013372 * 1000.0 + 0.004946 * 500.0 + 1.0 * 10 + 0.0
+    esperado = 0.013372 * 1000.0 + 0.004946 * 500.0 + PIERCE_SECONDS_CON_FLYCUT * 10 + 0.0
     assert r["machine_seconds"] == pytest.approx(round(esperado, 1))
 
 
@@ -84,23 +105,23 @@ def test_apto_flycut_default_false():
     assert r_default["machine_seconds"] == r_explicito["machine_seconds"]
 
 
-def test_legacy_sin_flycut_usa_3s_por_pierce_ignora_tiempo_perforacion_tabla():
+def test_legacy_sin_flycut_usa_gamma_derivado_ignora_tiempo_perforacion_tabla():
     r = calculate_consumed_resources(
         cut_length_m=1.0, pierce_count=10, sheet_area_m2=0.09,
         material_entry=MATERIAL_LEGACY, apto_flycut=False,
     )
     esperado_cut = 1000.0 / 280.0
-    esperado = esperado_cut + 3.0 * 10
+    esperado = esperado_cut + PIERCE_SECONDS_SIN_FLYCUT * 10
     assert r["machine_seconds"] == pytest.approx(round(esperado, 1))
 
 
-def test_legacy_con_flycut_usa_1s_por_pierce():
+def test_legacy_con_flycut_usa_02s_por_pierce():
     r = calculate_consumed_resources(
         cut_length_m=1.0, pierce_count=10, sheet_area_m2=0.09,
         material_entry=MATERIAL_LEGACY, apto_flycut=True,
     )
     esperado_cut = 1000.0 / 280.0
-    esperado = esperado_cut + 1.0 * 10
+    esperado = esperado_cut + PIERCE_SECONDS_CON_FLYCUT * 10
     assert r["machine_seconds"] == pytest.approx(round(esperado, 1))
 
 
@@ -111,3 +132,36 @@ def test_pierce_zero_no_suma_tiempo():
     )
     esperado = 0.013372 * 1000.0
     assert r["machine_seconds"] == pytest.approx(round(esperado, 1))
+
+
+# ------------------------------------------ calculate_pierce_count (contorno incluido)
+#
+# Constantino confirmó (2026-07-23): el contorno de cada pieza TAMBIÉN necesita su
+# propio pierce -- es la convención que dio el ajuste más ajustado (spread 1.5% vs
+# 4.2%) contra los 12 paneles reales de Batería 2 (ver derivar_pierce_seconds.py).
+
+def test_pierce_count_agujeros_mas_un_contorno():
+    items = [_FakeFigure(), _FakeFigure(), _FakeFigure(), Polyline()]
+    assert calculate_pierce_count(items) == 4  # 3 agujeros + 1 contorno
+
+
+def test_pierce_count_sin_agujeros_solo_contorno():
+    items = [Polyline()]
+    assert calculate_pierce_count(items) == 1
+
+
+def test_pierce_count_sin_geometria_da_cero():
+    assert calculate_pierce_count([]) == 0
+
+
+def test_pierce_count_multiples_polylines_cuentan_cada_una():
+    """Si el motor emite más de un Polyline (ej. un border path aparte del
+    contorno), cada uno necesita su propio pierce -- no se hardcodea un +1
+    fijo, se cuenta lo que realmente hay."""
+    items = [_FakeFigure(), Polyline(), Polyline()]
+    assert calculate_pierce_count(items) == 3
+
+
+def test_pierce_count_ignora_objetos_sin_entities_que_no_son_polyline():
+    items = [_FakeFigure(), _OtraClaseSinEntities()]
+    assert calculate_pierce_count(items) == 1

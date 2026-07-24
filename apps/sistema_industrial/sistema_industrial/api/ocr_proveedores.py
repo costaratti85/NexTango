@@ -323,8 +323,12 @@ def _generar_excel_tango(created_items, proveedor):
     if not created_items:
         return None
     try:
-        from sistema_industrial.ocr_suppliers.tango_export import build_tango_import_excel
-        return build_tango_import_excel(created_items, proveedor)
+        # Impl REAL de Forge (contrato documentado en su docstring: "Atlas invoca en el
+        # Confirmar de la Fase 2", firma `build_tango_import_excel(created_items) -> {file_url}`).
+        # El módulo ocr_suppliers.tango_export era un stub NotImplementedError -> quedó sin usar.
+        from sistema_industrial.tango_sync.article_export import build_tango_import_excel
+        result = build_tango_import_excel(created_items)
+        return result.get("file_url") if isinstance(result, dict) else result
     except (ImportError, NotImplementedError):
         return None
     except Exception as exc:
