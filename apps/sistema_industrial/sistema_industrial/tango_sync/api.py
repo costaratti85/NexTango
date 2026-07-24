@@ -88,3 +88,46 @@ def _sync_customers_background() -> dict:
         "total": result.total,
         "errors": result.errors,
     }
+
+
+@frappe.whitelist()
+def manual_sync_articles() -> dict:
+    """Dispara el sync COMPLETO de artículos Tango → ERPNext como background job.
+
+    On-demand (vs. el scheduled diario). Lo usa el "check de catálogo" del OCR para
+    refrescar el catálogo antes de matchear. Al terminar, invalida el cache del
+    catálogo OCR y el snapshot de lookup. CERO escritura a Tango (solo lee de Tango
+    y escribe Items en ERPNext).
+    """
+    job = frappe.enqueue(
+        "sistema_industrial.tango_sync.api._sync_articles_background",
+        enqueue_after_commit=True,
+        is_async=True,
+        timeout=1200,  # ~20 min para el catálogo completo
+        job_title="Sync manual de artículos Tango → ERPNext",
+    )
+    return {
+        "job_id": job.id,
+        "message": "Sincronización de artículos iniciada. Por favor espere...",
+        "status": "queued",
+    }
+
+
+def _sync_articles_background() -> dict:
+    """Worker: corre el sync de artículos y refresca los caches de matching."""
+    from sistema_industrial.tango_sync.scheduled import sync_articles_from_tango
+
+    sync_articles_from_tango()
+
+    # Refrescar lo que usa el matcher del OCR para que vea lo nuevo.
+    try:
+        from sistema_industrial.ocr_suppliers.catalog import invalidate as invalidate_catalog
+        invalidate_catalog()
+    except Exception:  # el módulo OCR puede no estar presente en algún entorno
+        logger.warning("_sync_articles_background: no se pudo invalidar el catálogo OCR", exc_info=True)
+    try:
+        frappe.cache().delete_value("tango_sync:articles_snapshot")
+    except Exception:
+        pass
+
+    return {"ok": True}
