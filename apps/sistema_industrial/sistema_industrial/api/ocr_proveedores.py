@@ -98,33 +98,37 @@ def _resolver_supplier(cuit: str) -> dict:
     return {"cuit": cuit_n, "nombre": sname or name, "supplier": name, "encontrado": True}
 
 
+def _find_tango_article(code=None, descripcion=None, barcode=None):
+    """SEAM con Forge (tango_sync.lookup.find_tango_article, MSG_041-C): consulta
+    SOLO LECTURA si el artículo existe en Tango. Devuelve el dict
+    {encontrado, match, articulo:{code,description,uom,tango_id,...}} si lo encontró,
+    o None si no está / el módulo no está deployado / Tango no responde (degrada)."""
+    try:
+        from sistema_industrial.tango_sync.lookup import find_tango_article
+    except (ImportError, NotImplementedError):
+        return None
+    try:
+        r = find_tango_article(code=code or None, descripcion=descripcion or None,
+                               barcode=barcode or None)
+        return r if (r and r.get("encontrado")) else None
+    except Exception:
+        return None
+
+
 def _enriquecer_tango(lineas: list) -> list:
     """Por cada línea SIN match, consulta Tango (solo lectura) y adjunta
     `tango_articulo` = {encontrado, match, articulo:{code,description,...}} | None.
 
-    SEAM con Forge (tango_sync.lookup.find_tango_article, MSG_041-C): si el módulo
-    aún no está deployado, o Tango no responde, deja `tango_articulo=None` sin
-    romper. Es una SUGERENCIA para la UI (paralela a codigo_sugerido); no crea ni
-    override el ítem — el humano decide (Regla 8). Las líneas CON match no se tocan."""
-    try:
-        from sistema_industrial.tango_sync.lookup import find_tango_article
-    except (ImportError, NotImplementedError):
-        for l in lineas:
-            l.setdefault("tango_articulo", None)
-        return lineas
+    Es una SUGERENCIA para la UI (paralela a codigo_sugerido); no crea ni override
+    el ítem — el humano decide (Regla 8). Las líneas CON match no se tocan. La
+    consulta que SÍ se usa al crear (pre-paso MSG_035) está en `confirmar`."""
     for l in lineas:
         if l.get("match"):
             l.setdefault("tango_articulo", None)
             continue
-        try:
-            r = find_tango_article(
-                code=l.get("codigo_proveedor") or None,
-                descripcion=l.get("descripcion") or None,
-                barcode=l.get("codigo_barras") or None,
-            )
-            l["tango_articulo"] = r if (r and r.get("encontrado")) else None
-        except Exception:
-            l["tango_articulo"] = None
+        l["tango_articulo"] = _find_tango_article(
+            code=l.get("codigo_proveedor"), descripcion=l.get("descripcion"),
+            barcode=l.get("codigo_barras"))
     return lineas
 
 
@@ -361,12 +365,14 @@ def _guardar_layout_supplier(supplier: str, cuit: str, meta: dict) -> bool:
 
 
 def _crear_item_nuevo(item_code, item_name, supplier, codigo_proveedor="", barcode="",
-                      is_stock_item=1, si_iva_pct=None):
+                      is_stock_item=1, si_iva_pct=None, uom=None):
     """Crea el Item (idempotente por item_code). Si ya existe, asegura el vínculo
     con el proveedor y el barcode sin duplicar. Devuelve el name.
 
     is_stock_item: del checkbox de la grilla (Vega). Solo se aplica al CREAR uno
-    nuevo — a un Item ya existente no le tocamos el flag de stock."""
+    nuevo — a un Item ya existente no le tocamos el flag de stock.
+    uom: unidad autoritativa (p. ej. la de Tango si el artículo existe allá); si no
+    se pasa o no existe como UOM en ERPNext, cae al default."""
     item_code = (item_code or "").strip()
     if not item_code:
         frappe.throw("Falta el código de artículo (item_code) para un ítem nuevo.")
@@ -381,9 +387,10 @@ def _crear_item_nuevo(item_code, item_name, supplier, codigo_proveedor="", barco
             doc.append("barcodes", {"barcode": barcode})
         doc.save(ignore_permissions=True)
         return doc.name
+    uom_final = uom if (uom and frappe.db.exists("UOM", uom)) else _default_uom()
     doc = frappe.get_doc(item_payload_nuevo(
         item_code, item_name, supplier, codigo_proveedor, barcode,
-        _ITEM_GROUP_DEFAULT, _default_uom(), is_stock_item, si_iva_pct))
+        _ITEM_GROUP_DEFAULT, uom_final, is_stock_item, si_iva_pct))
     doc.insert(ignore_permissions=True)
     return doc.name
 
@@ -530,7 +537,9 @@ def confirmar(invoice_id, decisiones_json):
     r.message: {ok, proveedor_creado, created_items, tango_excel, purchase_receipt,
                 recepcion_warning}
       - proveedor_creado:   name del Supplier SOLO si se dio de alta ahora, si no null.
-      - created_items:      [{item_code, origen:"nuevo", item_name}] de los creados.
+      - created_items:      [{item_code, origen:"nuevo"|"tango", item_name}]. origen
+                            "tango" = existía en Tango y se creó desde sus datos
+                            (pre-paso MSG_035); "nuevo" = no estaba en Tango.
       - tango_excel:        file_url del .xlsx, o null si Forge aún no lo generó.
       - purchase_receipt:   name de la Recepción de Compra en BORRADOR (docstatus=0),
                             o null si no se pudo armar (ver recepcion_warning). El
@@ -590,18 +599,32 @@ def confirmar(invoice_id, decisiones_json):
             frappe.throw(f"decision desconocida en la línea {d.get('idx')}: {decision!r}")
         desc = line.get("descripcion", "")
         cod_prov = line.get("codigo_proveedor", "")
+        barra = d.get("codigo_barras") or line.get("codigo_barras") or ""
         # is_stock_item del checkbox de la grilla (Vega/MSG_040), default 1.
         lleva_stock = d.get("is_stock_item", d.get("lleva_stock", True))
         # IVA % del renglón (Vega/MSG_040) → Item.si_iva_pct (Forge/MSG_041). El
         # valor del humano manda (Regla 8); si no, cae al que detectó el OCR.
         iva = d.get("iva", line.get("iva", line.get("iva_pct")))
-        name = _crear_item_nuevo(d.get("item_code"), desc, supplier, cod_prov,
-                                 d.get("codigo_barras") or "",
+        # PRE-PASO consulta a Tango ANTES de crear (MSG_035): un artículo puede
+        # existir en Tango y no en la copia ERPNext. Si está, lo creamos DESDE los
+        # datos de Tango (descripción/uom autoritativas) y lo marcamos origen=tango
+        # → NO va al Excel de importación (ya vive en Tango). Solo lectura.
+        tango = _find_tango_article(code=d.get("item_code"), descripcion=desc, barcode=barra)
+        origen, uom_tango = "nuevo", None
+        if tango:
+            art = tango.get("articulo") or {}
+            desc = art.get("description") or desc
+            uom_tango = art.get("uom") or None
+            barra = barra or art.get("barcode") or ""
+            origen = "tango"
+        name = _crear_item_nuevo(d.get("item_code"), desc, supplier, cod_prov, barra,
                                  is_stock_item=1 if lleva_stock else 0,
-                                 si_iva_pct=iva)
-        created_out.append({"item_code": name, "origen": "nuevo", "item_name": desc})
-        created_rich.append({"item_code": name, "item_name": desc,
-                             "codigo_proveedor": cod_prov, "barcode": d.get("codigo_barras") or ""})
+                                 si_iva_pct=iva, uom=uom_tango)
+        created_out.append({"item_code": name, "origen": origen, "item_name": desc})
+        if origen == "nuevo":
+            # Solo los que NO existen en Tango van al Excel de importación a Tango.
+            created_rich.append({"item_code": name, "item_name": desc,
+                                 "codigo_proveedor": cod_prov, "barcode": barra})
         if qty > 0:
             pr_lineas.append({"item_code": name, "qty": qty, "rate": rate})
 
