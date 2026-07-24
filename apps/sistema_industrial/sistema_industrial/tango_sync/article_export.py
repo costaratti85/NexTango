@@ -56,14 +56,21 @@ COL_PERFIL = "Perfil"
 COL_UM_STOCK1 = "Código de UM de stock 1 (Precios y costos)"
 COL_LLEVA_STOCK = "Lleva stock"
 COL_ELIMINAR = "Eliminar"
+COL_IVA_VENTAS = "Código de IVA Ventas"
+COL_IVA_COMPRAS = "Código de IVA Compras"
 
-# Columnas fiscales/comerciales que ERPNext no tiene hoy → gaps (se completan
-# según la decisión de alcance de Constantino / caso A-B de la plantilla).
-_FISCAL_GAPS = [
-    "Código de IVA Ventas",
-    "Código de IVA Compras",
-    "Código de base",
-]
+# Mapa % de IVA → código de alícuota de Tango (lookup GVA41: 1/2/3...).
+# Valores AR habituales; CONFIGURABLE por site_config `ocr_iva_code_map`
+# ({"21":"1","10.5":"2","0":"3"}). Constantino confirma el código↔% real.
+_IVA_PCT_TO_TANGO_CODE_DEFAULT: dict[str, str] = {
+    "21": "1",
+    "10.5": "2",
+    "0": "3",
+    "27": "4",
+}
+
+# Gap fiscal que ERPNext no tiene fuente para llenar (el código de base lo arma Tango).
+_ALWAYS_GAP = ["Código de base"]
 
 _ITEM_FIELDS = [
     "item_code",
@@ -74,7 +81,25 @@ _ITEM_FIELDS = [
     "is_sales_item",
     "is_purchase_item",
     "si_tango_id",
+    "si_iva_pct",
 ]
+
+
+def _iva_code_map() -> dict:
+    override = frappe.conf.get("ocr_iva_code_map") if frappe else None
+    return override if isinstance(override, dict) and override else _IVA_PCT_TO_TANGO_CODE_DEFAULT
+
+
+def _iva_code(iva_pct) -> str | None:
+    """Traduce un % de IVA al código de Tango. None si no hay % o no mapea."""
+    if iva_pct is None or iva_pct == "":
+        return None
+    try:
+        # normaliza 21.0 -> "21", 10.50 -> "10.5"
+        key = ("%g" % float(iva_pct))
+    except (TypeError, ValueError):
+        return None
+    return _iva_code_map().get(key)
 
 
 def _perfil(is_sales: int, is_purchase: int) -> str:
@@ -143,12 +168,21 @@ def build_tango_article_rows(
             COL_ELIMINAR: "No",
         }
 
-        gaps = list(_FISCAL_GAPS)
+        gaps = list(_ALWAYS_GAP)
         if uom_tango:
             filled[COL_UM_STOCK1] = uom_tango
         else:
             # unidad inesperada para ferretería → queda como gap explícito
             gaps.append(f"{COL_UM_STOCK1} (unidad ERPNext '{it.get('stock_uom')}' sin mapeo Tango)")
+
+        # IVA: se llena desde el si_iva_pct guardado en el Item (viene del renglón OCR).
+        iva_code = _iva_code(it.get("si_iva_pct"))
+        if iva_code:
+            filled[COL_IVA_VENTAS] = iva_code
+            filled[COL_IVA_COMPRAS] = iva_code
+        else:
+            gaps.append(COL_IVA_VENTAS)
+            gaps.append(COL_IVA_COMPRAS)
 
         rows.append({"item_code": it["item_code"], "filled": filled, "gaps": gaps})
 

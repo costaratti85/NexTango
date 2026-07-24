@@ -25,6 +25,20 @@ OCR_CUSTOM_FIELDS: dict[str, list[dict]] = {
             ),
         }
     ],
+    "Item": [
+        {
+            "fieldname": "si_iva_pct",
+            "label": "IVA % (Tango)",
+            "fieldtype": "Percent",
+            "insert_after": "item_group",
+            "no_copy": 0,
+            "description": (
+                "Alícuota de IVA (%) del artículo, tomada del renglón de la factura por el "
+                "OCR. Se usa para llenar la columna 'Código de IVA' del Excel de importación "
+                "a Tango (mapeo %→código). El máster fiscal sigue siendo Tango."
+            ),
+        }
+    ],
 }
 
 
