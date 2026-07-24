@@ -56,7 +56,17 @@ def get_default_warehouse(company: str | None = None) -> str | None:
 
 
 def receipt_defaults(company: str | None = None) -> dict:
-    """Atajo para Atlas: {company, set_warehouse} para armar la Purchase Receipt."""
+    """Atajo para el stock-IN (Purchase Receipt): {company, set_warehouse}."""
+    company = company or get_default_company()
+    return {"company": company, "set_warehouse": get_default_warehouse(company)}
+
+
+def delivery_defaults(company: str | None = None) -> dict:
+    """Atajo para la BAJA (Delivery Note / Stock Entry de ventas): {company, set_warehouse}.
+
+    Usa **el mismo** `get_default_warehouse` que el stock-IN → warehouse destino
+    COMPARTIDO entre recepción de compra y baja de ventas (no se duplica config).
+    """
     company = company or get_default_company()
     return {"company": company, "set_warehouse": get_default_warehouse(company)}
 
