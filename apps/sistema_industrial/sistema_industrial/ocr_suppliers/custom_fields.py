@@ -25,6 +25,20 @@ OCR_CUSTOM_FIELDS: dict[str, list[dict]] = {
             ),
         }
     ],
+    "Item": [
+        {
+            "fieldname": "si_iva_pct",
+            "label": "IVA % (Tango)",
+            "fieldtype": "Percent",
+            "insert_after": "item_group",
+            "no_copy": 0,
+            "description": (
+                "Alícuota de IVA (%) del artículo, tomada del renglón de la factura por el "
+                "OCR. Se usa para llenar la columna 'Código de IVA' del Excel de importación "
+                "a Tango (mapeo %→código). El máster fiscal sigue siendo Tango."
+            ),
+        }
+    ],
     # Dedup de facturas de proveedor (Fase 3, Nova/MSG_036): identidad de la factura
     # "{cuit}-{tipo}-{numero_completo}" en la Recepción de Compra, con ÍNDICE ÚNICO.
     # Las PR nativas (sin OCR) quedan con el campo NULL -> MariaDB permite múltiples
