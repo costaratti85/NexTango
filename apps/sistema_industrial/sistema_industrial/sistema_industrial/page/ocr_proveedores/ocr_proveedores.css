@@ -69,7 +69,24 @@
 .si-page .ocr-nuevo-sug { font-size:9px; font-weight:800; letter-spacing:.4px; color:#177245; text-transform:uppercase; }
 .si-page .ocr-grid tr.ocr-omitida .ocr-nuevo-box { text-decoration:none; }
 
+/* IVA % por renglón */
+.si-page .ocr-iva-input { width:58px; text-align:center; font-size:12px; padding:3px 4px;
+                          border:1px solid var(--si-line); border-radius:4px; }
+.si-page .ocr-iva-input.ocr-iva-review { border-color:#e0a800; background:#fff8ec; }
+.si-page .ocr-iva-flag { font-size:9px; font-weight:800; letter-spacing:.3px; color:#8a6516;
+                         text-transform:uppercase; margin-top:2px; }
+
+/* Checkbox control de stock (en el box de nuevo) */
+.si-page .ocr-nuevo-stock { font-size:11px; color:var(--si-ink); display:flex; align-items:center; gap:4px; }
+
 /* Resultado de la confirmación */
+.si-page .ocr-res-item { display:block; font-size:11.5px; margin:2px 0; word-break:break-all; }
+.si-page .ocr-res-origen { display:inline-block; font-size:9px; font-weight:800; text-transform:uppercase;
+                           letter-spacing:.3px; padding:1px 6px; border-radius:3px; margin-right:5px; }
+.si-page .ocr-origen-nuevo { background:#e6f6ec; color:#177245; }
+.si-page .ocr-origen-tango { background:#e8f0fb; color:#1b4f8a; }
+.si-page .ocr-res-pr { padding:7px 16px; text-decoration:none; display:inline-block; }
+/* Resultado de la confirmación (base) */
 .si-page .ocr-confirm-result { margin-top:14px; padding:12px 14px; background:#eef7f0;
                                border:1px solid #bfe3c9; border-radius:8px; }
 .si-page .ocr-res-line { font-size:13.5px; margin-bottom:4px; }

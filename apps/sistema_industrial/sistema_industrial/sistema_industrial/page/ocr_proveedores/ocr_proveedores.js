@@ -17,6 +17,7 @@ const OCR_POLL_MS = 2000;
 // Bandas de color canónicas (Nova MSG_048): verde ≥85 · amarillo 50–84 · rojo <50.
 const OCR_UMBRAL_VERDE = 85;
 const OCR_UMBRAL_AMARILLO = 50;
+const OCR_IVA_DEFAULT = 21;   // IVA % por defecto si el OCR no lo detecta
 
 // -------------------------------------------------------------------------
 // Adaptador de payload: normaliza lo que devuelve resultado() de Atlas a la
@@ -50,7 +51,8 @@ function ocrNormLinea(L, i) {
 		cantidad: cant,
 		precio: precio,
 		importe: importe,
-		iva: L.iva != null ? L.iva : null,
+		iva: L.iva != null ? Number(L.iva) : null,                               // IVA % detectado, o null
+		needs_review: !!L.needs_review || L.iva == null,                         // marcar si el backend lo pide o no se detectó
 		codigo_sugerido: L.codigo_sugerido != null ? L.codigo_sugerido : null,   // solo líneas sin match (suggester)
 		match: L.match ? ocrNormMatch(L.match, L) : null,
 		candidatos: (L.candidatos || []).map((c) => ocrNormMatch(c, L)),
@@ -236,6 +238,8 @@ class OcrProveedores {
 				// (codigo_sugerido; null → vacío). Queda editable en el modo "nuevo".
 				nuevo_codigo: !has && ln.codigo_sugerido ? String(ln.codigo_sugerido) : '',
 				codigo_barras: '',
+				iva: ln.iva != null ? ln.iva : OCR_IVA_DEFAULT,   // editable por renglón
+				is_stock_item: true,                              // control de stock ON por defecto (nuevos)
 			};
 		});
 
@@ -296,6 +300,15 @@ class OcrProveedores {
 			tr.append($('<td style="text-align:right">').text(ln.precio != null ? format_currency(ln.precio, moneda) : '—'));
 			tr.append($('<td style="text-align:right">').text(ln.importe != null ? format_currency(ln.importe, moneda) : '—'));
 
+			// IVA % editable por renglón. Default 21 si no se detectó; se marca needs_review.
+			const $ivaTd = $('<td style="text-align:center" class="ocr-iva-cell">');
+			const $iva = $('<input type="number" min="0" step="0.5" class="ocr-iva-input">').val(dec.iva);
+			if (ln.needs_review) $iva.addClass('ocr-iva-review').attr('title', __('IVA no detectado / a revisar'));
+			$iva.on('input', () => { const v = parseFloat($iva.val()); dec.iva = isNaN(v) || v < 0 ? 0 : v; });
+			$ivaTd.append($iva);
+			if (ln.needs_review) $ivaTd.append($('<div class="ocr-iva-flag">').text(__('revisar')));
+			tr.append($ivaTd);
+
 			tr.append(this.render_item_cell(ln));
 
 			const $conf = $('<td style="text-align:center">');
@@ -326,6 +339,10 @@ class OcrProveedores {
 			if (sugerido) $codeLbl.append($('<span class="ocr-nuevo-sug">').text(' · ' + __('sugerido')));
 			$box.append($codeLbl.append($code));
 			$box.append($('<label class="ocr-nuevo-lbl">').text(__('Código de barras')).append($bar));
+			// Control de stock (ON por defecto): manda is_stock_item al crear el Item.
+			const $stk = $('<input type="checkbox">').prop('checked', dec.is_stock_item !== false);
+			$stk.on('change', () => { dec.is_stock_item = $stk.prop('checked'); });
+			$box.append($('<label class="ocr-nuevo-stock">').append($stk).append($('<span>').text(' ' + __('Control de stock'))));
 			$box.append($('<div class="ocr-nuevo-nombre">').text(__('Nombre: ') + (ln.descripcion || '—') + (ln.codigo_proveedor ? '  ·  ' + __('cód. prov.: ') + ln.codigo_proveedor : '')));
 			$td.append($box);
 			return $td;
@@ -497,6 +514,8 @@ class OcrProveedores {
 				decision: decision,
 				item_code: item_code,
 				codigo_barras: decision === 'nuevo' ? ((d.codigo_barras || '').trim() || null) : null,
+				iva: d.iva != null ? d.iva : OCR_IVA_DEFAULT,                       // % por renglón (todas)
+				is_stock_item: decision === 'nuevo' ? (d.is_stock_item !== false) : null,   // solo para nuevos
 			};
 		});
 	}
@@ -543,29 +562,54 @@ class OcrProveedores {
 			.then(() => btn.prop('disabled', false));
 	}
 
-	// Feedback del resultado: proveedor creado, artículos nuevos, y descarga del Excel Tango.
+	// Feedback ampliado: proveedor creado, artículos (con origen nuevo/Tango),
+	// Excel Tango, y link a la Recepción de Compra (stock-in) cuando Atlas la enganche.
+	// Tolerante: created_items puede ser [str] o [{item_code, origen, item_name}].
 	render_confirm_result(m) {
 		const $r = $('#ocr-confirm-result').empty().removeClass('hidden');
-		const created = m.created_items || m.created || [];
 		const prov = m.proveedor_creado || m.supplier_creado || null;
+		const raw = m.created_items || m.created_detail || m.created || [];
+		const items = raw.map((x) => (typeof x === 'string' ? { item_code: x } : (x || {})));
 
 		if (prov) $r.append($('<div class="ocr-res-line">').html('🏢 ' + __('Proveedor creado') + ': <b>' + frappe.utils.escape_html(String(prov)) + '</b>'));
+		else $r.append($('<div class="ocr-res-line dimmed">').text(__('Proveedor: ya existía (no se creó).')));
 
-		if (created.length) {
-			$r.append($('<div class="ocr-res-line">').html('📦 ' + __('Artículos nuevos creados') + ': <b>' + created.length + '</b>'));
-			$r.append($('<div class="ocr-res-items">').text(created.join('  ·  ')));
+		if (items.length) {
+			$r.append($('<div class="ocr-res-line">').html('📦 ' + __('Artículos procesados') + ': <b>' + items.length + '</b>'));
+			const $list = $('<div class="ocr-res-items">');
+			items.forEach((it) => {
+				const origen = (it.origen || it.origin || 'nuevo').toLowerCase();
+				const esTango = origen === 'tango';
+				$list.append(
+					$('<span class="ocr-res-item">').append(
+						$('<span class="ocr-res-origen">').addClass(esTango ? 'ocr-origen-tango' : 'ocr-origen-nuevo').text(esTango ? __('de Tango') : __('nuevo'))
+					).append(document.createTextNode(' ' + (it.item_code || '') + (it.item_name ? ' — ' + it.item_name : '')))
+				);
+			});
+			$r.append($list);
 		} else {
-			$r.append($('<div class="ocr-res-line dimmed">').text(__('No se crearon artículos nuevos.')));
+			$r.append($('<div class="ocr-res-line dimmed">').text(__('No se crearon ni vincularon artículos.')));
 		}
 
+		// Excel de importación a Tango
 		if (m.tango_excel) {
 			const a = document.createElement('a');
 			a.href = m.tango_excel; a.className = 'btn btn-primary ocr-res-dl';
 			a.setAttribute('download', ''); a.textContent = '⤓ ' + __('Descargar Excel para importar a Tango');
 			$r.append($('<div style="margin-top:8px">').append(a));
 			$r.append($('<div class="dimmed ocr-res-note">').text(__('El Excel se importa a Tango a mano (la app no escribe a Tango).')));
-		} else if (created.length && !m._demo) {
+		} else if (items.length && !m._demo) {
 			$r.append($('<div class="dimmed ocr-res-note">').text(__('El Excel de Tango no vino en la respuesta — coordinando con el backend.')));
+		}
+
+		// Recepción de Compra (stock-in) — link al doc cuando Atlas la devuelva.
+		const pr = m.purchase_receipt || m.recepcion || null;
+		if (pr) {
+			const url = '/app/purchase-receipt/' + encodeURIComponent(pr);
+			const a2 = document.createElement('a');
+			a2.href = url; a2.className = 'btn btn-default ocr-res-pr';
+			a2.textContent = '📥 ' + __('Ver Recepción de Compra') + ' (' + pr + ')';
+			$r.append($('<div style="margin-top:8px">').append(a2));
 		}
 	}
 }
@@ -599,7 +643,7 @@ const OCR_DEMO_PAYLOAD = {
 		},
 		{
 			id: 'l3', descripcion: 'DISCO CORTE 4.5 INOX x50', codigo_proveedor: 'DC45I',
-			cantidad: 2, precio: 41840.25, importe: 83680.5, iva: 21,
+			cantidad: 2, precio: 41840.25, importe: 83680.5, iva: 10.5, needs_review: true,
 			match: null,
 			candidatos: [
 				{ item_code: '05-02-0012', item_name: 'Disco de corte 4.5" metal', confianza: 41, criterio: 'descripcion' },
